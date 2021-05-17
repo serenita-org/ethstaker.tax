@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon/site.webmanifest">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/bootstrap/bootstrap.min.css">
+
+    <!-- Bootstrap icons -->
+    <link rel="stylesheet" href="/static/bootstrap/bootstrap-icons.css">
+
+    <!-- Moment.js - required by Pikaday -->
+    <script src="/static/momentjs/moment.js"></script>
+
+    <!-- Pikaday date picker -->
+    <link rel="stylesheet" href="/static/pikaday/pikaday.css">
+    <script src="/static/pikaday/pikaday.js"></script>
+
+    <!-- Custom CSS/JS for this webapp -->
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/app.js"></script>
+
+    <title>ETH2 Staking Rewards Calculator</title>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="p-3">
+        <form id="inputForm" onsubmit="getRewards(); return false;">
+            <div class="row p-3">
+                <h2>For which validators would you like to calculate rewards?</h2>
+                <p>
+                    You can add your validators in any of the three
+                    following ways:
+                </p>
+            </div>
+            <div class="row p-3">
+                <ul class="nav nav-tabs" id="validatorChoiceTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="index-tab" data-bs-toggle="tab" data-bs-target="#index" type="button" role="tab" aria-controls="home" aria-selected="true">Validator Indexes</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pubkey-tab" data-bs-toggle="tab" data-bs-target="#pubkey" type="button" role="tab" aria-controls="profile" aria-selected="false">Validator public keys</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="eth1-tab" data-bs-toggle="tab" data-bs-target="#eth1" type="button" role="tab" aria-controls="contact" aria-selected="false">ETH1 deposit addresses</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="validatorChoiceTabContent">
+                    <div class="tab-pane fade show active m-3" id="index" role="tabpanel" aria-labelledby="index-tab">
+                        <div class="input-group mb-1 p-2">
+                            <input
+                                    type="number" min="0" max="500000"
+                                    class="form-control" placeholder="Type your validator index here"
+                            >
+                            <button class="btn btn-outline-secondary" type="button" onclick="addInputElement(this);">
+                                <i class="bi-plus-circle"></i>
+                                Add another
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade m-3" id="pubkey" role="tabpanel" aria-labelledby="pubkey-tab">
+                        <div class="input-group mb-1 p-2">
+                            <input
+                                    type="text" pattern="^0x[a-fA-F0-9]{96}$"
+                                    class="form-control" placeholder="Type your validator public key here"
+                            >
+                            <button class="btn btn-outline-secondary" type="button" onclick="addInputElement(this);">
+                                <i class="bi-plus-circle"></i>
+                                Add another
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade m-3" id="eth1" role="tabpanel" aria-labelledby="eth1-tab">
+                        <div class="input-group mb-1 p-2">
+                            <input
+                                    type="text" pattern="^0x[a-fA-F0-9]{40}$"
+                                    class="form-control" placeholder="Type your ETH1 deposit address here"
+                            >
+                            <button class="btn btn-outline-secondary" type="button" onclick="addInputElement(this);">
+                                <i class="bi-plus-circle"></i>
+                                Add another
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row p-3">
+                <h2>What timezone are you in?</h2>
+                <p>
+                    The timezone is taken into account to accurately count the rewards
+                    for each day up until midnight in the specified timezone.
+                </p>
+                <div class="input-group mb-1 p-2">
+                    <select class="form-select" id="selectTimezone">
+                    {% for tz in common_timezones %}
+                        <option value="{{ tz }}">{{ tz }}</option>
+                    {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row p-3">
+                <h2>Which currency would you like to calculate the rewards in?</h2>
+                <p>
+                    The total amount of rewards will be returned in ETH
+                    and in the currency you select below.
+                </p>
+                <div class="input-group mb-1 p-2">
+                    <select class="form-select" id="selectCurrency">
+                        {% for currency in currencies %}
+                        <option value="{{ currency }}">{{ currency }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row p-3">
+                <h2>What date range would you like to calculate the rewards for?</h2>
+                <div class="input-group mb-1 p-2">
+                    <select class="form-select" id="selectDateRange">
+                        {% for year in range(2020,2022) %}
+                        <option value="{{ year }}">{{ year }}</option>
+                        {% endfor %}
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="input-group mb-3" id="customDateRangeInput">
+                    <span class="input-group-text">Start date</span>
+                    <input type="text" class="form-control" id="datePickerStart">
+                    <span class="input-group-text">End date</span>
+                    <input type="text" class="form-control" id="datePickerEnd">
+                </div>
+                <div class="input-group mb-3">
+
+                </div>
+            </div>
+            <div class="row p-3">
+                <button class="btn btn-outline-secondary" type="submit" id="calculateButton">
+                    <i class="bi-calculator"></i>
+                    Calculate
+                </button>
+            </div>
+        </form>
+        <div class="d-none m-3" id="calculateInfoMessage">
+            <div class="d-flex justify-content-center m-3">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <p class="text-center">
+                Please be patient, it may take up to several minutes to retrieve the requested data.
+            </p>
+        </div>
+        <div class="alert alert-danger d-none m-3" role="alert" id="calculateErrorMessage">
+        </div>
+    </div>
+    <div id="sumRewardsTablesContainer">
+    </div>
+    <div class="collapse" id="rewardsTablesCollapse">
+        <div class="card card-body" id="rewardsTablesContainer"></div>
+    </div>
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="row">
+            <div class="col-sm">
+                <a class="btn btn-outline-primary float-start" href="/api/docs" role="button">
+                    API
+                </a>
+            </div>
+            <div class="col-sm d-flex justify-content-center">
+                <a class="footer-image-link p-1" href="https://github.com/eth2353">
+                    <i class="bi-github"></i>
+                </a>
+                <a class="footer-image-link p-1" href="https://www.reddit.com/user/eth2353">
+                    <i class="bi-chat-left-text"></i>
+                </a>
+                <a class="footer-image-link p-1" href="https://twitter.com/eth2353">
+                    <i class="bi-twitter"></i>
+                </a>
+                <a class="footer-image-link p-1" href="https://discordapp.com/users/737740104281489531">
+                    <i class="bi-discord"></i>
+                </a>
+            </div>
+            <div class="col-sm">
+                <a class="btn btn-outline-primary float-end" href="https://github.com/eth2353/eth2.tax/issues" role="button" target="_blank">
+                    <i class="bi-exclamation-circle"></i>
+                    Report an issue
+                </a>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- Bootstrap Bundle with Popper -->
+<script src="/static/bootstrap/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
