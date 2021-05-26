@@ -118,6 +118,12 @@ function cleanupFromPreviousRequest() {
         rewardsTablesContainer.firstChild.remove()
     }
 
+    combinedRewardsTable = document.getElementById("combinedRewardsTable");
+    // Remove children elements
+    while (combinedRewardsTable.firstChild) {
+        combinedRewardsTable.firstChild.remove()
+    }
+
     sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
     // Remove children tables
     while (sumRewardsTablesContainer.firstChild) {
@@ -154,6 +160,39 @@ function showErrorMessage(message) {
     showCalculateMessage(false);
 }
 
+function compareValues(a, b) {
+    // return -1/0/1 based on what you "know" a and b
+    // are here. Numbers, text, some custom case-insensitive
+    // and natural number ordering, etc. That's up to you.
+    // A typical "do whatever JS would do" is:
+    return (a<b) ? -1 : (a>b) ? 1 : 0;
+}
+
+function sortTable(table, colnum) {
+    // get all the rows in this table:
+    let rows = Array.from(table.querySelectorAll(`tr`));
+
+    // but ignore the heading row:
+    rows = rows.slice(1);
+
+    // set up the queryselector for getting the indicated
+    // column from a row, so we can compare using its value:
+    let qs = `th:nth-child(${colnum})`;
+
+    // and then just... sort the rows:
+    rows.sort( (r1,r2) => {
+        // get each row's relevant column
+        let t1 = r1.querySelector(qs);
+        let t2 = r2.querySelector(qs);
+
+        // and then effect sorting by comparing their content:
+        return compareValues(t1.textContent, t2.textContent);
+    });
+
+    // and then the magic part that makes the sorting appear on-page:
+    rows.forEach(row => table.appendChild(row));
+}
+
 function getRewardsForValidatorIndexes(validatorIndexes) {
     var params = new URLSearchParams();
 
@@ -188,10 +227,20 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
             sumRewardsTablesContainer.appendChild(sumTotalTable);
 
-            // Add a button to expand the collapsed details
+            // Add a button to download a combined CSV export of the rewards
             btn = document.createElement("a");
             btn.classList.add("btn");
             btn.classList.add("btn-primary");
+            btn.classList.add("m-3");
+            btn.id = "combinedCsvExport";
+            btn.innerText = "Download CSV of daily rewards for all validators";
+            btn.role = "button";
+            sumRewardsTablesContainer.appendChild(btn);
+
+            // Add a button to expand the collapsed details
+            btn = document.createElement("a");
+            btn.classList.add("btn");
+            btn.classList.add("btn-secondary");
             btn.classList.add("m-3");
             btn.href = "#rewardsTablesCollapse";
             btn.innerText = "Show validator-specific details";
@@ -199,6 +248,36 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             btn.setAttribute("data-bs-toggle", "collapse");
             btn.setAttribute("data-bs-target", "#rewardsTablesCollapse");
             sumRewardsTablesContainer.appendChild(btn);
+
+            // Populate an invisible table containing the combined
+            // rewards for all validators to enable the combined CSV export
+            currency = data.currency;
+            let rewardTableColumnNames = [
+                "Date",
+                "Validator Index",
+                "End-of-day balance [ETH]",
+                "Income for date [ETH]",
+                "Price for date [ETH/" + currency + "]",
+                "Income for date [" + currency + "]"
+            ];
+            combinedRewardsTable = document.getElementById("combinedRewardsTable")
+
+            // Table head & body
+            combinedRewardsTableHead = document.createElement("thead");
+            combinedRewardsTableHeaderRow = document.createElement("tr");
+            combinedRewardsTableBody = document.createElement("tbody");
+
+            rewardTableColumnNames.forEach((columnName) => {
+                headerColumn = document.createElement("th");
+                headerColumn.innerText=columnName;
+                combinedRewardsTableHeaderRow.appendChild(headerColumn);
+            });
+
+            combinedRewardsTableHead.appendChild(combinedRewardsTableHeaderRow);
+
+            combinedRewardsTable.appendChild(combinedRewardsTableHead);
+            combinedRewardsTable.appendChild(combinedRewardsTableBody);
+
 
             // Create a table for each validators' rewards
             rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
@@ -236,18 +315,12 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 tableHead = document.createElement("thead");
                 headerRow = document.createElement("tr");
 
-                currency = data.currency;
-                let columnNames = [
-                    "Date",
-                    "End-of-day balance [ETH]",
-                    "Income for date [ETH]",
-                    "Price for date [ETH/" + currency + "]",
-                    "Income for date [" + currency + "]"
-                ];
-                columnNames.forEach((columnName) => {
-                    headerColumn = document.createElement("th");
-                    headerColumn.innerText=columnName;
-                    headerRow.appendChild(headerColumn);
+                rewardTableColumnNames.forEach((columnName) => {
+                    if (columnName !== "Validator Index") {
+                        headerColumn = document.createElement("th");
+                        headerColumn.innerText=columnName;
+                        headerRow.appendChild(headerColumn);
+                    }
                 });
 
                 tableHead.appendChild(headerRow);
@@ -260,16 +333,24 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 var totalIncomeCurrValidator = 0;
                 rewards.eod_balances.forEach((balance) => {
                     bodyRow = document.createElement("tr");
+                    combinedRewardsTableBodyRow = document.createElement("tr");
 
                     // Date
                     dateColumn = document.createElement("th");
                     dateColumn.innerText = balance.date;
                     bodyRow.appendChild(dateColumn);
+                    combinedRewardsTableBodyRow.appendChild(dateColumn.cloneNode(true));
+
+                    // Validator index for the combined table
+                    valIndexColumnValue = document.createElement("th");
+                    valIndexColumnValue.innerText = rewards.validator_index;
+                    combinedRewardsTableBodyRow.appendChild(valIndexColumnValue);
 
                     // End-of-day-balance [ETH]
                     eodColumn = document.createElement("th");
                     eodColumn.innerText = balance.balance;
                     bodyRow.appendChild(eodColumn);
+                    combinedRewardsTableBodyRow.appendChild(eodColumn.cloneNode(true));
 
                     // Income for date [ETH]
                     incEthForDate = balance.balance - prevBalance;
@@ -277,12 +358,14 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                     incEthColumn = document.createElement("th");
                     incEthColumn.innerText = incEthForDate;
                     bodyRow.appendChild(incEthColumn);
+                    combinedRewardsTableBodyRow.appendChild(incEthColumn.cloneNode(true));
 
                     // Price for date [ETH/currency]
                     priceForDate = data.eth_prices[balance.date];
                     priceEthColumn = document.createElement("th");
                     priceEthColumn.innerText = priceForDate
                     bodyRow.appendChild(priceEthColumn);
+                    combinedRewardsTableBodyRow.appendChild(priceEthColumn.cloneNode(true));
 
                     // Income for date [currency]
                     incCurrForDate = priceForDate * incEthForDate;
@@ -290,9 +373,11 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                     incCurrColumn = document.createElement("th");
                     incCurrColumn.innerText = incCurrForDate;
                     bodyRow.appendChild(incCurrColumn);
+                    combinedRewardsTableBodyRow.appendChild(incCurrColumn.cloneNode(true));
 
                     prevBalance = balance.balance;
                     tableBody.appendChild(bodyRow);
+                    combinedRewardsTableBody.appendChild(combinedRewardsTableBodyRow.cloneNode(true));
                 });
                 tableElement.appendChild(tableBody);
 
@@ -333,6 +418,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 sumTotalIncomeEth += totalIncomeEthValidator;
                 sumTotalIncomeCurr += totalIncomeCurrValidator;
             })
+
+            // Sort combined rewards table by date (1st column)
+            sortTable(combinedRewardsTable, 1);
 
             // Populate sum of total income table
             tableHead = document.createElement("thead");
@@ -556,7 +644,13 @@ document.addEventListener('click', function (event) {
         inputGroupElement.parentElement.removeChild(inputGroupElement);
     }
 
-    // CSV export
+    // Combined CSV export
+    if (event.target.matches("#combinedCsvExport")) {
+        downloadTableAsCsv(document.getElementById("combinedRewardsTable"));
+        event.preventDefault();
+    }
+
+    // Per-table CSV export
     if (event.target.matches('.csv-export')) {
         downloadTableAsCsv(event.target.parentElement.getElementsByTagName("table")[0]);
         event.preventDefault();
