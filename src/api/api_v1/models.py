@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 import datetime
 
 from pydantic import BaseModel, Field
@@ -24,7 +24,9 @@ class InitialBalance(BalanceAtSlot):
 
 class ValidatorRewards(BaseModel):
     validator_index: int = Field(..., example=1234)
-    initial_balance: InitialBalance
+    # This field is optional - if a validator has not been active in the requested
+    # time period, it will be set to None
+    initial_balance: Optional[InitialBalance]
     eod_balances: List[EndOfDayBalance]
     total_eth: float = Field(..., example=12.456, description="Total rewards in ETH.")
     total_currency: float = Field(

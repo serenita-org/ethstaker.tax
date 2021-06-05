@@ -281,7 +281,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
             // Create a table for each validators' rewards
             rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
-            data.validator_rewards.forEach((rewards) => {
+            data.validator_rewards.forEach(({eod_balances, initial_balance, validator_index}) => {
                 // Wrapper div
                 divElement = document.createElement("div");
                 divElement.classList.add("m-3");
@@ -292,7 +292,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 paragraph = document.createElement("p");
                 paragraph.classList.add("lead");
                 paragraph.classList.add("d-inline");
-                paragraph.innerText = "Rewards for validator index " + rewards.validator_index;
+                paragraph.innerText = "Rewards for validator index " + validator_index;
                 descriptionDivElement.appendChild(paragraph);
                 divElement.appendChild(descriptionDivElement);
 
@@ -308,7 +308,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 divElement.appendChild(link);
 
                 tableElement = document.createElement("table");
-                tableElement.id = "rewards_table_" + rewards.validator_index;
+                tableElement.id = "rewards_table_" + validator_index;
                 tableElement.classList.add("table");
 
                 // Table head
@@ -328,10 +328,14 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 // Table body
                 tableBody = document.createElement("tbody");
 
-                var prevBalance = rewards.initial_balance.balance;
+                if (initial_balance !== null) {
+                    var prevBalance = initial_balance.balance;
+                } else {
+                    var prevBalance = 0;
+                }
                 var totalIncomeEthValidator = 0;
                 var totalIncomeCurrValidator = 0;
-                rewards.eod_balances.forEach((balance) => {
+                eod_balances.forEach((balance) => {
                     bodyRow = document.createElement("tr");
                     combinedRewardsTableBodyRow = document.createElement("tr");
 
@@ -343,7 +347,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                     // Validator index for the combined table
                     valIndexColumnValue = document.createElement("th");
-                    valIndexColumnValue.innerText = rewards.validator_index;
+                    valIndexColumnValue.innerText = validator_index;
                     combinedRewardsTableBodyRow.appendChild(valIndexColumnValue);
 
                     // End-of-day-balance [ETH]
