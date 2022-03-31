@@ -77,7 +77,7 @@ async def on_startup() -> None:
 
     redis = await app.state.REDIS()
     await FastAPILimiter.init(
-        Depends(redis), prefix="fastapi-limiter-api", identifier=rate_limit_per_path_identifier
+        redis, prefix="fastapi-limiter-api", identifier=rate_limit_per_path_identifier
     )
 
 
