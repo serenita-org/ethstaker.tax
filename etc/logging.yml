@@ -1,0 +1,21 @@
+version: 1
+disable_existing_loggers: false
+
+
+formatters:
+  standard:
+    format: "%(asctime)s - %(name)s - <PID %(process)d> - %(levelname)s - %(message)s"
+  error:
+    format: "%(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: standard
+    stream: ext://sys.stdout
+
+root:
+  level: DEBUG
+  handlers: [console]
+  propagate: False

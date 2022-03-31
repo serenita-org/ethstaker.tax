@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  - job_name: node_exporter
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  - job_name: caddy
+    static_configs:
+      - targets: ['caddy:2019']
+
+  - job_name: frontend
+    static_configs:
+      - targets: ['frontend:8000']
+
+  - job_name: api
+    static_configs:
+      - targets: ['api:8000']
+
+  - job_name: indexer_balances
+    static_configs:
+      - targets: ['indexer_balances:8000']
+
+  - job_name: beacon_node
+    static_configs:
+      - targets: ['beacon_node:5054']
+
+  - job_name: pg_exporter
+    static_configs:
+      - targets: ['pg_exporter:9187']
