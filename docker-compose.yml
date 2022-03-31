@@ -121,7 +121,7 @@ services:
     image: prometheuscommunity/postgres-exporter:master
     restart: unless-stopped
     environment:
-      - DATA_SOURCE_NAME=${DB_URI}
+      - DATA_SOURCE_NAME=postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE_NAME}?sslmode=disable
     depends_on:
       - db
 
