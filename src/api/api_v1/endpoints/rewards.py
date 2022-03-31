@@ -1,3 +1,4 @@
+import logging
 from typing import List
 import datetime
 from enum import Enum
@@ -19,10 +20,9 @@ from api.api_v1.models import (
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
 from providers.coin_gecko import depends_coin_gecko, CoinGecko
 from providers.db_provider import depends_db, DbProvider
-from shared.setup_logging import setup_logging
 
 router = APIRouter()
-logger = setup_logging(name=__file__)
+logger = logging.getLogger(__name__)
 
 TimezoneEnum = Enum(
     "TimezoneEnum",
