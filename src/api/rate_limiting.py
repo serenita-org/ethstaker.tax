@@ -1,8 +1,8 @@
+import logging
+
 from fastapi import Request
 
-from shared.setup_logging import setup_logging
-
-logger = setup_logging(name=__file__)
+logger = logging.getLogger(__name__)
 
 
 async def rate_limit_per_path_identifier(request: Request):

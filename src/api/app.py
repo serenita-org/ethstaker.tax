@@ -1,11 +1,12 @@
-from aioredis import Redis
-from fastapi import FastAPI, Depends, Request, Response
-from fastapi_plugins import redis_plugin, RedisSettings, depends_redis
+import os
+import logging
+
+from fastapi import FastAPI, Depends, Request
+from fastapi_plugins import redis_plugin, RedisSettings
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 
-from shared.config import config
 from shared.setup_logging import setup_logging
 from providers.beacon_node import beacon_node_plugin
 from providers.coin_gecko import coin_gecko_plugin
@@ -24,7 +25,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     openapi_tags=openapi_tags_v1,
 )
-logger = setup_logging(name=__file__)
+logger = logging.getLogger(__name__)
 app.add_middleware(
     PrometheusMiddleware,
     buckets=[
@@ -51,13 +52,6 @@ app.add_route("/metrics", handle_metrics)
 
 app.include_router(api_v1_router)
 
-redis_settings = RedisSettings(
-    redis_host=config["redis"]["host"],
-    redis_port=config["redis"]["port"],
-)
-db_settings = config["db"]
-beacon_node_settings = config["beacon_node"]
-
 
 @app.get("/api/echo", include_in_schema=False)
 async def echo(
@@ -67,30 +61,23 @@ async def echo(
     return f"Headers: {request.headers}"
 
 
-@app.get("/api/flush_cache", include_in_schema=False)
-async def flush_cache(
-    request: Request,
-    cache: Redis = Depends(depends_redis),
-):
-    req_flush_cache_key = request.headers.get("X-Flush-Cache-Key")
-
-    if config["api"]["flush_cache_key"] == req_flush_cache_key:
-        await cache.flushall()
-        return "OK"
-    return Response("Incorrect header value", status_code=403)
-
-
 @app.on_event("startup")
 async def on_startup() -> None:
-    await redis_plugin.init_app(app, config=redis_settings)
+    setup_logging()
+
+    await redis_plugin.init_app(app, config=RedisSettings(
+        redis_host=os.getenv("REDIS_HOST"),
+        redis_port=os.getenv("REDIS_PORT"),
+    ))
     await redis_plugin.init()
-    await beacon_node_plugin.init_app(app, config=beacon_node_settings)
+
+    await beacon_node_plugin.init_app(app)
     await coin_gecko_plugin.init_app(app)
-    await db_plugin.init_app(app, config=db_settings)
+    await db_plugin.init_app(app)
 
     redis = await app.state.REDIS()
-    FastAPILimiter.init(
-        redis, prefix="fastapi-limiter-api", identifier=rate_limit_per_path_identifier
+    await FastAPILimiter.init(
+        Depends(redis), prefix="fastapi-limiter-api", identifier=rate_limit_per_path_identifier
     )
 
 
