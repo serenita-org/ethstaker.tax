@@ -1,0 +1,17 @@
+aiofiles
+alembic
+backoff
+fastapi
+fastapi-plugins
+fastapi-limiter
+httpx
+jinja2
+psycopg2-binary
+pytest
+pytz
+PyYAML
+requests
+starlette_exporter
+sqlalchemy
+tqdm
+uvicorn[standard]
