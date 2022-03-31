@@ -1,8 +1,8 @@
 import datetime
 import logging
 from contextlib import contextmanager
-
 import asyncio
+
 import pytz
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -21,7 +21,7 @@ START_DATE = "2020-01-01"
 
 ALREADY_INDEXED_SLOTS = set()
 
-slots_with_missing_balances = Gauge(
+SLOTS_WITH_MISSING_BALANCES = Gauge(
     "slots_with_missing_balances",
     "Slots for which balances still need to be indexed and inserted into the database",
 )
@@ -108,7 +108,7 @@ async def index_balances():
     slots_needed = sorted(slots_needed)
 
     logger.info(f"Getting balances for {len(slots_needed)} slots")
-    slots_with_missing_balances.set(len(slots_needed))
+    SLOTS_WITH_MISSING_BALANCES.set(len(slots_needed))
 
     commit_every = 3
     current_tx = 0
@@ -134,7 +134,7 @@ async def index_balances():
                 ],
             )
             ALREADY_INDEXED_SLOTS.append(slot)
-            slots_with_missing_balances.dec(1)
+            SLOTS_WITH_MISSING_BALANCES.dec(1)
             if current_tx == commit_every:
                 logger.debug("Committing")
                 current_tx = 0
@@ -151,6 +151,9 @@ if __name__ == "__main__":
     from time import sleep
 
     while True:
-        asyncio.run(index_balances())
+        try:
+            asyncio.run(index_balances())
+        except Exception as e:
+            logger.error(f"Error occurred while indexing balances: {str(e)}")
         logger.info("Sleeping for a minute now")
         sleep(60)
