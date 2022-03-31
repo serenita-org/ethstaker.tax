@@ -1,4 +1,5 @@
 from typing import List, Optional
+import logging
 
 from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,6 +11,7 @@ from providers.beacon_node import depends_beacon_node, BeaconNode
 from api.api_v1.models import ErrorMessage
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 VALIDATORS_PER_ETH1_ADDRESS = Histogram(
     "validators_per_eth1_address",
@@ -39,6 +41,7 @@ async def indexes_for_eth1_address(
     try:
         indexes = await beacon_node.indexes_for_eth1_address(eth1_address, cache)
         VALIDATORS_PER_ETH1_ADDRESS.observe(len(indexes))
+        logger.debug(f"Returning indexes {indexes}")
         return indexes
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -63,13 +66,10 @@ async def index_for_publickey(
     beacon_node: BeaconNode = Depends(depends_beacon_node),
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
 ):
-    try:
-        index = await beacon_node.index_for_publickey(publickey, cache)
-        if index is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No validator index found for public key {publickey}.",
-            )
-        return index
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    index = await beacon_node.index_for_publickey(publickey, cache)
+    if index is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No validator index found for public key {publickey}.",
+        )
+    return index

@@ -64,6 +64,20 @@ function selectDateRangeByYear() {
                 format: "YYYY-MM-DD"
             });
         });
+    } else if (selectDateRangeElement.value == "since_genesis") {
+        // Selected since genesis as the date, hide datepickers
+        showCustomDateRangeInput(false);
+
+        startDatePicker = document.getElementById("datePickerStart");
+        // Genesis was Dec 12th 12PM UTC, which may have still been November 30th in some timezones
+        startDatePicker.value = "2020-11-30";
+
+        endDatePicker = document.getElementById("datePickerEnd");
+        // toISOString first converts to UTC - handle that by adding the timezone offset
+        var endDate = new Date();
+        const offset = endDate.getTimezoneOffset();
+        endDate = new Date(endDate.getTime() - (offset*60*1000));
+        endDatePicker.value = endDate.toISOString().split('T')[0];
     } else {
         // Selected a year as a date, hide datepickers
         showCustomDateRangeInput(false);
@@ -73,15 +87,6 @@ function selectDateRangeByYear() {
 
         endDatePicker = document.getElementById("datePickerEnd");
         endDatePicker.value = selectDateRangeElement.value  + "-12-31";
-
-        return;
-        endDatepicker = document.getElementById("datePickerEnd");
-        var picker = new Pikaday({
-            field: endDatepicker,
-            format: "YYYY-MM-DD"
-        });
-        picker.setDate(selectDateRangeElement.value + "-12-31");
-        picker.destroy();
     }
 }
 

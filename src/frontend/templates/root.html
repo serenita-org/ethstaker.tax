@@ -12,10 +12,10 @@
     <link rel="manifest" href="/static/favicon/site.webmanifest">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="/static/bootstrap/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
 
     <!-- Bootstrap icons -->
-    <link rel="stylesheet" href="/static/bootstrap/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
 
     <!-- Moment.js - required by Pikaday -->
     <script src="/static/momentjs/moment.js"></script>
@@ -125,9 +125,10 @@
                 <h2>What date range would you like to calculate the rewards for?</h2>
                 <div class="input-group mb-1 p-2">
                     <select class="form-select" id="selectDateRange">
-                        {% for year in range(2020,2022) %}
-                        <option value="{{ year }}">{{ year }}</option>
-                        {% endfor %}
+                        <option value="2020">2020</option>
+                        <option value="2021" selected>2021</option>
+                        <option value="2022">2022</option>
+                        <option value="since_genesis">Since genesis</option>
                         <option value="custom">Custom</option>
                     </select>
                 </div>
@@ -171,8 +172,9 @@
     <footer class="footer mt-auto py-3 bg-light">
         <div class="row">
             <div class="col-sm">
-                <a class="btn btn-outline-primary float-start" href="/api/docs" role="button" style="display: none">
-                    API
+                <a class="btn btn-outline-primary" href="https://gitcoin.co/grants/2148/eth2tax-tax-information-for-stakers" role="button" target="_blank">
+                    <i class="bi-currency-dollar"></i>
+                    Support this website
                 </a>
             </div>
             <div class="col-sm d-flex justify-content-center">
@@ -200,7 +202,7 @@
 </div>
 
 <!-- Bootstrap Bundle with Popper -->
-<script src="/static/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
 
 </body>
 </html>
