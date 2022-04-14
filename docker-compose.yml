@@ -72,7 +72,7 @@ services:
         "0.0.0.0",
     ]
     volumes:
-      - ./data/beacon_node/:/root/.lighthouse
+      - beacon_node_data:/root/.lighthouse
 
   db:
     image: postgres:13.2
@@ -82,7 +82,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_DATABASE_NAME}
     volumes:
-      - ./data/db/:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
 
   redis:
     image: redis:6.0.10
@@ -90,7 +90,7 @@ services:
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - ./etc/redis.conf:/usr/local/etc/redis/redis.conf
-      - ./data/redis/:/data
+      - redis_data:/data
 
   caddy:
     image: caddy:2.4.6-alpine
@@ -100,8 +100,8 @@ services:
       - 443:443
     volumes:
       - ./etc/Caddyfile:/etc/caddy/Caddyfile
-      - ./data/caddy_data/:/data
-      - ./data/caddy_config/:/config
+      - caddy_data:/data
+      - caddy_config_data:/config
 
   prometheus:
     image: prom/prometheus:v2.34.0
@@ -111,7 +111,7 @@ services:
       - '--storage.tsdb.retention.time=5y'
     volumes:
       - ./etc/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./data/prometheus/:/prometheus
+      - prometheus_data:/prometheus
 
   node_exporter:
     image: prom/node-exporter:v1.1.1
@@ -141,4 +141,13 @@ services:
     volumes:
       - ./etc/grafana/provisioning:/etc/grafana/provisioning
       - ./etc/grafana/dashboards:/var/lib/grafana/dashboards
-      - ./data/grafana/:/var/lib/grafana
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  beacon_node_data:
+  caddy_data:
+  caddy_config_data:
+  db_data:
+  grafana_data:
+  prometheus_data:
+  redis_data:
