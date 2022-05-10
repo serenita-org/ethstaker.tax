@@ -1,6 +1,6 @@
 import logging
 
-from httpx import AsyncClient, Response, ConnectError
+from httpx import AsyncClient, Response, ConnectTimeout
 import backoff
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class NonOkStatusCode(Exception):
 
 
 class AsyncClientWithBackoff(AsyncClient):
-    @backoff.on_exception(backoff.expo, exception=ConnectError, max_time=300, jitter=backoff.full_jitter)
+    @backoff.on_exception(backoff.expo, exception=ConnectTimeout, max_time=300, jitter=backoff.full_jitter)
     @backoff.on_exception(backoff.expo, exception=RateLimited, max_time=300, jitter=backoff.full_jitter)
     @backoff.on_exception(backoff.expo, exception=NonOkStatusCode, max_time=60, jitter=backoff.full_jitter)
     async def get_w_backoff(self, **kwargs) -> Response:
