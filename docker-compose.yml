@@ -89,7 +89,7 @@ services:
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
-      - ./etc/redis.conf:/usr/local/etc/redis/redis.conf
+      - ${ABSOLUTE_ROOT_PATH}/etc/redis.conf:/usr/local/etc/redis/redis.conf
       - redis_data:/data
 
   caddy:
@@ -99,7 +99,7 @@ services:
       - 80:80
       - 443:443
     volumes:
-      - ./etc/Caddyfile:/etc/caddy/Caddyfile
+      - ${ABSOLUTE_ROOT_PATH}/etc/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config_data:/config
 
@@ -110,7 +110,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=5y'
     volumes:
-      - ./etc/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ${ABSOLUTE_ROOT_PATH}/etc/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
 
   node_exporter:
@@ -139,8 +139,8 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - ./etc/grafana/provisioning:/etc/grafana/provisioning
-      - ./etc/grafana/dashboards:/var/lib/grafana/dashboards
+      - ${ABSOLUTE_ROOT_PATH}/etc/grafana/provisioning:/etc/grafana/provisioning
+      - ${ABSOLUTE_ROOT_PATH}/etc/grafana/dashboards:/var/lib/grafana/dashboards
       - grafana_data:/var/lib/grafana
 
 volumes:
