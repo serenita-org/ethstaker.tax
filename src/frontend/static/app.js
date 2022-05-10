@@ -24,17 +24,6 @@ function addInputElement(e) {
     newInputGroup.children[0].focus()
 }
 
-function autoSelectTimezone() {
-    userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    selectElement = document.getElementById("selectTimezone");
-    for (i = 0; i < selectElement.length; ++i){
-        if (selectElement.options[i].value == userTimeZone){
-            selectElement.value = Intl.DateTimeFormat().resolvedOptions().timeZone
-        }
-    }
-}
-
 function initDatePickers() {
 
 }
@@ -90,7 +79,6 @@ function selectDateRangeByYear() {
     }
 }
 
-window.addEventListener("load", autoSelectTimezone);
 window.addEventListener("load", initDatePickers);
 
 window.addEventListener("load", () => {
@@ -208,7 +196,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
     params.append("start_date", document.getElementById("datePickerStart").value)
     params.append("end_date", document.getElementById("datePickerEnd").value)
 
-    params.append("timezone", document.getElementById("selectTimezone").value)
+    params.append("timezone", "UTC")
 
     params.append("currency", document.getElementById("selectCurrency").value)
 

@@ -9,7 +9,6 @@ from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 from aioredis import Redis
-from pytz import common_timezones
 
 from providers.coin_gecko import CoinGecko
 from shared.setup_logging import setup_logging
@@ -34,7 +33,6 @@ async def read_root(
         "root.html",
         {
             "request": request,
-            "common_timezones": common_timezones,
             "currencies": currencies,
         },
     )
