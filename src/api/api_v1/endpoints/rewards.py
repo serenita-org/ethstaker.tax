@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 TimezoneEnum = Enum(
     "TimezoneEnum",
-    {timezone.replace("/", ""): timezone for timezone in pytz.common_timezones},
+    {"UTC": "UTC",}
 )
 
 REWARDS_REQUEST_COUNT = Counter(
@@ -66,7 +66,7 @@ async def rewards(
     timezone: TimezoneEnum = Query(
         ...,
         description="The timezone for which to calculate rewards.",
-        example=TimezoneEnum.EuropeAmsterdam,
+        example=TimezoneEnum.UTC,
     ),
     currency: str = Query(
         ...,

@@ -94,20 +94,6 @@
                 </div>
             </div>
             <div class="row p-3">
-                <h2>What timezone are you in?</h2>
-                <p>
-                    The timezone is taken into account to accurately count the rewards
-                    for each day up until midnight in the specified timezone.
-                </p>
-                <div class="input-group mb-1 p-2">
-                    <select class="form-select" id="selectTimezone">
-                    {% for tz in common_timezones %}
-                        <option value="{{ tz }}">{{ tz }}</option>
-                    {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class="row p-3">
                 <h2>Which currency would you like to calculate the rewards in?</h2>
                 <p>
                     The total amount of rewards will be returned in ETH

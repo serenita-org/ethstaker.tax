@@ -53,17 +53,6 @@ correctly generated. Then migrate the database to the updated version using
 ### Space requirements
 
 For each validator, its balance is stored in the database
-approximately every 30 minutes (for every major timezone as defined by pytz).
+once daily - every 24 hours.
 On-demand balance retrieval from the beacon node would be time-consuming,
 and for a year's worth of data would take quite a long time.
-
-This takes up quite a lot of space. At the time of writing (March 31st 2022),
-it takes up 204 GB, so about 13 GB / month. The more validators there are,
-the quicker the growth.
-
-These are some ideas I've had on reducing the database size:
-
-- only store the balances for one timezone, e.g. UTC
-- make the rewards calculation an async operation - e.g. the user requests the data,
-  and can find them an hour later on the website based on the previous request
-  - this way a small amount of data could be stored for a limited time period (1 day or week)

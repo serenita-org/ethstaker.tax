@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 engine = create_engine(get_db_uri(), executemany_mode="batch")
 
 START_DATE = "2020-01-01"
+TIMEZONES_TO_INDEX = (
+    pytz.utc,
+)
 
 ALREADY_INDEXED_SLOTS = set()
 
@@ -49,11 +52,10 @@ async def index_balances():
 
     beacon_node = BeaconNode()
 
-    logger.info(f"Indexing balances for {len(pytz.common_timezones)} timezones.")
+    logger.info(f"Indexing balances for {len(TIMEZONES_TO_INDEX)} timezones.")
     slots_needed = set()
     logger.debug(f"Calculating the needed slot numbers...")
-    for timezone in pytz.common_timezones:
-        timezone = pytz.timezone(timezone)
+    for timezone in TIMEZONES_TO_INDEX:
 
         start_dt = datetime.datetime.combine(start_date, datetime.time.min)
         end_dt = datetime.datetime.combine(end_date, datetime.time.min)
