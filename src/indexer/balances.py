@@ -112,7 +112,7 @@ async def index_balances():
     logger.info(f"Getting balances for {len(slots_needed)} slots")
     SLOTS_WITH_MISSING_BALANCES.set(len(slots_needed))
 
-    commit_every = 3
+    commit_every = 1
     current_tx = 0
     with session_scope() as session:
         for slot in tqdm(slots_needed):
@@ -156,6 +156,7 @@ if __name__ == "__main__":
         try:
             asyncio.run(index_balances())
         except Exception as e:
-            logger.error(f"Error occurred while indexing balances: {str(e)}")
-        logger.info("Sleeping for a minute now")
-        sleep(60)
+            logger.error(f"Error occurred while indexing balances: {e}")
+            logger.exception(e)
+        logger.info("Sleeping for a while now")
+        sleep(300)
