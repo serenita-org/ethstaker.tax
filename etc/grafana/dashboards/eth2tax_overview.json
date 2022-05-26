@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1644749694027,
+  "iteration": 1653561810584,
   "links": [],
   "panels": [
     {
@@ -941,7 +941,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "caddy_http_requests_total",
+          "expr": "increase(caddy_http_requests_total[1h])",
           "interval": "",
           "legendFormat": "{{handler}}",
           "queryType": "randomWalk",
@@ -952,7 +952,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Caddy requests total",
+      "title": "Caddy requests total [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1111,7 +1111,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "starlette_requests_total{job=\"api\", path!=\"/api/v1/metrics\"}",
+          "expr": "increase(starlette_requests_total{job=\"api\", path!=\"/metrics\"}[1h])",
           "interval": "",
           "legendFormat": "{{path}}->{{status_code}}",
           "queryType": "randomWalk",
@@ -1122,7 +1122,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Starlette requests total - API",
+      "title": "Starlette requests total - API [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1209,7 +1209,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "starlette_requests_total{job=\"frontend\", path!=\"/metrics\"}",
+          "expr": "increase(starlette_requests_total{job=\"frontend\", path!=\"/metrics\"}[1h])",
           "interval": "",
           "legendFormat": "{{path}}",
           "queryType": "randomWalk",
@@ -1220,205 +1220,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Starlette requests total - frontend",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:1437",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:1438",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 46
-      },
-      "hiddenSeries": false,
-      "id": 49,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.4.1",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(starlette_requests_total{path!=\"/api/v1/metrics\", path!=\"/metrics\", status_code=~\"200|304\"}) by (status_code)",
-          "interval": "",
-          "legendFormat": "{{status_code}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Starlette requests OK status codes",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:1437",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:1438",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 46
-      },
-      "hiddenSeries": false,
-      "id": 50,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.4.1",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(starlette_requests_total{path!=\"/api/v1/metrics\", path!=\"/metrics\", status_code!~\"200|304\"}) by (status_code)",
-          "interval": "",
-          "legendFormat": "{{status_code}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Starlette requests NOK status codes",
+      "title": "Starlette requests total - frontend [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1476,10 +1278,10 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 54
+        "y": 46
       },
       "hiddenSeries": false,
-      "id": 51,
+      "id": 49,
       "legend": {
         "avg": false,
         "current": false,
@@ -1506,9 +1308,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "300 * sum by (status_code) (rate(starlette_requests_total{path!=\"/api/v1/metrics\", path!=\"/metrics\", status_code=~\"200|304\"}[5m]))",
+          "expr": "sum(increase(starlette_requests_total{path!~\"/metrics\", status_code=~\"200|304\"}[1h])) by (status_code)",
           "interval": "",
-          "legendFormat": "{{status_code}}",
+          "legendFormat": "{{status_code}} {{path}}",
           "queryType": "randomWalk",
           "refId": "A"
         }
@@ -1517,7 +1319,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Starlette requests OK status codes rate 5m",
+      "title": "Starlette requests OK status codes [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1575,10 +1377,10 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 54
+        "y": 46
       },
       "hiddenSeries": false,
-      "id": 52,
+      "id": 50,
       "legend": {
         "avg": false,
         "current": false,
@@ -1605,7 +1407,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "300 * sum by (status_code) (rate(starlette_requests_total{path!=\"/api/v1/metrics\", path!=\"/metrics\", status_code!~\"200|304\"}[5m]))",
+          "expr": "sum(increase(starlette_requests_total{path!~\"/metrics\", status_code!~\"200|304\"}[1h])) by (status_code)",
           "interval": "",
           "legendFormat": "{{status_code}}",
           "queryType": "randomWalk",
@@ -1616,7 +1418,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Starlette requests NOK status codes rate 5m",
+      "title": "Starlette requests NOK status codes [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1684,10 +1486,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "",
+        "for": "0m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Starlette requests 500 status codes rate 5m alert",
+        "name": "Starlette requests 5xx status codes [1h] alert",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -1709,10 +1511,10 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 54
+        "y": 46
       },
       "hiddenSeries": false,
-      "id": 72,
+      "id": 73,
       "legend": {
         "avg": false,
         "current": false,
@@ -1739,7 +1541,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "300 * sum by (status_code) (rate(starlette_requests_total{status_code=~\"5\\\\d\\\\d\"}[5m]))",
+          "expr": "sum(increase(starlette_requests_total{path!~\"/metrics\", status_code=~\"5\\\\d\\\\d\"}[1h])) by (status_code)",
           "interval": "",
           "legendFormat": "{{status_code}}",
           "queryType": "randomWalk",
@@ -1759,7 +1561,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Starlette requests 500 status codes rate 5m",
+      "title": "Starlette requests 5xx status codes [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1805,7 +1607,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 54
       },
       "id": 10,
       "panels": [],
@@ -1841,7 +1643,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 63
+        "y": 55
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -1904,7 +1706,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 63
+        "y": 55
       },
       "hiddenSeries": false,
       "id": 14,
@@ -1934,7 +1736,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "starlette_requests_total{path=\"$path\"}",
+          "expr": "increase(starlette_requests_total{path=\"$path\"}[1h])",
           "interval": "",
           "legendFormat": "{{path}} - {{status_code}}",
           "queryType": "randomWalk",
@@ -1945,7 +1747,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Total requests",
+      "title": "Total requests [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1991,7 +1793,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 63
       },
       "id": 28,
       "panels": [],
@@ -2017,7 +1819,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 72
+        "y": 64
       },
       "hiddenSeries": false,
       "id": 26,
@@ -2116,7 +1918,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 72
+        "y": 64
       },
       "hiddenSeries": false,
       "id": 30,
@@ -2215,7 +2017,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 80
+        "y": 72
       },
       "hiddenSeries": false,
       "id": 31,
@@ -2320,7 +2122,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 80
+        "y": 72
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -2374,7 +2176,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 80
       },
       "id": 33,
       "panels": [],
@@ -2388,7 +2190,7 @@
           {
             "evaluator": {
               "params": [
-                5
+                1
               ],
               "type": "gt"
             },
@@ -2398,7 +2200,7 @@
             "query": {
               "params": [
                 "A",
-                "5m",
+                "15m",
                 "now"
               ]
             },
@@ -2410,7 +2212,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "0m",
         "frequency": "1m",
         "handler": 1,
         "name": "Balance indexer - slots with missing balances alert > 5",
@@ -2441,7 +2243,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 89
+        "y": 81
       },
       "hiddenSeries": false,
       "id": 64,
@@ -2485,7 +2287,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 5,
+          "value": 1,
           "visible": true
         }
       ],
@@ -2553,7 +2355,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 89
+        "y": 81
       },
       "hiddenSeries": false,
       "id": 43,
@@ -2649,7 +2451,7 @@
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 97
+        "y": 89
       },
       "hiddenSeries": false,
       "id": 45,
@@ -2754,7 +2556,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 99
+        "y": 91
       },
       "id": 35,
       "options": {
@@ -2812,7 +2614,7 @@
         "h": 3,
         "w": 2,
         "x": 4,
-        "y": 99
+        "y": 91
       },
       "id": 37,
       "options": {
@@ -2873,7 +2675,7 @@
         "h": 3,
         "w": 3,
         "x": 6,
-        "y": 99
+        "y": 91
       },
       "id": 39,
       "options": {
@@ -2935,7 +2737,7 @@
         "h": 3,
         "w": 3,
         "x": 9,
-        "y": 99
+        "y": 91
       },
       "id": 41,
       "options": {
@@ -3107,5 +2909,5 @@
   "timezone": "",
   "title": "ETH2.tax Overview",
   "uid": "CrrHtByMk",
-  "version": 3
+  "version": 2
 }
