@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1644749694027,
+  "iteration": 1653561411000,
   "links": [],
   "panels": [
     {
@@ -2388,7 +2388,7 @@
           {
             "evaluator": {
               "params": [
-                5
+                1
               ],
               "type": "gt"
             },
@@ -2398,7 +2398,7 @@
             "query": {
               "params": [
                 "A",
-                "5m",
+                "15m",
                 "now"
               ]
             },
@@ -2410,7 +2410,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "",
         "frequency": "1m",
         "handler": 1,
         "name": "Balance indexer - slots with missing balances alert > 5",
@@ -2485,7 +2485,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 5,
+          "value": 1,
           "visible": true
         }
       ],
@@ -3107,5 +3107,5 @@
   "timezone": "",
   "title": "ETH2.tax Overview",
   "uid": "CrrHtByMk",
-  "version": 3
+  "version": 4
 }
