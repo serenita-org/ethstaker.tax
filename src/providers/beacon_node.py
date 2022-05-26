@@ -33,7 +33,7 @@ class BeaconNode:
 
     @staticmethod
     def _use_infura() -> bool:
-        return os.getenv("BEACON_USE_INFURA", "false") == "true"
+        return os.getenv("BEACON_NODE_USE_INFURA", "false") == "true"
 
     def _get_http_client(self) -> AsyncClientWithBackoff:
         auth = None
