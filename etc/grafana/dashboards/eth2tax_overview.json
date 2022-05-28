@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1653584188271,
+  "iteration": 1653675228427,
   "links": [],
   "panels": [
     {
@@ -283,7 +283,7 @@
       "pluginVersion": "7.4.1",
       "targets": [
         {
-          "expr": "sum(increase(starlette_requests_total{job=\"api\", path!~\"/api/v1/(metrics|openapi.json|docs)\"}[24h])) by (path)",
+          "expr": "sum(increase(starlette_requests_total{job=\"api\", path!~\"/(metrics|openapi.json|docs)\"}[24h])) by (path)",
           "interval": "",
           "legendFormat": "{{path}}",
           "queryType": "randomWalk",
@@ -1806,7 +1806,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "Validator indexes for ETH1 address",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -1849,7 +1849,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "beaconchain_request_count_total",
+          "expr": "increase(beaconchain_request_count_total[1h])",
           "interval": "",
           "legendFormat": "by {{ job }}",
           "queryType": "randomWalk",
@@ -1860,7 +1860,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Requests made to beaconcha.in",
+      "title": "Requests made to beaconcha.in [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1948,7 +1948,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "coin_gecko_request_count_total",
+          "expr": "increase(coin_gecko_request_count_total[1h])",
           "interval": "",
           "legendFormat": "{{ path }} by {{ job }}",
           "queryType": "randomWalk",
@@ -1959,7 +1959,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Requests made to CoinGecko",
+      "title": "Requests made to CoinGecko [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2047,7 +2047,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "beacon_node_request_count_total",
+          "expr": "increase(beacon_node_request_count_total[1h])",
           "interval": "",
           "legendFormat": "{{path}} (by {{job}})",
           "queryType": "randomWalk",
@@ -2058,7 +2058,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Requests made to beacon node",
+      "title": "Requests made to beacon node [1h]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2909,5 +2909,5 @@
   "timezone": "",
   "title": "ETH2.tax Overview",
   "uid": "CrrHtByMk",
-  "version": 4
+  "version": 5
 }
