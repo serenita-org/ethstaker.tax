@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1653727794609,
+  "iteration": 1653733947469,
   "links": [],
   "panels": [
     {
@@ -37,9 +37,29 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "custom": {},
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -54,31 +74,26 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 24,
+        "h": 6,
+        "w": 12,
         "x": 0,
         "y": 1
       },
       "id": 68,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
         },
-        "text": {},
-        "textMode": "auto"
+        "tooltipOptions": {
+          "mode": "single"
+        }
       },
       "pluginVersion": "7.4.1",
       "targets": [
         {
-          "expr": "sum(increase(rewards_request_total[$__range])) by (calendar_year)",
+          "expr": "sum(increase(rewards_request_total[1h])) by (calendar_year)",
           "instant": false,
           "interval": "",
           "legendFormat": "{{ calendar_year }}",
@@ -86,142 +101,114 @@
           "refId": "A"
         }
       ],
-      "title": "By date range",
-      "type": "stat"
+      "title": "By date range [1h]",
+      "type": "timeseries"
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": null,
-            "filterable": false
-          },
-          "mappings": [],
+          "color": {},
+          "custom": {},
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
         "overrides": []
       },
+      "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
-      "id": 71,
-      "options": {
-        "showHeader": true
-      },
-      "pluginVersion": "7.4.1",
-      "targets": [
-        {
-          "expr": "sum(increase(rewards_request_total[$__range])) by (timezone)",
-          "format": "table",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "{{ timezone }}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "By timezone",
-      "transformations": [
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": true,
-                "field": "Value"
-              }
-            ]
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": null,
-            "filterable": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
+        "h": 6,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 1
       },
+      "hiddenSeries": false,
       "id": 70,
-      "options": {
-        "showHeader": true
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
       },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
       "pluginVersion": "7.4.1",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(increase(rewards_request_total[$__range])) by (currency)",
-          "format": "table",
-          "instant": true,
+          "expr": "sum(increase(rewards_request_total[1h])) by (currency)",
+          "format": "time_series",
+          "instant": false,
           "interval": "",
           "legendFormat": "{{ currency }}",
           "queryType": "randomWalk",
           "refId": "A"
         }
       ],
-      "title": "By currency",
-      "transformations": [
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "By currency  [1h]",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transformations": [],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
         {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": true,
-                "field": "Value"
-              }
-            ]
-          }
+          "$$hashKey": "object:216",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:217",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
         }
       ],
-      "type": "table"
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "collapsed": false,
@@ -230,7 +217,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 7
       },
       "id": 12,
       "panels": [],
@@ -262,7 +249,7 @@
         "h": 3,
         "w": 18,
         "x": 0,
-        "y": 14
+        "y": 8
       },
       "id": 56,
       "options": {
@@ -322,7 +309,7 @@
         "h": 3,
         "w": 6,
         "x": 18,
-        "y": 14
+        "y": 8
       },
       "id": 57,
       "options": {
@@ -378,7 +365,7 @@
         "h": 5,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 11
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -448,7 +435,7 @@
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 11
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -528,7 +515,7 @@
         "h": 7,
         "w": 7,
         "x": 0,
-        "y": 22
+        "y": 16
       },
       "id": 47,
       "options": {
@@ -617,7 +604,7 @@
         "h": 7,
         "w": 5,
         "x": 7,
-        "y": 22
+        "y": 16
       },
       "hiddenSeries": false,
       "id": 48,
@@ -767,7 +754,7 @@
         "h": 7,
         "w": 4,
         "x": 12,
-        "y": 22
+        "y": 16
       },
       "hiddenSeries": false,
       "id": 59,
@@ -878,7 +865,7 @@
         "h": 7,
         "w": 4,
         "x": 16,
-        "y": 22
+        "y": 16
       },
       "id": 74,
       "options": {
@@ -926,7 +913,7 @@
         "h": 7,
         "w": 4,
         "x": 20,
-        "y": 22
+        "y": 16
       },
       "id": 54,
       "limit": 10,
@@ -965,7 +952,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 23
       },
       "hiddenSeries": false,
       "id": 2,
@@ -1069,7 +1056,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 23
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -1135,7 +1122,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 38
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 6,
@@ -1233,7 +1220,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 38
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 24,
@@ -1332,7 +1319,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 46
+        "y": 40
       },
       "hiddenSeries": false,
       "id": 49,
@@ -1431,7 +1418,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 46
+        "y": 40
       },
       "hiddenSeries": false,
       "id": 50,
@@ -1565,7 +1552,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 46
+        "y": 40
       },
       "hiddenSeries": false,
       "id": 73,
@@ -1661,7 +1648,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 48
       },
       "id": 10,
       "panels": [],
@@ -1697,7 +1684,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 55
+        "y": 49
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -1760,7 +1747,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 55
+        "y": 49
       },
       "hiddenSeries": false,
       "id": 14,
@@ -1847,7 +1834,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 57
       },
       "id": 28,
       "panels": [],
@@ -1873,7 +1860,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 64
+        "y": 58
       },
       "hiddenSeries": false,
       "id": 26,
@@ -1972,7 +1959,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 64
+        "y": 58
       },
       "hiddenSeries": false,
       "id": 30,
@@ -2071,7 +2058,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 72
+        "y": 66
       },
       "hiddenSeries": false,
       "id": 31,
@@ -2176,7 +2163,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 72
+        "y": 66
       },
       "heatmap": {},
       "hideZeroBuckets": true,
@@ -2230,7 +2217,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 80
+        "y": 74
       },
       "id": 33,
       "panels": [],
@@ -2297,7 +2284,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 81
+        "y": 75
       },
       "hiddenSeries": false,
       "id": 64,
@@ -2409,7 +2396,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 81
+        "y": 75
       },
       "hiddenSeries": false,
       "id": 43,
@@ -2505,7 +2492,7 @@
         "h": 5,
         "w": 12,
         "x": 12,
-        "y": 89
+        "y": 83
       },
       "hiddenSeries": false,
       "id": 45,
@@ -2610,7 +2597,7 @@
         "h": 3,
         "w": 4,
         "x": 0,
-        "y": 91
+        "y": 85
       },
       "id": 35,
       "options": {
@@ -2668,7 +2655,7 @@
         "h": 3,
         "w": 2,
         "x": 4,
-        "y": 91
+        "y": 85
       },
       "id": 37,
       "options": {
@@ -2729,7 +2716,7 @@
         "h": 3,
         "w": 3,
         "x": 6,
-        "y": 91
+        "y": 85
       },
       "id": 39,
       "options": {
@@ -2791,7 +2778,7 @@
         "h": 3,
         "w": 3,
         "x": 9,
-        "y": 91
+        "y": 85
       },
       "id": 41,
       "options": {
@@ -2963,5 +2950,5 @@
   "timezone": "",
   "title": "ETH2.tax Overview",
   "uid": "CrrHtByMk",
-  "version": 6
+  "version": 7
 }
