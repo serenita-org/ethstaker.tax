@@ -180,6 +180,20 @@ class BeaconNode:
 
         return activation_slots
 
+    async def is_slot_finalized(self, slot: int) -> bool:
+        url = f"{self.BASE_URL}/eth/v1/beacon/states/{slot}/finality_checkpoints"
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels("is_slot_finalized").inc()
+
+        data = resp.json()["data"]
+        finalized_epoch = int(data["finalized"]["epoch"])
+
+        if finalized_epoch * SLOTS_PER_EPOCH < slot:
+            return False
+
+        return True
+
     async def balances_for_slot(self,
                                 slot: int,
                                 validator_indexes: List[int] = None,

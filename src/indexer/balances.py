@@ -117,6 +117,12 @@ async def index_balances():
     with session_scope() as session:
         for slot in tqdm(slots_needed):
             current_tx += 1
+
+            # Wait for slot to be finalized
+            if not await beacon_node.is_slot_finalized(slot):
+                logger.info(f"Waiting for slot {slot} to be finalized")
+                continue
+
             # Store balances in DB
             balances_for_slot = await beacon_node.balances_for_slot(slot)
             logger.debug(f"Executing insert statements for slot {slot}")
