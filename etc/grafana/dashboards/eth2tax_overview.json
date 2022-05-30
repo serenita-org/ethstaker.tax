@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1653733947469,
+  "iteration": 1653843125105,
   "links": [],
   "panels": [
     {
@@ -722,6 +722,29 @@
               "type": "avg"
             },
             "type": "query"
+          },
+          {
+            "evaluator": {
+              "params": [
+                0.1
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "B",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
           }
         ],
         "executionErrorState": "alerting",
@@ -784,11 +807,18 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "((node_filesystem_avail_bytes{mountpoint=\"/etc/hostname\"}) / node_filesystem_size_bytes{mountpoint=\"/etc/hostname\"})",
+          "expr": "sum(((node_filesystem_avail_bytes{mountpoint=\"/etc/hosts\"}) / node_filesystem_size_bytes)) by (mountpoint)",
           "interval": "",
-          "legendFormat": "Available",
+          "legendFormat": "{{ mountpoint }}",
           "queryType": "randomWalk",
           "refId": "A"
+        },
+        {
+          "expr": "sum(((node_filesystem_avail_bytes{mountpoint=\"/mnt/volume_beacon_node\"}) / node_filesystem_size_bytes)) by (mountpoint)",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{ mountpoint }}",
+          "refId": "B"
         }
       ],
       "thresholds": [
@@ -886,9 +916,9 @@
       "pluginVersion": "7.4.1",
       "targets": [
         {
-          "expr": "node_filesystem_avail_bytes{mountpoint=\"/etc/hostname\"}",
+          "expr": "node_filesystem_avail_bytes{mountpoint!~\"/etc/resolv.conf|/etc/hostname\"}",
           "interval": "",
-          "legendFormat": "Available",
+          "legendFormat": "{{ mountpoint }}",
           "queryType": "randomWalk",
           "refId": "A"
         }
@@ -2950,5 +2980,5 @@
   "timezone": "",
   "title": "ETH2.tax Overview",
   "uid": "CrrHtByMk",
-  "version": 7
+  "version": 9
 }
