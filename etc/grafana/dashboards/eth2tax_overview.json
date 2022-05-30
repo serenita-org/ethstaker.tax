@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1653843125105,
+  "iteration": 1653912390034,
   "links": [],
   "panels": [
     {
@@ -2261,7 +2261,7 @@
           {
             "evaluator": {
               "params": [
-                1
+                0
               ],
               "type": "gt"
             },
@@ -2271,19 +2271,19 @@
             "query": {
               "params": [
                 "A",
-                "15m",
+                "1m",
                 "now"
               ]
             },
             "reducer": {
               "params": [],
-              "type": "avg"
+              "type": "max"
             },
             "type": "query"
           }
         ],
         "executionErrorState": "alerting",
-        "for": "0m",
+        "for": "30m",
         "frequency": "1m",
         "handler": 1,
         "name": "Balance indexer - slots with missing balances alert > 5",
@@ -2358,7 +2358,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 1,
+          "value": 0,
           "visible": true
         }
       ],
@@ -2381,6 +2381,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:1712",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2389,6 +2390,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:1713",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2980,5 +2982,5 @@
   "timezone": "",
   "title": "ETH2.tax Overview",
   "uid": "CrrHtByMk",
-  "version": 9
+  "version": 13
 }
