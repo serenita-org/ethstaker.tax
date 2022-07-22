@@ -181,7 +181,7 @@ class BeaconNode:
         return activation_slots
 
     async def is_slot_finalized(self, slot: int) -> bool:
-        url = f"{self.BASE_URL}/eth/v1/beacon/states/{slot}/finality_checkpoints"
+        url = f"{self.BASE_URL}/eth/v1/beacon/states/head/finality_checkpoints"
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
         BEACON_NODE_REQUEST_COUNT.labels("is_slot_finalized").inc()
