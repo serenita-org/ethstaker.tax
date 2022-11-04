@@ -154,7 +154,7 @@ class BeaconNode:
 
         return index
 
-    async def activation_slots_for_validators(self, validator_indexes: List[int], cache: Redis) -> Dict[int, Optional[int]]:
+    async def activation_slots_for_validators(self, validator_indexes: List[int]) -> Dict[int, Optional[int]]:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
         params = {"id": ",".join([str(vi) for vi in validator_indexes])}
         logger.debug(f"Getting activation slots for {len(validator_indexes)} indexes")
@@ -224,6 +224,47 @@ class BeaconNode:
             )
 
         return balances
+
+    async def get_full_state(self, state_id: str) -> dict:
+        # Use proxy - add extra 0 to change port to 50510
+        url = f"{self.BASE_URL}/eth/v2/debug/beacon/states/{state_id}"
+
+        status_code = None
+        while status_code != 200:
+            async with self._get_http_client() as client:
+                resp = await client.get_w_backoff(url=url)
+                status_code = resp.status_code
+                if status_code != 200:
+                    from time import sleep
+                    logger.warning(f"Status code {status_code} received for {state_id} in get_full_state")
+                    sleep(1)
+
+        BEACON_NODE_REQUEST_COUNT.labels("get_full_state").inc()
+
+        data = resp.json()["data"]
+
+        # Get rid of data that's big and not interesting right now
+        keys_to_delete = set(data.keys())
+        for ktd in keys_to_delete:
+            if ktd not in ("previous_epoch_participation", "current_epoch_participation"):
+                data.pop(ktd)
+
+        return data
+
+    async def get_validator_inclusion_global(self, epoch: int) -> dict:
+        url = f"{self.BASE_URL}/teku/v1/validator_inclusion/{epoch}/global"
+
+        status_code = None
+        while status_code != 200:
+            async with self._get_http_client() as client:
+                resp = await client.get_w_backoff(url=url)
+                status_code = resp.status_code
+                if status_code != 200:
+                    logger.warning(f"Status code {status_code} received for {epoch} in get_validator_inclusion_global")
+        BEACON_NODE_REQUEST_COUNT.labels("get_validator_inclusion_global").inc()
+
+        data = resp.json()["data"]
+        return data
 
 
 beacon_node_plugin = BeaconNode()

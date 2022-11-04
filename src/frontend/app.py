@@ -38,6 +38,19 @@ async def read_root(
     )
 
 
+@app.get("/merge", response_class=HTMLResponse)
+async def merge(
+    request: Request,
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=5, seconds=1)),
+):
+    return templates.TemplateResponse(
+        "merge.html",
+        {
+            "request": request,
+        },
+    )
+
+
 @app.on_event("startup")
 async def on_startup() -> None:
     setup_logging()

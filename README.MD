@@ -56,3 +56,5 @@ For each validator, its balance is stored in the database
 once daily - every 24 hours.
 On-demand balance retrieval from the beacon node would be time-consuming,
 and for a year's worth of data would take quite a long time.
+
+# Consider rewriting (backend needs refactoring especially the API, frontend in Vue?)

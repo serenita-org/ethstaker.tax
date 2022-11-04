@@ -149,7 +149,7 @@ async def rewards(
     # This "initial" slot could be different for each validator, which is why
     # we don't just add the activation_slots to slots_needed
     first_slot_in_requested_period = await BeaconNode.slot_for_datetime(start_dt_utc)
-    activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes, cache)
+    activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes)
     initial_balances = {}
     for activation_slot in set(activation_slots.values()):
         if activation_slot is None:

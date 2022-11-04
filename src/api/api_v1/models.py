@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import datetime
 
 from pydantic import BaseModel, Field
@@ -38,3 +38,27 @@ class AggregateRewards(BaseModel):
     validator_rewards: List[ValidatorRewards]
     currency: str = Field(..., example="EUR")
     eth_prices: Dict = Field(..., example={"2021-01-01": 502.4, "2021-01-02": 554.32})
+
+
+class DataForEpoch(BaseModel):
+    indexes_missing: int
+    indexes_timely_source: int
+    indexes_timely_target: int
+    indexes_timely_head: int
+
+
+class IndexedMergeData(BaseModel):
+    __root__: Dict[int, DataForEpoch]
+
+
+class ValidatorInclusionEpochData(BaseModel):
+    current_epoch_active_gwei: int
+    current_epoch_target_attesting_gwei: int
+
+    previous_epoch_active_gwei: int
+    previous_epoch_target_attesting_gwei: int
+    previous_epoch_head_attesting_gwei: int
+
+
+class ValidatorInclusionData(BaseModel):
+    __root__: Dict[int, ValidatorInclusionEpochData]

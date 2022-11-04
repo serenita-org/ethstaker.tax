@@ -34,6 +34,7 @@ services:
       - BEACON_NODE_PORT=${BEACON_NODE_PORT}
       - BEACON_NODE_RESPONSE_TIMEOUT=${BEACON_NODE_RESPONSE_TIMEOUT}
       - WEB_CONCURRENCY=${CONCURRENCY_API}
+      - PROMETHEUS_MULTIPROC_DIR=${PROMETHEUS_MULTIPROC_DIR}
     depends_on:
       - db
       - redis
@@ -134,7 +135,7 @@ services:
       - db
 
   grafana:
-    image: grafana/grafana:7.4.1
+    image: grafana/grafana:9.1.3
     restart: unless-stopped
     ports:
       - 3000:3000
