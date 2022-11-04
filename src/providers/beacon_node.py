@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Iterable
 import datetime
 import json
 from collections import namedtuple
@@ -230,7 +230,7 @@ class BeaconNode:
 
     async def balances_for_slot(self,
                                 slot: int,
-                                validator_indexes: List[int] = None,
+                                validator_indexes: Iterable[int] = None,
                                 ) -> List[Balance]:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/{slot}/validator_balances"
         params = None

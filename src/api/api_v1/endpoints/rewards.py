@@ -15,6 +15,7 @@ from api.api_v1.models import (
     AggregateRewards,
     InitialBalance,
     EndOfDayBalance,
+    ExecLayerBlockReward,
     ValidatorRewards,
 )
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
@@ -220,7 +221,7 @@ async def rewards(
         slots=slots_needed, validator_indexes=validator_indexes
     )
 
-    # Balances for the head slot are not present in the database
+    # Validator balances for the head slot are not present in the database
     # - these need to be retrieved on-demand from the beacon node
     logger.debug("Retrieving head slot balances from beacon node")
     if head_slot in slots_needed:
@@ -269,12 +270,12 @@ async def rewards(
         # Sort them by the slot number
         validator_balances = sorted(validator_balances, key=lambda x: x.slot)
 
-        # Populate the initial and end-of-day balances
+        # Populate the initial and end-of-day validator balances
         initial_balance = initial_balances[validator_index]
         prev_balance = initial_balance.balance
         eod_balances = []
-        total_eth = 0
-        total_currency = 0
+        total_consensus_layer_eth = 0
+        total_consensus_layer_currency = 0
         for vb in validator_balances:
             slot_date = (await BeaconNode.datetime_for_slot(vb.slot, timezone)).date()
 
@@ -288,19 +289,40 @@ async def rewards(
 
             # Calculate earnings
             day_rewards_eth = vb.balance - prev_balance
-            total_eth += day_rewards_eth
-            total_currency += day_rewards_eth * date_eth_price[slot_date]
+            total_consensus_layer_eth += day_rewards_eth
+            total_consensus_layer_currency += day_rewards_eth * date_eth_price[slot_date]
 
             # Set prev_balance to current balance for next loop iteration
             prev_balance = vb.balance
+
+        # Retrieve the execution layer rewards
+        block_rewards = db_provider.block_rewards(min_slot=await beacon_node.slot_for_datetime(start_dt_utc),
+                                                  max_slot=await beacon_node.slot_for_datetime(datetime.datetime.combine(
+                                                      end_date,
+                                                      datetime.time(hour=23, minute=59, second=59, tzinfo=timezone)
+                                                  )),
+                                                  proposer_indexes=[validator_index])
+
+        total_execution_layer_eth = 0
+        total_execution_layer_currency = 0
+        exec_layer_block_rewards = []
+        for br in block_rewards:
+            br_reward_eth = br.proposer_reward / 1e18
+            total_execution_layer_eth += br_reward_eth
+            slot_date = (await BeaconNode.datetime_for_slot(br.slot, timezone)).date()
+            total_execution_layer_currency += br_reward_eth * date_eth_price[slot_date]
+            exec_layer_block_rewards.append(ExecLayerBlockReward(date=slot_date, reward=br_reward_eth))
 
         aggregate_rewards.validator_rewards.append(
             ValidatorRewards(
                 validator_index=validator_index,
                 initial_balance=initial_balance,
                 eod_balances=eod_balances,
-                total_eth=total_eth,
-                total_currency=total_currency,
+                exec_layer_block_rewards=exec_layer_block_rewards,
+                total_consensus_layer_eth=total_consensus_layer_eth,
+                total_consensus_layer_currency=total_consensus_layer_currency,
+                total_execution_layer_eth=total_execution_layer_eth,
+                total_execution_layer_currency=total_execution_layer_currency,
             )
         )
     return aggregate_rewards
