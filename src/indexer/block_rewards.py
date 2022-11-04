@@ -55,8 +55,7 @@ async def index_block_rewards():
                 logger.info(f"Waiting for slot {slot} to be finalized")
                 continue
 
-            if slot % 10 == 0:
-                logger.info(f"Indexing block rewards for slot {slot}")
+            logger.info(f"Indexing block rewards for slot {slot}") if slot % 100 == 0 else None
 
             # Retrieve block info
             block_reward_data = await beacon_node.get_block_reward_data(slot)
