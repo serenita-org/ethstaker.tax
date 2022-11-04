@@ -26,6 +26,10 @@ scrape_configs:
     static_configs:
       - targets: ['indexer_balances:8000']
 
+  - job_name: indexer_block_rewards
+    static_configs:
+      - targets: ['indexer_block_rewards:8000']
+
   - job_name: indexer_merge
     static_configs:
       - targets: ['indexer_merge:8000']

@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from db.tables import Balance
+from db.tables import Balance, BlockReward
 from db.db_helpers import get_db_uri
 from prometheus_client.metrics import Histogram
 
@@ -58,6 +58,10 @@ class DbProvider:
             session.expunge_all()
 
         return balances
+
+    @DB_REQUESTS_SECONDS.time()
+    def block_rewards(self) -> List[BlockReward]:
+        return block_rewards
 
 
 db_plugin = DbProvider()

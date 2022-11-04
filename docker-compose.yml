@@ -47,13 +47,35 @@ services:
     restart: unless-stopped
     command: [ "python", "./src/indexer/balances.py" ]
     environment:
-      - DB_URI=${DB_URI}
-      - BEACON_NODE_USE_INFURA=${BEACON_NODE_USE_INFURA}
-      - INFURA_PROJECT_ID=${INFURA_PROJECT_ID}
-      - INFURA_SECRET=${INFURA_SECRET}
-      - BEACON_NODE_HOST=${BEACON_NODE_HOST}
-      - BEACON_NODE_PORT=${BEACON_NODE_PORT}
-      - BEACON_NODE_RESPONSE_TIMEOUT=${BEACON_NODE_RESPONSE_TIMEOUT}
+      DB_URI:
+      BEACON_NODE_USE_INFURA:
+      INFURA_PROJECT_ID:
+      INFURA_SECRET:
+      BEACON_NODE_HOST:
+      BEACON_NODE_PORT:
+      BEACON_NODE_RESPONSE_TIMEOUT:
+    depends_on:
+      - db
+
+
+  indexer_block_rewards:
+    image: eth2-tax:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: [ "python", "./src/indexer/block_rewards.py" ]
+    environment:
+      DB_URI:
+      BEACON_NODE_USE_INFURA:
+      INFURA_PROJECT_ID:
+      INFURA_SECRET:
+      BEACON_NODE_HOST:
+      BEACON_NODE_PORT:
+      BEACON_NODE_RESPONSE_TIMEOUT:
+      EXECUTION_NODE_HOST:
+      EXECUTION_NODE_PORT:
+      EXECUTION_NODE_RESPONSE_TIMEOUT:
     depends_on:
       - db
 

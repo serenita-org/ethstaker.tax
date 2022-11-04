@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Any, Optional
 import datetime
 import json
+from collections import namedtuple
 
 import starlette.requests
 from fastapi import FastAPI
@@ -24,7 +25,10 @@ BEACONCHAIN_REQUEST_COUNT = Counter("beaconchain_request_count",
                                     "Count of requests to beaconcha.in")
 BEACON_NODE_REQUEST_COUNT = Counter("beacon_node_request_count",
                                     "Count of requests made to the beacon node",
-                                    labelnames=("path",))
+                                    labelnames=("endpoint", "function_name"))
+
+
+BlockRewardData = namedtuple("BlockRewardData", ["proposer_index", "fee_recipient", "block_number"])
 
 
 class BeaconNode:
@@ -141,7 +145,7 @@ class BeaconNode:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators/{publickey}"
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("index_for_publickey").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validators/{validator_id}", "index_for_publickey").inc()
 
         if resp.status_code == 404:
             return None
@@ -154,13 +158,43 @@ class BeaconNode:
 
         return index
 
+    async def get_block_reward_data(self, slot: int) -> BlockRewardData:
+        url = f"{self.BASE_URL}/eth/v2/beacon/blocks/{slot}"
+
+        logger.debug(f"Getting proposer index and fee recipient for slot {slot}")
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/headers/{block_id}", "get_proposer_index_fee_recipient_for_slot").inc()
+
+        data = resp.json()
+        if "data" not in data.keys():
+            # Missed proposals return like this
+            if data.get("code") == 404:
+                return BlockRewardData(
+                    proposer_index=None,
+                    fee_recipient=None,
+                    block_number=None,
+                )
+            else:
+                raise ValueError(f"Beacon node returned an error while requesting block for slot {slot}")
+
+        proposer_idx = data["data"]["message"]["proposer_index"]
+        fee_recipient = data["data"]["message"]["body"]["execution_payload"]["fee_recipient"]
+        block_number = int(data["data"]["message"]["body"]["execution_payload"]["block_number"])
+
+        return BlockRewardData(
+            proposer_index=proposer_idx,
+            fee_recipient=fee_recipient,
+            block_number=block_number,
+        )
+
     async def activation_slots_for_validators(self, validator_indexes: List[int]) -> Dict[int, Optional[int]]:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
         params = {"id": ",".join([str(vi) for vi in validator_indexes])}
         logger.debug(f"Getting activation slots for {len(validator_indexes)} indexes")
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url, params=params)
-        BEACON_NODE_REQUEST_COUNT.labels("activation_slot_for_validator").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validators", "activation_slot_for_validator").inc()
 
         try:
             data = resp.json()["data"]
@@ -184,7 +218,7 @@ class BeaconNode:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/finality_checkpoints"
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("is_slot_finalized").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/head/finality_checkpoint", "is_slot_finalized").inc()
 
         data = resp.json()["data"]
         finalized_epoch = int(data["finalized"]["epoch"])
@@ -204,7 +238,7 @@ class BeaconNode:
             params = {"id": ",".join([str(v) for v in validator_indexes])}
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url, params=params)
-        BEACON_NODE_REQUEST_COUNT.labels("balances_for_slot").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validator_balances", "balances_for_slot").inc()
 
         try:
             data = resp.json()["data"]
@@ -239,7 +273,7 @@ class BeaconNode:
                     logger.warning(f"Status code {status_code} received for {state_id} in get_full_state")
                     sleep(1)
 
-        BEACON_NODE_REQUEST_COUNT.labels("get_full_state").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v2/debug/beacon/states/{state_id}", "get_full_state").inc()
 
         data = resp.json()["data"]
 
@@ -261,7 +295,7 @@ class BeaconNode:
                 status_code = resp.status_code
                 if status_code != 200:
                     logger.warning(f"Status code {status_code} received for {epoch} in get_validator_inclusion_global")
-        BEACON_NODE_REQUEST_COUNT.labels("get_validator_inclusion_global").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/teku/v1/validator_inclusion/{epoch}/global", "get_validator_inclusion_global").inc()
 
         data = resp.json()["data"]
         return data
