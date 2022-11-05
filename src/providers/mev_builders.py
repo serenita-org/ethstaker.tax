@@ -40,6 +40,24 @@ MEV_BUILDERS = [
         extra_data_values=["Illuminate Dmocratize Dstribute"],
     ),
     MevBuilder(
+        name="Flashbots builder - inactive now?",
+        fee_recipient_address="0x9d8e2dc5615c674f329d18786d52af10a65af08b",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=["Illuminate Dmocratize Dstribute"],
+    ),
+    MevBuilder(
+        name="Flashbots builder - inactive now?",
+        fee_recipient_address="0x089780a88f35b58144aa8a9be654207a1afe7959",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=["Illuminate Dmocratize Dstribute"],
+    ),
+    MevBuilder(
+        name="Flashbots builder - inactive now?",
+        fee_recipient_address="0x1d0124fee8dbe21884ab97adccbf5c55d768886e",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=["Illuminate Dmocratize Dstribute"],
+    ),
+    MevBuilder(
         name="Flashbots builder",
         fee_recipient_address="0xdafea492d9c6733ae3d56b7ed1adb60692c98bc5",
         payout_type=MevPayoutType.LAST_TX,
@@ -64,6 +82,18 @@ MEV_BUILDERS = [
         extra_data_values=["Powered by bloXroute"],
     ),
     MevBuilder(
+        name="bloxRoute contract 1 - FeesEscrow",
+        fee_recipient_address="0x6b333b20fbae3c5c0969dd02176e30802e2fbbdb",
+        payout_type=MevPayoutType.RELAYOOOR,
+        extra_data_values=["Powered by bloXroute"],
+    ),
+    MevBuilder(
+        name="bloxRoute not sure",
+        fee_recipient_address="0x0038598ecb3b308ebc6c6e2c635bacaa3c5298a3",
+        payout_type=MevPayoutType.RELAYOOOR,
+        extra_data_values=["Powered by bloXroute"],
+    ),
+    MevBuilder(
         name="Eden network builder",
         fee_recipient_address="0xaab27b150451726ec7738aa1d0a94505c8729bd1",
         payout_type=MevPayoutType.LAST_TX,
@@ -80,6 +110,15 @@ MEV_BUILDERS = [
         fee_recipient_address="0x8d5998a27b3cdf33479b65b18f075e20a7aa05b9",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=["\u0603\x01\x0b\x00gethgo1.19.1linux"],
+    ),
+    MevBuilder(
+        name="?",
+        fee_recipient_address="0xb646d87963da1fb9d192ddba775f24f33e857128",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "\u0603\x01\n\x17gethgo1.18.6linux",
+            "Buildoooooooooooooor",
+        ],
     ),
     MevBuilder(
         name="?",

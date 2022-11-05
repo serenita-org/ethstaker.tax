@@ -56,6 +56,30 @@ from providers.beacon_node import BlockRewardData
             id="BloXroute ethical",
         ),
         pytest.param(
+            4705463,
+            BlockRewardData(
+                proposer_index=291537,
+                fee_recipient="0x6b333b20fbae3c5c0969dd02176e30802e2fbbdb",
+                block_number=15542760,
+            ),
+            "bloxRoute contract 1 - FeesEscrow",
+            243579569124789055,
+            True,
+            id="'Powered by bloXroute' in extra data, but fee recipient is not one of bloXroute's",
+        ),
+        pytest.param(
+            4705459,
+            BlockRewardData(
+                proposer_index=18899,
+                fee_recipient="0x0038598ecb3b308ebc6c6e2c635bacaa3c5298a3",
+                block_number=15542756,
+            ),
+            "bloxRoute not sure",
+            120293380470556287,
+            True,
+            id="'Powered by bloXroute' in extra data, but fee recipient is not one of bloXroute's",
+        ),
+        pytest.param(
             5063206,
             BlockRewardData(
                 proposer_index=7230,
