@@ -38,7 +38,7 @@ class AsyncClientWithBackoff(AsyncClient):
             raise NonOkStatusCode()
         return resp
 
-    @backoff.on_exception(backoff.expo, exception=ConnectError, max_time=300, jitter=backoff.full_jitter)
+    @backoff.on_exception(backoff.expo, exception=ConnectTimeout, max_time=300, jitter=backoff.full_jitter)
     @backoff.on_exception(backoff.expo, exception=RateLimited, max_time=300, jitter=backoff.full_jitter)
     @backoff.on_exception(backoff.expo, exception=NonOkStatusCode, max_time=300, jitter=backoff.full_jitter)
     async def post_w_backoff(self, **kwargs) -> Response:

@@ -8,6 +8,7 @@ httpx
 jinja2
 psycopg2-binary
 pytest
+pytest-asyncio
 pytz
 PyYAML
 requests

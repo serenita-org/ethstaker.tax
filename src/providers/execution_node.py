@@ -42,6 +42,22 @@ class ExecutionNode:
 
         return int(resp.json()["result"], base=16)
 
+    async def get_balance(self, address: str, block_number: int, use_infura=False) -> int:
+        url = f"{self.BASE_URL}"
+        # Use Infura while checking balances in old blocks! (Archive node required)
+        if use_infura:
+            url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
+        async with self._get_http_client() as client:
+            resp = await client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_getBalance",
+                "params": [address, hex(block_number)],
+                "id": 1
+            })
+        EXEC_NODE_REQUEST_COUNT.labels("eth_getBalance", "get_balance").inc()
+        result = resp.json()["result"]
+        return int(result, base=16)
+
     async def get_block(self, block_number: int, verbose=False) -> dict:
         url = f"{self.BASE_URL}"
         async with self._get_http_client() as client:

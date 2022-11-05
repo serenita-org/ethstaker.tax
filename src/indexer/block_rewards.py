@@ -7,14 +7,13 @@ from prometheus_client import start_http_server, Gauge
 
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
-from providers.execution_node import ExecutionNode
 from db.tables import BlockReward
 from db.db_helpers import session_scope
-from indexer.block_rewards_mev import MEV_BUILDERS, MevPayoutType
+from indexer.block_rewards_mev import get_block_reward_value
 
 logger = logging.getLogger(__name__)
 
-START_SLOT = 4700013 # First PoS slot
+START_SLOT = 4700013  # First PoS slot
 TIMEZONES_TO_INDEX = (
     pytz.utc,
 )
@@ -30,7 +29,6 @@ SLOTS_WITH_MISSING_BLOCK_REWARDS = Gauge(
 async def index_block_rewards():
     global ALREADY_INDEXED_SLOTS
     beacon_node = BeaconNode()
-    execution_node = ExecutionNode()
 
     slots_needed = [s for s in range(START_SLOT, (await beacon_node.head_slot()))]
 
@@ -72,37 +70,7 @@ async def index_block_rewards():
                 session.commit()
                 continue
 
-            # Check if MEV
-            block_contains_mev = False
-            # Most builders set themselves as fee recipient and send MEV to proposer in a tx
-            if block_reward_data.fee_recipient in (
-                    b.fee_recipient_address for b in MEV_BUILDERS if b.payout_type == MevPayoutType.LAST_TX
-            ):
-                # Definitely MEV block
-                block_contains_mev = True
-
-                tx_count = await execution_node.get_block_tx_count(block_number=block_reward_data.block_number)
-                last_tx = await execution_node.get_tx_data(block_number=block_reward_data.block_number,
-                                                           tx_index=tx_count - 1)
-                assert last_tx.from_ == block_reward_data.fee_recipient
-                proposer_reward = last_tx.value
-            else:
-                # Fee recipient is not a known MEV builder
-                # This could still be MEV but built by Manifold/other builders who do not override
-                # the fee recipient and therefore don't have to make a transaction to pay out rewards
-                miner_data = await execution_node.get_miner_data(block_number=block_reward_data.block_number)
-
-                if miner_data.extra_data in (b.name for b in MEV_BUILDERS if b.payout_type == MevPayoutType.DIRECT):
-                    block_contains_mev = True
-                    logger.debug(f"MEV found in {block_reward_data.block_number} through extra data - {miner_data.extra_data}")
-
-                # Double check the coinbase is equal to the fee recipient for the block
-                if miner_data.coinbase != block_reward_data.fee_recipient:
-                    raise ValueError(f"Coinbase {miner_data.coinbase} != fee recipient {block_reward_data.fee_recipient}, block number {block_reward_data.block_number}")
-
-                burnt_tx_fees = await execution_node.get_burnt_tx_fees_for_block(block_number=block_reward_data.block_number)
-                logger.debug(f"Proposer reward: {miner_data.tx_fee} - {burnt_tx_fees}")
-                proposer_reward = miner_data.tx_fee - burnt_tx_fees
+            proposer_reward, contains_mev = get_block_reward_value(block_reward_data)
 
             session.add(
                 BlockReward(
@@ -110,7 +78,7 @@ async def index_block_rewards():
                     proposer_index=block_reward_data.proposer_index,
                     fee_recipient=block_reward_data.fee_recipient,
                     proposer_reward=proposer_reward,
-                    mev=block_contains_mev,
+                    mev=contains_mev,
                 )
             )
             ALREADY_INDEXED_SLOTS.append(slot)
