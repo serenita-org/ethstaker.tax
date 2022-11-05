@@ -7,6 +7,7 @@ from prometheus_client import start_http_server, Gauge
 
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
+from providers.execution_node import ExecutionNode
 from db.tables import BlockReward
 from db.db_helpers import session_scope
 from indexer.block_rewards_mev import get_block_reward_value
@@ -29,6 +30,7 @@ SLOTS_WITH_MISSING_BLOCK_REWARDS = Gauge(
 async def index_block_rewards():
     global ALREADY_INDEXED_SLOTS
     beacon_node = BeaconNode()
+    execution_node = ExecutionNode()
 
     slots_needed = [s for s in range(START_SLOT, (await beacon_node.head_slot()))]
 
@@ -70,13 +72,15 @@ async def index_block_rewards():
                 session.commit()
                 continue
 
-            proposer_reward, contains_mev = get_block_reward_value(block_reward_data)
+            proposer_reward, contains_mev = await get_block_reward_value(block_reward_data)
+            block_extra_data = (await execution_node.get_miner_data(block_number=block_reward_data.block_number)).extra_data
 
             session.add(
                 BlockReward(
                     slot=slot,
                     proposer_index=block_reward_data.proposer_index,
                     fee_recipient=block_reward_data.fee_recipient,
+                    block_extra_data=bytes.fromhex(block_extra_data[2:]) if block_extra_data else None,
                     proposer_reward=proposer_reward,
                     mev=contains_mev,
                 )

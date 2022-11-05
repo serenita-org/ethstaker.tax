@@ -78,8 +78,8 @@ from providers.beacon_node import BlockRewardData
             140692479934170844,
             True,
             id="Relayooor.wtf - reward combination",
+            marks=pytest.mark.skip(reason="Getting rewards for this block uses a Infura credit")
         ),
-
     ],
 )
 @pytest.mark.asyncio
