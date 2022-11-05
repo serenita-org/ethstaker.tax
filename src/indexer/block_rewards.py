@@ -72,7 +72,11 @@ async def index_block_rewards():
                 session.commit()
                 continue
 
-            proposer_reward, contains_mev = await get_block_reward_value(block_reward_data)
+            try:
+                proposer_reward, contains_mev = await get_block_reward_value(block_reward_data)
+            except (ValueError, AssertionError) as e:
+                logger.exception(f"Failed to process slot {slot} -> {str(e)}")
+                continue
             block_extra_data = (await execution_node.get_miner_data(block_number=block_reward_data.block_number)).extra_data
 
             session.add(
