@@ -76,6 +76,7 @@ services:
       EXECUTION_NODE_HOST:
       EXECUTION_NODE_PORT:
       EXECUTION_NODE_RESPONSE_TIMEOUT:
+      EXECUTION_NODE_INFURA_ARCHIVE_URL:
     depends_on:
       - db
 
