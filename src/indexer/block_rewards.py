@@ -74,13 +74,12 @@ async def index_block_rewards():
 
             # Check if MEV
             block_contains_mev = False
-            if block_reward_data.fee_recipient in MEV_BUILDERS.keys():
+            # Most builders set themselves as fee recipient and send MEV to proposer in a tx
+            if block_reward_data.fee_recipient in (
+                    b.fee_recipient_address for b in MEV_BUILDERS if b.payout_type == MevPayoutType.LAST_TX
+            ):
                 # Definitely MEV block
                 block_contains_mev = True
-                expected_mev_payout_type = MEV_BUILDERS[block_reward_data.fee_recipient].payout_type
-                if expected_mev_payout_type != MevPayoutType.LAST_TX:
-                    raise ValueError(
-                        f"Fee recipient is a builder but has unsupported payout type {expected_mev_payout_type}")
 
                 tx_count = await execution_node.get_block_tx_count(block_number=block_reward_data.block_number)
                 last_tx = await execution_node.get_tx_data(block_number=block_reward_data.block_number,
@@ -93,12 +92,11 @@ async def index_block_rewards():
                 # the fee recipient and therefore don't have to make a transaction to pay out rewards
                 miner_data = await execution_node.get_miner_data(block_number=block_reward_data.block_number)
 
-                if miner_data.extra_data in ("Manifold", ):
+                if miner_data.extra_data in (b.name for b in MEV_BUILDERS if b.payout_type == MevPayoutType.DIRECT):
                     block_contains_mev = True
                     logger.debug(f"MEV found in {block_reward_data.block_number} through extra data - {miner_data.extra_data}")
 
-                # Check transactions in block for the MEV recipient by checking for:
-                # - coinbase different from fee recipient
+                # Double check the coinbase is equal to the fee recipient for the block
                 if miner_data.coinbase != block_reward_data.fee_recipient:
                     raise ValueError(f"Coinbase {miner_data.coinbase} != fee recipient {block_reward_data.fee_recipient}, block number {block_reward_data.block_number}")
 

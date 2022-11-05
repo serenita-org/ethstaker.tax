@@ -131,7 +131,7 @@ services:
     restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.retention.time=5y'
+      - '--storage.tsdb.retention.time=1y'
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
