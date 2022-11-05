@@ -108,13 +108,8 @@ class ExecutionNode:
         EXEC_NODE_REQUEST_COUNT.labels("eth_getMinerDataByBlockNumber", "get_miner_data").inc()
 
         data = resp.json()["result"]
-        try:
-            extra_data = data["extraData"]
-            extra_data = bytes.fromhex(extra_data[2:]).decode() if len(extra_data) > 2 else None
-        except UnicodeDecodeError:
-            extra_data = None
         return MinerData(
             tx_fee=int(data["transactionFee"], base=16),
             coinbase=data["coinbase"],
-            extra_data=extra_data,
+            extra_data=data["extraData"],
         )
