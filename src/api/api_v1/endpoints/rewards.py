@@ -277,6 +277,14 @@ async def rewards(
         total_consensus_layer_eth = 0
         total_consensus_layer_currency = 0
         for vb in validator_balances:
+            if vb.slot > initial_balance.slot:
+                # If multiple deposits are made, we may already have a balance in the DB
+                # even though the validator is not active yet (e.g. Rocketpool, balance on day 1 = 16ETH
+                # but it is not validating yet).
+                # This ignores all balance entries before the validator's activation.
+                continue
+
+
             slot_date = (await BeaconNode.datetime_for_slot(vb.slot, timezone)).date()
 
             eod_balances.append(
