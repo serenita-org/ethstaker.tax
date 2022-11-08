@@ -4,12 +4,20 @@ from typing import Optional, Union
 
 class MevPayoutType(Enum):
     # MEV is the value of the last tx in the block (tx.from_ = builder, tx.to = proposer, MEV = tx.value)
+    # E.g. Flasbots/bloxRoute/...
     LAST_TX = "LAST_TX"
     # Builder does not "override" the fee recipient, MEV value is only comprised of block rewards.
+    # (Also called the "coinbase" type, because it transfers the MEV to the block's beneficiary address,
+    # the fee recipient, using the COINBASE opcode)
+    # E.g. Manifest
     DIRECT = "DIRECT"
     # Builder does not "override" the fee recipient. MEV value is a combination of block rewards
     # and internal transactions to fee recipient address.
-    RELAYOOOR = "RELAYOOOR"
+    # E.g. Relayooor.wtf builder
+    CONTRACT_CALL_INTERNAL_TXS = "CONTRACT_CALL_INTERNAL_TXS"
+    # Builder overrides the fee recipient, sets it to a distributor contract which distributes the reward
+    # between the builder and proposer
+    CONTRACT_DISTRIBUTOR = "CONTRACT_DISTRIBUTOR"
 
 
 class MevBuilder:
@@ -70,27 +78,21 @@ MEV_BUILDERS = [
         extra_data_values=["Powered by bloXroute"],
     ),
     MevBuilder(
-        name="bloxroute regulated builder",
+        name="bloXroute regulated builder",
         fee_recipient_address="0x199d5ed7f45f4ee35960cf22eade2076e95b253f",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=["Powered by bloXroute"],
     ),
     MevBuilder(
-        name="bloxroute ethical builder",
+        name="bloXroute ethical builder",
         fee_recipient_address="0xf573d99385c05c23b24ed33de616ad16a43a0919",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=["Powered by bloXroute"],
     ),
     MevBuilder(
-        name="bloxRoute contract 1 - FeesEscrow",
-        fee_recipient_address="0x6b333b20fbae3c5c0969dd02176e30802e2fbbdb",
-        payout_type=MevPayoutType.RELAYOOOR,
-        extra_data_values=["Powered by bloXroute"],
-    ),
-    MevBuilder(
-        name="bloxRoute not sure",
-        fee_recipient_address="0x0038598ecb3b308ebc6c6e2c635bacaa3c5298a3",
-        payout_type=MevPayoutType.RELAYOOOR,
+        name="bloXroute external builder",
+        fee_recipient_address=None,
+        payout_type=MevPayoutType.CONTRACT_CALL_INTERNAL_TXS,
         extra_data_values=["Powered by bloXroute"],
     ),
     MevBuilder(
@@ -100,19 +102,19 @@ MEV_BUILDERS = [
         extra_data_values=[None],
     ),
     MevBuilder(
-        name="?",
+        name="7dfc",
         fee_recipient_address="0x473780deaf4a2ac070bbba936b0cdefe7f267dfc",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=["\u0603\x01\x0b\x00gethgo1.19.1linux"],
     ),
     MevBuilder(
-        name="?",
+        name="05b9",
         fee_recipient_address="0x8d5998a27b3cdf33479b65b18f075e20a7aa05b9",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=["\u0603\x01\x0b\x00gethgo1.19.1linux"],
     ),
     MevBuilder(
-        name="?",
+        name="7128",
         fee_recipient_address="0xb646d87963da1fb9d192ddba775f24f33e857128",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
@@ -121,7 +123,7 @@ MEV_BUILDERS = [
         ],
     ),
     MevBuilder(
-        name="?",
+        name="466f",
         fee_recipient_address="0x25d88437df70730122b73ef35462435d187c466f",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
@@ -130,7 +132,7 @@ MEV_BUILDERS = [
         ],
     ),
     MevBuilder(
-        name="?",
+        name="0bf0",
         fee_recipient_address="0xc4b9beb1b7efb04deea31dc3b4c32a88ee210bf0",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
@@ -154,9 +156,9 @@ MEV_BUILDERS = [
         extra_data_values=["Made on the moon by Blocknative"],
     ),
     MevBuilder(
-        name="Viva relayooor.wtf",
+        name="Relayooor.wtf",
         fee_recipient_address=None,
-        payout_type=MevPayoutType.RELAYOOOR,
+        payout_type=MevPayoutType.CONTRACT_CALL_INTERNAL_TXS,
         extra_data_values=["Viva relayooor.wtf"],
     ),
     MevBuilder(
@@ -166,25 +168,25 @@ MEV_BUILDERS = [
         extra_data_values=["https://eth-builder.com"],
     ),
     MevBuilder(
-        name="?",
+        name="05b9",
         fee_recipient_address="0x8D5998A27b3CdF33479B65B18F075E20a7aa05b9",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
     ),
     MevBuilder(
-        name="?",
+        name="b649",
         fee_recipient_address="0x57af10ed3469b2351ae60175d3c9b3740e1bb649",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
     ),
     MevBuilder(
-        name="?",
+        name="79a1",
         fee_recipient_address="0xd1a0b5843f384f92a6759015c742fc12d1d579a1",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
     ),
     MevBuilder(
-        name="?",
+        name="91ed",
         fee_recipient_address="0xae08c571e771f360c35f5715e36407ecc89d91ed",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
@@ -202,16 +204,45 @@ MEV_BUILDERS = [
         extra_data_values=["𝙉eo𝘾onstruction✦"],
     ),
     MevBuilder(
-        name="?",
+        name="3cf1",
         fee_recipient_address="0xed7ce3de532213314bb07622d8bf606a4ba03cf1",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
     ),
+    MevBuilder(
+        name="16c5",
+        fee_recipient_address="0xc1612dc56c3e7e00d86c668df03904b7e59616c5",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "\u0603\x01\n\x17gethgo1.18.1linux",
+            "\u0603\x01\n\x17gethgo1.18.2linux",
+        ],
+    ),
+    MevBuilder(
+        name="0d94",
+        fee_recipient_address="0xa7fdca7aa0b69927a34ec48ddcfe3d4c66ff0d94",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "\u0603\x01\n\x17gethgo1.18.1linux",
+        ],
+    ),
+    # a2e1 - splits block reward to proposer and builder?
+    # Disabled right now, since it's not clear if this is MEV reward distribution -> at the moment assuming no.
+    # It was also not clear from the tx data input who is the builder/proposer...
+    # MevBuilder(
+    #     name="a2e1 contract distributor",
+    #     fee_recipient_address="0x7d00a2bc1370b9005eb100004da500924600a2e1",
+    #     payout_type=MevPayoutType.CONTRACT_DISTRIBUTOR,
+    #     extra_data_values=[None],
+    # ),
 ]
-KNOWN_EXTRA_DATA_FIELDS_MEV = set()
-KNOWN_FEE_RECIPIENTS_MEV = set()
+
+
+def extra_data_contains_common_substring(value: str) -> bool:
+    return any(substring in value for substring in {"gethgo"} if value is not None)
+
+
+BUILDER_FEE_RECIPIENTS = set()
 for b in MEV_BUILDERS:
     if b.fee_recipient_address is not None:
-        KNOWN_FEE_RECIPIENTS_MEV.add(b.fee_recipient_address)
-    for extra_data_value in b.extra_data_values:
-        KNOWN_EXTRA_DATA_FIELDS_MEV.add(extra_data_value)
+        BUILDER_FEE_RECIPIENTS.add(b.fee_recipient_address)
