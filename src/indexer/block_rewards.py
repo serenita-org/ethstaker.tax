@@ -8,6 +8,7 @@ from prometheus_client import start_http_server, Gauge
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
 from providers.execution_node import ExecutionNode
+from providers.http_client_w_backoff import RateLimited
 from db.tables import BlockReward
 from db.db_helpers import session_scope
 from indexer.block_rewards_mev import get_block_reward_value
@@ -58,9 +59,9 @@ async def index_block_rewards():
             logger.info(f"Indexing block rewards for slot {slot}") if slot % 100 == 0 else None
 
             # Retrieve block info
-            block_reward_data = await beacon_node.get_block_reward_data(slot)
+            slot_proposer_data = await beacon_node.get_slot_proposer_data(slot)
 
-            if block_reward_data.block_number is None:
+            if slot_proposer_data.block_number is None:
                 # No block in this slot
                 session.add(
                     BlockReward(
@@ -73,20 +74,22 @@ async def index_block_rewards():
                 continue
 
             try:
-                proposer_reward, contains_mev = await get_block_reward_value(block_reward_data)
-            except (ValueError, AssertionError) as e:
-                logger.exception(f"Failed to process slot {slot} -> {str(e)}")
+                priority_fees, contains_mev, mev_reward_recipient, mev_reward_value = await get_block_reward_value(slot_proposer_data)
+            except (ValueError, AssertionError, RateLimited) as e:
+                logger.error(f"Failed to process slot {slot} -> {str(e)}")
                 continue
-            block_extra_data = (await execution_node.get_miner_data(block_number=block_reward_data.block_number)).extra_data
+            block_extra_data = (await execution_node.get_miner_data(block_number=slot_proposer_data.block_number)).extra_data
 
             session.add(
                 BlockReward(
                     slot=slot,
-                    proposer_index=block_reward_data.proposer_index,
-                    fee_recipient=block_reward_data.fee_recipient,
+                    proposer_index=slot_proposer_data.proposer_index,
+                    fee_recipient=slot_proposer_data.fee_recipient,
+                    priority_fees=priority_fees,
                     block_extra_data=bytes.fromhex(block_extra_data[2:]) if block_extra_data else None,
-                    proposer_reward=proposer_reward,
                     mev=contains_mev,
+                    mev_reward_recipient=mev_reward_recipient,
+                    mev_reward_value=mev_reward_value,
                 )
             )
             ALREADY_INDEXED_SLOTS.append(slot)

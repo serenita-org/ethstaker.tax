@@ -1,8 +1,8 @@
 """Add table for block rewards
 
-Revision ID: 433dd90de0b1
+Revision ID: 328c9940a8e8
 Revises: f7053ac981c7
-Create Date: 2022-11-04 19:13:39.070159
+Create Date: 2022-11-07 11:57:18.739688
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '433dd90de0b1'
+revision = '328c9940a8e8'
 down_revision = 'f7053ac981c7'
 branch_labels = None
 depends_on = None
@@ -22,8 +22,11 @@ def upgrade():
     sa.Column('slot', sa.Integer(), autoincrement=False, nullable=False),
     sa.Column('proposer_index', sa.Integer(), nullable=True),
     sa.Column('fee_recipient', sa.String(length=42), nullable=True),
-    sa.Column('proposer_reward', sa.Numeric(precision=27, scale=0), nullable=True),
+    sa.Column('priority_fees', sa.Numeric(precision=27), nullable=True),
+    sa.Column('block_extra_data', sa.LargeBinary(), nullable=True),
     sa.Column('mev', sa.Boolean(), nullable=True),
+    sa.Column('mev_reward_recipient', sa.String(length=42), nullable=True),
+    sa.Column('mev_reward_value', sa.Numeric(precision=27), nullable=True),
     sa.PrimaryKeyConstraint('slot')
     )
     # ### end Alembic commands ###
