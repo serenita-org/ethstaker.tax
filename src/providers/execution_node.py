@@ -77,6 +77,42 @@ class ExecutionNode:
         gas_used = int(data["gasUsed"], base=16)
         return base_fee * gas_used
 
+    async def get_tx_receipt(self, tx_id: str) -> dict:
+        url = f"{self.BASE_URL}"
+        async with self._get_http_client() as client:
+            resp = await client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_getTransactionReceipt",
+                "params": [tx_id],
+                "id": 1
+            })
+        EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionReceipt", "get_tx_receipt").inc()
+
+        return resp.json()["result"]
+
+    async def get_logs(self, address: str, block_number: int, topics: list[str], use_infura=True) -> list[dict]:
+        url = f"{self.BASE_URL}"
+        # Use Infura while checking balances in old blocks! (Archive node required)
+        if use_infura:
+            url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
+        async with self._get_http_client() as client:
+            resp = await client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_getLogs",
+                "params": [
+                    {
+                        "address": address,
+                        "fromBlock": hex(block_number),
+                        "toBlock": hex(block_number),
+                        "topics": topics,
+                    }
+                ],
+                "id": 1
+            })
+        EXEC_NODE_REQUEST_COUNT.labels("eth_getLogs", "get_logs").inc()
+
+        return resp.json()["result"]
+
     async def get_tx_data(self, block_number: int, tx_index: int) -> TxData:
         url = f"{self.BASE_URL}"
         async with self._get_http_client() as client:
