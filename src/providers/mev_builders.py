@@ -39,7 +39,10 @@ MEV_BUILDERS = [
         name="builder0x69",
         fee_recipient_address="0x690b9a9e9aa1c9db991c7721a92d351db4fac990",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=["by builder0x69", "by @builder0x69", "@builder0x69"],
+        extra_data_values=[
+            "by builder0x69", "by @builder0x69", "@builder0x69",
+            "\u0603\x01\n\x17gethgo1.18.5linux",
+        ],
     ),
     MevBuilder(
         name="Flashbots builder - inactive now?",
@@ -99,13 +102,19 @@ MEV_BUILDERS = [
         name="Eden network builder",
         fee_recipient_address="0xaab27b150451726ec7738aa1d0a94505c8729bd1",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[None],
+        extra_data_values=[
+            None,
+            "\u0603\x01\n\x17gethgo1.18.6linux",
+        ],
     ),
     MevBuilder(
         name="7dfc",
         fee_recipient_address="0x473780deaf4a2ac070bbba936b0cdefe7f267dfc",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=["\u0603\x01\x0b\x00gethgo1.19.1linux"],
+        extra_data_values=[
+            "\u0603\x01\x0b\x00gethgo1.19.1linux",
+            "\u0603\x01\n\x17gethgo1.19.1linux",
+        ],
     ),
     MevBuilder(
         name="05b9",
@@ -224,6 +233,22 @@ MEV_BUILDERS = [
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
             "\u0603\x01\n\x17gethgo1.18.1linux",
+        ],
+    ),
+    MevBuilder(
+        name="2488",
+        fee_recipient_address="0x001ee00bee25f81444e2d172773f37fe05ea2488",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "\u0603\x01\n\x17gethgo1.19.1linux",
+        ],
+    ),
+    MevBuilder(
+        name="abc 514b",
+        fee_recipient_address="0x2cd54c2f60d94442ea38027df42663f1438e514b",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "abc",
         ],
     ),
     # a2e1 - splits block reward to proposer and builder?
