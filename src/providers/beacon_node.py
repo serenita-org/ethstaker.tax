@@ -28,7 +28,7 @@ BEACON_NODE_REQUEST_COUNT = Counter("beacon_node_request_count",
                                     labelnames=("endpoint", "function_name"))
 
 
-BlockRewardData = namedtuple("BlockRewardData", ["proposer_index", "fee_recipient", "block_number"])
+SlotProposerData = namedtuple("SlotProposerData", ["slot", "proposer_index", "fee_recipient", "block_number"])
 
 
 class BeaconNode:
@@ -158,19 +158,20 @@ class BeaconNode:
 
         return index
 
-    async def get_block_reward_data(self, slot: int) -> BlockRewardData:
+    async def get_slot_proposer_data(self, slot: int) -> SlotProposerData:
         url = f"{self.BASE_URL}/eth/v2/beacon/blocks/{slot}"
 
         logger.debug(f"Getting proposer index and fee recipient for slot {slot}")
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/headers/{block_id}", "get_proposer_index_fee_recipient_for_slot").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/headers/{block_id}", "get_slot_proposer_data").inc()
 
         data = resp.json()
         if "data" not in data.keys():
             # Missed proposals return like this
             if data.get("code") == 404:
-                return BlockRewardData(
+                return SlotProposerData(
+                    slot=slot,
                     proposer_index=None,
                     fee_recipient=None,
                     block_number=None,
@@ -182,7 +183,8 @@ class BeaconNode:
         fee_recipient = data["data"]["message"]["body"]["execution_payload"]["fee_recipient"]
         block_number = int(data["data"]["message"]["body"]["execution_payload"]["block_number"])
 
-        return BlockRewardData(
+        return SlotProposerData(
+            slot=slot,
             proposer_index=proposer_idx,
             fee_recipient=fee_recipient,
             block_number=block_number,
