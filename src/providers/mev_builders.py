@@ -40,7 +40,7 @@ MEV_BUILDERS = [
         fee_recipient_address="0x690b9a9e9aa1c9db991c7721a92d351db4fac990",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
-            "by builder0x69", "by @builder0x69", "@builder0x69",
+            "by builder0x69", "by @builder0x69", "@builder0x69", "builder0x69",
             "\u0603\x01\n\x17gethgo1.18.5linux",
         ],
     ),
@@ -128,6 +128,7 @@ MEV_BUILDERS = [
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
             "\u0603\x01\n\x17gethgo1.18.6linux",
+            "\u0603\x01\n\x17gethgo1.18.7linux",
             "Buildoooooooooooooor",
         ],
     ),
@@ -150,7 +151,10 @@ MEV_BUILDERS = [
         name="beaverbuild.org",
         fee_recipient_address="0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=["beaverbuild.org"],
+        extra_data_values=[
+            "beaverbuild.org",
+            "",
+        ],
     ),
     MevBuilder(
         name="Manifold",
@@ -249,6 +253,32 @@ MEV_BUILDERS = [
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
             "abc",
+            None,
+        ],
+    ),
+    MevBuilder(
+        name="miao?",
+        fee_recipient_address="0x43dd22c94c1c1d46f4fcf664e2d7b11dee1d4154",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "miao?",
+            "miao?01",
+        ],
+    ),
+    MevBuilder(
+        name="e210",
+        fee_recipient_address="0xfee4446922f6e29834dea37d9e9192ccabf1e210",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            None,
+        ],
+    ),
+    MevBuilder(
+        name="I can haz block?",
+        fee_recipient_address="0x229b8325bb9ac04602898b7e8989998710235d5f",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            "I can haz block?",
         ],
     ),
     # a2e1 - splits block reward to proposer and builder?
