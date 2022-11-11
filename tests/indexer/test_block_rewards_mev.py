@@ -74,6 +74,19 @@ from providers.beacon_node import SlotProposerData
             id="Example from builder0x69 in Discord, via Relayooor.wtf",
             # https://ptb.discord.com/channels/694822223575384095/870681728862277662/1040357928475054142
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=4747786,
+                proposer_index=149800,
+                fee_recipient="0x388c818ca8b9251b393131c08a736a67ccb19297",
+                block_number=15584566,
+            ),
+            72741750891599650,
+            True,
+            "0x388c818ca8b9251b393131c08a736a67ccb19297",
+            293457340971917571,
+            id="Non-standard MEV payout in 3 separate transactions in the middle of a block",
+        ),
     ],
 )
 @pytest.mark.asyncio

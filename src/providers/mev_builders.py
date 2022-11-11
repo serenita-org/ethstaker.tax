@@ -153,7 +153,7 @@ MEV_BUILDERS = [
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
             "beaverbuild.org",
-            "",
+            "\"\"",
         ],
     ),
     MevBuilder(

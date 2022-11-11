@@ -32,6 +32,12 @@ async def _get_block_priority_tx_fees(block_number: int, tx_fee: int) -> int:
     return tx_fee - burnt_tx_fees
 
 
+async def _get_tx_fee(tx_hash: str) -> int:
+    tx_receipt = await EXECUTION_NODE.get_tx_receipt(tx_hash)
+    fee = int(tx_receipt["gasUsed"], base=16) * int(tx_receipt["effectiveGasPrice"], base=16)
+    return fee
+
+
 async def get_block_reward_value(slot_proposer_data: SlotProposerData) -> tuple[int, bool, Optional[str], Optional[int]]:
     """
     Returns the fee recipient's block reward, a bool indicating whether the block contains MEV, the MEV reward recipient
@@ -126,20 +132,26 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData) -> tuple[
                                                    block_number=block_number)
 
     if fee_rec_bal_change != block_priority_fees_reward:
-        # Mismatch, it's either MEV reward transferred via coinbase / internal transactions
+        # Mismatch, it's either MEV reward transferred via coinbase / internal transactions / transactions not last in block
         # or the fee recipient made/received a transfer
 
         # Check all transactions in the block for transfers made/received by the fee recipient
         block = await EXECUTION_NODE.get_block(block_number=block_number, verbose=True)
         transfer_balance_change = 0
+        mev_payout_balance_change = 0
         for tx in block["transactions"]:
             tx_value = int(tx["value"], base=16)
             if tx["from"] == fee_recipient:
-                tx_receipt = await EXECUTION_NODE.get_tx_receipt(tx["hash"])
+                # Regular tx from fee recipient
+                transfer_balance_change -= (tx_value + await _get_tx_fee(tx["hash"]))
+                continue
 
-                fee = int(tx_receipt["gasUsed"], base=16) * int(tx_receipt["effectiveGasPrice"], base=16)
-                transfer_balance_change -= fee + tx_value
-            elif tx["to"] == fee_recipient:
+            if tx["to"] == fee_recipient:
+                # Regular transaction to fee recipient - could be payout from builder
+                if tx["from"] in BUILDER_FEE_RECIPIENTS:
+                    mev_payout_balance_change += tx_value
+                    continue
+
                 # Check for known fee recipient contract distributors
                 # Only if it is the last tx in the block
                 tx_count = await EXECUTION_NODE.get_block_tx_count(block_number)
@@ -152,26 +164,16 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData) -> tuple[
                 ):
                     return _NO_MEV_RETURN_VALUE
 
-                builders = [b for b in MEV_BUILDERS if b.fee_recipient_address == fee_recipient]
-                if len(builders) > 0:
-                    assert len(builders) == 1
-                    builder = builders[0]
-                    proposer_address, proposer_reward = builder.proposer_handler(tx=tx, block_number=block_number)
-                    # Some verification checks
-                    proposer_balance_change = await _get_balance_change(proposer_address, block_number)
-
-                    assert proposer_reward == proposer_balance_change, \
-                        f"Proposer reward ({proposer_reward}) != his balance change ({proposer_balance_change})"
-
-                    assert proposer_balance_change < block_priority_fees_reward, \
-                        f"Proposer got more ({proposer_balance_change}) than priority fees ({block_priority_fees_reward})?" \
-                        f" Block {block_number}"
-
-                    return block_priority_fees_reward, True, proposer_address, proposer_balance_change
-
                 # This could also be a contract interaction if the fee recip is a contract!
                 # transfer_balance_change += tx_value
                 raise ValueError(f"Tx to fee recipient in block - MEV in block {block_number}?")
+
+        if mev_payout_balance_change > 0:
+            assert block_priority_fees_reward + mev_payout_balance_change == fee_rec_bal_change, \
+                f"Non-standard MEV received, mismatch between block prio fees + MEV payout (" \
+                f"{block_priority_fees_reward + mev_payout_balance_change}) and" \
+                f" fee recipient balance change ({fee_rec_bal_change})"
+            return block_priority_fees_reward, True, fee_recipient, fee_rec_bal_change
 
         if block_priority_fees_reward + transfer_balance_change != fee_rec_bal_change:
             # If there is still a mismatch, it must be because of internal transactions.
@@ -207,7 +209,7 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData) -> tuple[
                         f"Lido mismatch in {block_number}, MEV?"
                     return _NO_MEV_RETURN_VALUE
 
-            # -> MEV distributor contracts?
+            # -> internal transaction - MEV distributor contracts?
             logger.warning(
                 f"Fee recipient balance change ({fee_rec_bal_change / 1e18} ETH) is not equal to "
                 f"priority fees ({block_priority_fees_reward / 1e18} ETH) "
