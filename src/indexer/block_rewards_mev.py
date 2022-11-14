@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Optional
 
 from providers.beacon_node import SlotProposerData
@@ -68,18 +69,22 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData) -> tuple[
         assert len(builders_w_fee_recip) == 1
         builder = builders_w_fee_recip[0]
 
-        assert block_extra_data_decoded in builder.extra_data_values, \
-            f"MEV block with unexpected extra data value" \
-            f" - {repr(block_extra_data_decoded)} - in {block_number}"
+        extra_data_regex_match = False
+        if builder.extra_data_regex is not None:
+            m = builder.extra_data_regex.match(repr(block_extra_data_decoded))
+            re.match("", repr(block_extra_data_decoded))
+            if m is not None:
+                extra_data_regex_match = True
+        if not extra_data_regex_match:
+            assert block_extra_data_decoded in builder.extra_data_values, \
+                f"MEV block with unexpected extra data value" \
+                f" - {repr(block_extra_data_decoded)} - in {block_number}"
 
         if builder.payout_type == MevPayoutType.LAST_TX:
             # Most builders send the MEV to the proposer in the last tx of the block
             assert last_tx.from_ == fee_recipient, \
                 f"Builder did not transfer MEV in last tx - " \
                 f"{builder.name} in block {block_number}"
-            assert block_extra_data_decoded in builder.extra_data_values, \
-                f"Unexpected block extra data value" \
-                f" - {block_extra_data_decoded} for builder {builder.name} in {block_number}"
             return block_priority_fees_reward, True, last_tx.to, last_tx.value
         elif builder.payout_type == MevPayoutType.CONTRACT_DISTRIBUTOR:
             raise NotImplementedError(builder.payout_type)

@@ -1,5 +1,11 @@
+import re
 from enum import Enum
 from typing import Optional, Union
+
+
+_GETH_REGEX = re.compile("^'\\\\u0603\\\\x01(?:\\\\x0b\\\\x00|\\\\n\\\\x17)gethgo.*(?:[\d\.]+)linux'")
+# Flashbots builder id? probably not because same builder uses various extra data values
+_NOT_SURE_REGEX = re.compile("^'s\d+e\d.*")
 
 
 class MevPayoutType(Enum):
@@ -27,11 +33,13 @@ class MevBuilder:
             fee_recipient_address: Optional[str],
             payout_type: MevPayoutType,
             extra_data_values: list[Union[str, None]],
+            extra_data_regex: Optional[re.Pattern] = None,
     ):
         self.name = name
         self.fee_recipient_address = fee_recipient_address
         self.payout_type = payout_type
         self.extra_data_values = extra_data_values
+        self.extra_data_regex = extra_data_regex
 
 
 MEV_BUILDERS = [
@@ -41,8 +49,8 @@ MEV_BUILDERS = [
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
             "by builder0x69", "by @builder0x69", "@builder0x69", "builder0x69",
-            "\u0603\x01\n\x17gethgo1.18.5linux",
         ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="Flashbots builder - inactive now?",
@@ -104,48 +112,51 @@ MEV_BUILDERS = [
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
             None,
-            "\u0603\x01\n\x17gethgo1.18.6linux",
         ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="7dfc",
         fee_recipient_address="0x473780deaf4a2ac070bbba936b0cdefe7f267dfc",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[
-            "\u0603\x01\x0b\x00gethgo1.19.1linux",
-            "\u0603\x01\n\x17gethgo1.19.1linux",
-        ],
+        extra_data_values=[],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="05b9",
         fee_recipient_address="0x8d5998a27b3cdf33479b65b18f075e20a7aa05b9",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=["\u0603\x01\x0b\x00gethgo1.19.1linux"],
+        extra_data_values=[
+            None,
+        ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="7128",
         fee_recipient_address="0xb646d87963da1fb9d192ddba775f24f33e857128",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[
-            "\u0603\x01\n\x17gethgo1.18.6linux",
-            "\u0603\x01\n\x17gethgo1.18.7linux",
             "Buildoooooooooooooor",
+            "ޝBuildooooooooooooooooooooooor",
+            None,
         ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="466f",
         fee_recipient_address="0x25d88437df70730122b73ef35462435d187c466f",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[
-            "\u0603\x01\x0b\x00gethgo1.18.2linux",
-            "\u0603\x01\n\x17gethgo1.18.2linux",
-        ],
+        extra_data_values=[],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="0bf0",
         fee_recipient_address="0xc4b9beb1b7efb04deea31dc3b4c32a88ee210bf0",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[None],
+        extra_data_values=[
+            None,
+        ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="beaverbuild.org",
@@ -154,6 +165,7 @@ MEV_BUILDERS = [
         extra_data_values=[
             "beaverbuild.org",
             "\"\"",
+            "Powered by bloXroute",
         ],
     ),
     MevBuilder(
@@ -178,19 +190,26 @@ MEV_BUILDERS = [
         name="eth-builder.com",
         fee_recipient_address="0xfeebabe6b0418ec13b30aadf129f5dcdd4f70cea",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=["https://eth-builder.com"],
+        extra_data_values=[
+            "https://eth-builder.com",
+            None,
+        ],
     ),
     MevBuilder(
         name="05b9",
         fee_recipient_address="0x8D5998A27b3CdF33479B65B18F075E20a7aa05b9",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[None],
+        extra_data_values=[
+            None,
+        ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="b649",
         fee_recipient_address="0x57af10ed3469b2351ae60175d3c9b3740e1bb649",
         payout_type=MevPayoutType.LAST_TX,
         extra_data_values=[None],
+        extra_data_regex=_NOT_SURE_REGEX,
     ),
     MevBuilder(
         name="79a1",
@@ -202,7 +221,10 @@ MEV_BUILDERS = [
         name="91ed",
         fee_recipient_address="0xae08c571e771f360c35f5715e36407ecc89d91ed",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[None],
+        extra_data_values=[
+            None,
+        ],
+        extra_data_regex=_NOT_SURE_REGEX,
     ),
     MevBuilder(
         name="ohexanon",
@@ -214,7 +236,10 @@ MEV_BUILDERS = [
         name="neoconstruction.eth",
         fee_recipient_address="0x09fa51ab5387fb563200494e09e3c19cc0993c85",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=["𝙉eo𝘾onstruction✦"],
+        extra_data_values=[
+            "𝙉eo𝘾onstruction✦",
+        ],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="3cf1",
@@ -226,26 +251,22 @@ MEV_BUILDERS = [
         name="16c5",
         fee_recipient_address="0xc1612dc56c3e7e00d86c668df03904b7e59616c5",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[
-            "\u0603\x01\n\x17gethgo1.18.1linux",
-            "\u0603\x01\n\x17gethgo1.18.2linux",
-        ],
+        extra_data_values=[],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="0d94",
         fee_recipient_address="0xa7fdca7aa0b69927a34ec48ddcfe3d4c66ff0d94",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[
-            "\u0603\x01\n\x17gethgo1.18.1linux",
-        ],
+        extra_data_values=[],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="2488",
         fee_recipient_address="0x001ee00bee25f81444e2d172773f37fe05ea2488",
         payout_type=MevPayoutType.LAST_TX,
-        extra_data_values=[
-            "\u0603\x01\n\x17gethgo1.19.1linux",
-        ],
+        extra_data_values=[],
+        extra_data_regex=_GETH_REGEX,
     ),
     MevBuilder(
         name="abc 514b",
@@ -263,6 +284,7 @@ MEV_BUILDERS = [
         extra_data_values=[
             "miao?",
             "miao?01",
+            "miao?02",
         ],
     ),
     MevBuilder(
@@ -281,6 +303,48 @@ MEV_BUILDERS = [
             "I can haz block?",
         ],
     ),
+    MevBuilder(
+        name="16cf",
+        fee_recipient_address="0x4460735849b78fd924cf0f21fca0ffc80c8b16cf",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            None,
+        ],
+        extra_data_regex=_NOT_SURE_REGEX,
+    ),
+    MevBuilder(
+        name="c36a",
+        fee_recipient_address="0x3c496df419762533607f30bb2143aff77bebc36a",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            None,
+        ],
+        extra_data_regex=_NOT_SURE_REGEX,
+    ),
+    MevBuilder(
+        name="3b01",
+        fee_recipient_address="0xbd3afb0bb76683ecb4225f9dbc91f998713c3b01",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            None,
+        ],
+    ),
+    MevBuilder(
+        name="82a1",
+        fee_recipient_address="0x707fc1439cd11b34a984b989a18476c24a1182a1",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            None,
+        ],
+    ),
+    MevBuilder(
+        name="861c",
+        fee_recipient_address="0xc08661e7d70f5a9f02e3e807e93cbef4747f861c",
+        payout_type=MevPayoutType.LAST_TX,
+        extra_data_values=[
+            None,
+        ],
+    ),
     # a2e1 - splits block reward to proposer and builder?
     # Disabled right now, since it's not clear if this is MEV reward distribution -> at the moment assuming no.
     # It was also not clear from the tx data input who is the builder/proposer...
@@ -294,7 +358,7 @@ MEV_BUILDERS = [
 
 
 def extra_data_contains_common_substring(value: str) -> bool:
-    return any(substring in value for substring in {"gethgo"} if value is not None)
+    return any(substring in value for substring in {"gethgo", "Nethermind", } if value is not None)
 
 
 BUILDER_FEE_RECIPIENTS = set()

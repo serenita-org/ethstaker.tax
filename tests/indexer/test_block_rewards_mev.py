@@ -87,6 +87,32 @@ from providers.beacon_node import SlotProposerData
             293457340971917571,
             id="Non-standard MEV payout in 3 separate transactions in the middle of a block",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=5140097,
+                proposer_index=237786,
+                fee_recipient="0xae08c571e771f360c35f5715e36407ecc89d91ed",
+                block_number=15974598,
+            ),
+            154817970642327532,
+            True,
+            "0x388c818ca8b9251b393131c08a736a67ccb19297",
+            147746526377856659,
+            id="Builder extra data matched using regex",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4892252,
+                proposer_index=280071,
+                fee_recipient="0x8d5998a27b3cdf33479b65b18f075e20a7aa05b9",
+                block_number=15728162,
+            ),
+            137730979190821160,
+            True,
+            "0xe688b84b23f322a994a53dbf8e15fa82cdb71127",
+            137300162630179160,
+            id="Builder extra data matched using regex - geth",
+        ),
     ],
 )
 @pytest.mark.asyncio
