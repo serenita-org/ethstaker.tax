@@ -113,6 +113,113 @@ from providers.beacon_node import SlotProposerData
             137300162630179160,
             id="Builder extra data matched using regex - geth",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=4810472,
+                proposer_index=266974,
+                fee_recipient="0xd4e96ef8eee8678dbff4d535e033ed1a4f7605b7",
+                block_number=15646882,
+            ),
+            41999182696740266,
+            True,
+            "0xd4e96ef8eee8678dbff4d535e033ed1a4f7605b7",
+            557605958391302970,
+            id="No extra data, MEV recipient = fee recipient, MEV transferred via contract",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4895347,
+                proposer_index=266974,
+                fee_recipient="0xdefe33795803f2353c69fd8cdb432f9d5cee6762",
+                block_number=15731242,
+            ),
+            600611770605000,
+            True,
+            "0xdefe33795803f2353c69fd8cdb432f9d5cee6762",
+            42600611770605000,
+            id="No extra data, MEV recipient = fee recipient, MEV transferred via contract",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4876774,
+                proposer_index=69348,
+                fee_recipient="0x8589427373d6d84e98730d7795d8f6f8731fda16",
+                block_number=15712761,
+            ),
+            30727956763046266,
+            True,
+            "0xa79ac574245e21e69c46bc25581b482148fb79b6",
+            40000000000000000,
+            id="Sending money to Tornado cash donation via Flashbots relay",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4735659,
+                proposer_index=62682,
+                fee_recipient="0x54cd0e6771b6487c721ec620c4de1240d3b07696",
+                block_number=15572628,
+            ),
+            201932030839597779,
+            False,
+            None,
+            None,
+            # Tx 0x4253bb749162e024ad53ab86a3f5e6f199b185ebf1b52dc908807e3cab2361d8
+            id="Stakefish rewards distribution contract called",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4951292,
+                proposer_index=322201,
+                fee_recipient="0x388c818ca8b9251b393131c08a736a67ccb19297",
+                block_number=15786872,
+            ),
+            102648185105740891,
+            True,
+            "0x388c818ca8b9251b393131c08a736a67ccb19297",
+            115648185105740891,
+            # Tx 0x0b1a86b1160dc260b7db6e123b7d965f0c8d73946349b90c32479c014192ac07
+            id="Fee recipient balance change > priority fees because of internal tx - fallback assume MEV",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4745381,
+                proposer_index=69177,
+                fee_recipient="0x54cd0e6771b6487c721ec620c4de1240d3b07696",
+                block_number=15582188,
+            ),
+            83219714028892180,
+            True,
+            "0x54cd0e6771b6487c721ec620c4de1240d3b07696",
+            83219714028902180,
+            id="Stakefish rewards distribution + ?",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4719366,
+                proposer_index=395742,
+                fee_recipient="0x34f4261360d0372176d1d521bf99bf803ced4f6b",
+                block_number=15556494,
+            ),
+            7799444800208322,
+            False,
+            None,
+            None,
+            # tx 0x67ff466b8a7ba064e241d1f8243159f55f017cad39f018072f97ce3499c0d585
+            id="rocketpool deposit in rocketpool proposer block",
+        ),
+        pytest.param(
+            SlotProposerData(
+                slot=4917736,
+                proposer_index=146676,
+                fee_recipient="0x388c818ca8b9251b393131c08a736a67ccb19297",
+                block_number=15753511,
+            ),
+            41112354986993524,
+            True,
+            "0x388c818ca8b9251b393131c08a736a67ccb19297",
+            41112354986993524,
+            id="Manifold huge reward bug (not real)",
+        ),
     ],
 )
 @pytest.mark.asyncio
