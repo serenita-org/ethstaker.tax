@@ -315,7 +315,10 @@ async def rewards(
         total_execution_layer_currency = 0
         exec_layer_block_rewards = []
         for br in block_rewards:
-            br_reward_eth = br.proposer_reward / 1e18
+            if br.mev is True:
+                br_reward_eth = int(br.mev_reward_value) / 1e18
+            else:
+                br_reward_eth = int(br.priority_fees) / 1e18
             total_execution_layer_eth += br_reward_eth
             slot_date = (await BeaconNode.datetime_for_slot(br.slot, timezone)).date()
             total_execution_layer_currency += br_reward_eth * date_eth_price[slot_date]
