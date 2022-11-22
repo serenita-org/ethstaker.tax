@@ -16,7 +16,7 @@ from api.api_v1 import api_v1_router, openapi_tags_v1
 
 
 app = FastAPI(
-    title="ETH2.tax API",
+    title="ethstaker.tax API",
     description="The API that is used by the frontend. Feel free to use it, "
     "but the spec is not completely stable yet, there may still be breaking "
     "changes in the next few months while it is being stabilized. If you'd "

@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name: eth2taxProvider # A uniquely identifiable name for the provider
+  - name: ethStakertaxProvider # A uniquely identifiable name for the provider
     folder: Services      # The folder where to place the dashboards
     type: file
     options:
