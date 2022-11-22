@@ -304,12 +304,14 @@ async def rewards(
             prev_balance = vb.balance
 
         # Retrieve the execution layer rewards
-        block_rewards = db_provider.block_rewards(min_slot=await beacon_node.slot_for_datetime(start_dt_utc),
-                                                  max_slot=await beacon_node.slot_for_datetime(datetime.datetime.combine(
-                                                      end_date,
-                                                      datetime.time(hour=23, minute=59, second=59, tzinfo=timezone)
-                                                  )),
-                                                  proposer_indexes=[validator_index])
+        block_rewards = db_provider.block_rewards(
+            min_slot=await beacon_node.slot_for_datetime(start_dt_utc),
+            max_slot=await beacon_node.slot_for_datetime(datetime.datetime.combine(
+                end_date,
+                datetime.time(hour=23, minute=59, second=59, tzinfo=timezone)
+            )),
+            proposer_indexes=[validator_index]
+        )
 
         total_execution_layer_eth = 0
         total_execution_layer_currency = 0
