@@ -34,7 +34,7 @@ class ValidatorRewards(BaseModel):
     initial_balance: Optional[InitialBalance]
     eod_balances: List[EndOfDayBalance]
 
-    exec_layer_block_rewards: List[ExecLayerBlockReward]
+    #exec_layer_block_rewards: List[ExecLayerBlockReward]
 
     total_consensus_layer_eth: float = Field(...,
                                              example=12.456,
@@ -42,12 +42,12 @@ class ValidatorRewards(BaseModel):
     total_consensus_layer_currency: float = Field(...,
                                                   example=12.456,
                                                   description="Total rewards from the consensus layer (attestations, block proposals, sync committees) in the requested currency")
-    total_execution_layer_eth: float = Field(...,
-                                             example=12.456,
-                                             description="Total rewards from the execution layer (transaction fees, MEV)")
-    total_execution_layer_currency: float = Field(...,
-                                                  example=12.456,
-                                                  description="Total rewards from the execution layer (transaction fees, MEV) in the requested currency")
+    # total_execution_layer_eth: float = Field(...,
+    #                                          example=12.456,
+    #                                          description="Total rewards from the execution layer (transaction fees, MEV)")
+    # total_execution_layer_currency: float = Field(...,
+    #                                               example=12.456,
+    #                                               description="Total rewards from the execution layer (transaction fees, MEV) in the requested currency")
 
 
 class AggregateRewards(BaseModel):

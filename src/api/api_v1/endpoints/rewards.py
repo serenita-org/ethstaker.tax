@@ -277,7 +277,8 @@ async def rewards(
         total_consensus_layer_eth = 0
         total_consensus_layer_currency = 0
         for vb in validator_balances:
-            if vb.slot > initial_balance.slot:
+            # This is bugged, commenting out for now # TODO look into it
+            if False and vb.slot > initial_balance.slot:
                 # If multiple deposits are made, we may already have a balance in the DB
                 # even though the validator is not active yet (e.g. Rocketpool, balance on day 1 = 16ETH
                 # but it is not validating yet).
@@ -331,11 +332,11 @@ async def rewards(
                 validator_index=validator_index,
                 initial_balance=initial_balance,
                 eod_balances=eod_balances,
-                exec_layer_block_rewards=exec_layer_block_rewards,
+                #exec_layer_block_rewards=exec_layer_block_rewards,
                 total_consensus_layer_eth=total_consensus_layer_eth,
                 total_consensus_layer_currency=total_consensus_layer_currency,
-                total_execution_layer_eth=total_execution_layer_eth,
-                total_execution_layer_currency=total_execution_layer_currency,
+                #total_execution_layer_eth=total_execution_layer_eth,
+                #total_execution_layer_currency=total_execution_layer_currency,
             )
         )
     return aggregate_rewards

@@ -61,6 +61,7 @@ class DbProvider:
 
     @DB_REQUESTS_SECONDS.time()
     def block_rewards(self, min_slot: int, max_slot: int, proposer_indexes: Iterable[int]) -> List[BlockReward]:
+        return []
         with session_scope(self.engine) as session:
             block_rewards = session\
                 .query(BlockReward) \

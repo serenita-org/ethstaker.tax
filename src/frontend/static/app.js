@@ -250,10 +250,10 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 "Validator Index",
                 "End-of-day validator balance [ETH]",
                 "Consensus layer income [ETH]",
-                "Execution layer income [ETH]",
+//                "Execution layer income [ETH]",
                 "Price [ETH/" + currency + "]",
                 "Consensus layer income [" + currency + "]",
-                "Execution layer income [" + currency + "]"
+//                "Execution layer income [" + currency + "]"
             ];
             combinedRewardsTable = document.getElementById("combinedRewardsTable")
 
@@ -279,9 +279,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             data.validator_rewards.forEach(
                 ({
                      eod_balances, initial_balance, validator_index,
-                     exec_layer_block_rewards,
+//                     exec_layer_block_rewards,
                      total_consensus_layer_eth, total_consensus_layer_currency,
-                     total_execution_layer_eth, total_execution_layer_currency
+//                     total_execution_layer_eth, total_execution_layer_currency
                 }) => {
                 // Wrapper div
                 divElement = document.createElement("div");
@@ -362,15 +362,15 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                     bodyRow.appendChild(consensusIncEthColumn);
                     combinedRewardsTableBodyRow.appendChild(consensusIncEthColumn.cloneNode(true));
 
-                    // Execution layer income [ETH]
-                    execIncEthForDate = 0;
-                    exec_layer_block_rewards.filter(br => br.date === balance.date).forEach((br) => {
-                        execIncEthForDate += br.reward;
-                    })
-                    execIncEthColumn = document.createElement("th");
-                    execIncEthColumn.innerText = execIncEthForDate;
-                    bodyRow.appendChild(execIncEthColumn);
-                    combinedRewardsTableBodyRow.appendChild(execIncEthColumn.cloneNode(true));
+                    // // Execution layer income [ETH]
+                    // execIncEthForDate = 0;
+                    // exec_layer_block_rewards.filter(br => br.date === balance.date).forEach((br) => {
+                    //     execIncEthForDate += br.reward;
+                    // })
+                    // execIncEthColumn = document.createElement("th");
+                    // execIncEthColumn.innerText = execIncEthForDate;
+                    // bodyRow.appendChild(execIncEthColumn);
+                    // combinedRewardsTableBodyRow.appendChild(execIncEthColumn.cloneNode(true));
 
                     // Price [ETH/currency]
                     priceForDate = data.eth_prices[balance.date];
@@ -385,13 +385,13 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                     consensusIncCurrColumn.innerText = consensusIncCurrForDate;
                     bodyRow.appendChild(consensusIncCurrColumn);
                     combinedRewardsTableBodyRow.appendChild(consensusIncCurrColumn.cloneNode(true));
-
-                    // Execution layer income [currency]
-                    executionIncCurrForDate = priceForDate * execIncEthForDate;
-                    executionIncCurrColumn = document.createElement("th");
-                    executionIncCurrColumn.innerText = executionIncCurrForDate;
-                    bodyRow.appendChild(executionIncCurrColumn);
-                    combinedRewardsTableBodyRow.appendChild(executionIncCurrColumn.cloneNode(true));
+                    //
+                    // // Execution layer income [currency]
+                    // executionIncCurrForDate = priceForDate * execIncEthForDate;
+                    // executionIncCurrColumn = document.createElement("th");
+                    // executionIncCurrColumn.innerText = executionIncCurrForDate;
+                    // bodyRow.appendChild(executionIncCurrColumn);
+                    // combinedRewardsTableBodyRow.appendChild(executionIncCurrColumn.cloneNode(true));
 
                     prevBalance = balance.balance;
                     tableBody.appendChild(bodyRow);
@@ -419,9 +419,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 footRow.appendChild(footColumn);
 
                 // Under exec layer income [ETH] column
-                footColumn = document.createElement("td");
-                footColumn.innerText=total_execution_layer_eth;
-                footRow.appendChild(footColumn);
+                // footColumn = document.createElement("td");
+                // footColumn.innerText=total_execution_layer_eth;
+                // footRow.appendChild(footColumn);
 
                 // Under price column
                 footColumn = document.createElement("td");
@@ -433,9 +433,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 footRow.appendChild(footColumn);
 
                 // Under exec layer income [currency] column
-                footColumn = document.createElement("td");
-                footColumn.innerText=total_execution_layer_currency;
-                footRow.appendChild(footColumn);
+                // footColumn = document.createElement("td");
+                // footColumn.innerText=total_execution_layer_currency;
+                // footRow.appendChild(footColumn);
 
                 tableFoot.appendChild(footRow);
 
@@ -448,8 +448,10 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                 rewardsTablesContainer.appendChild(divElement);
 
-                sumTotalIncomeEth += total_consensus_layer_eth + total_execution_layer_eth;
-                sumTotalIncomeCurr += total_consensus_layer_currency + total_execution_layer_currency;
+                // sumTotalIncomeEth += total_consensus_layer_eth + total_execution_layer_eth;
+                sumTotalIncomeEth += total_consensus_layer_eth;
+                // sumTotalIncomeCurr += total_consensus_layer_currency + total_execution_layer_currency;
+                sumTotalIncomeCurr += total_consensus_layer_currency;
             })
 
             // Sort combined rewards table by date (1st column)
