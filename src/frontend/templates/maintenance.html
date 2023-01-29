@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon/site.webmanifest">
+
+    <!-- Custom CSS/JS for this webapp -->
+    <link rel="stylesheet" href="/dist/main.css">
+    <script src="/dist/main.js"></script>
+
+    <title>Ethereum Staking Rewards Calculator</title>
+</head>
+<body>
+<div class="container-fluid mt-3 mb-5">
+    <div class="alert alert-info text-center fade show" role="alert">
+      <strong>Site is under maintenance, please check back later!</strong>
+    </div>
+    <div class="alert alert-warning text-center" role="alert">
+      My database got corrupted, should be back up by the 1st of February.
+    </div>
+    <nav class="navbar fixed-bottom bg-light">
+        <div class="col">
+            <a class="btn btn-outline-primary mx-2" role="button" data-bs-toggle="modal" data-bs-target="#donationModal">
+                <i class="bi-currency-dollar"></i>
+                Support this website
+            </a>
+        </div>
+        <div class="col d-flex justify-content-center">
+            <a class="footer-image-link p-1" href="https://github.com/eth2353">
+                <i class="bi-github"></i>
+            </a>
+            <a class="footer-image-link p-1" href="https://www.reddit.com/user/eth2353">
+                <i class="bi-chat-left-text"></i>
+            </a>
+            <a class="footer-image-link p-1" href="https://twitter.com/eth2353">
+                <i class="bi-twitter"></i>
+            </a>
+            <a class="footer-image-link p-1" href="https://discordapp.com/users/737740104281489531">
+                <i class="bi-discord"></i>
+            </a>
+        </div>
+        <div class="col">
+            <a class="btn btn-outline-primary float-end mx-2" href="https://github.com/eth2353/ethstaker.tax/issues" role="button" target="_blank">
+                <i class="bi-exclamation-circle"></i>
+                Report an issue
+            </a>
+        </div>
+    </nav>
+</div>
+
+<!-- Donation modal -->
+<div id="donationModal" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Support ethstaker.tax</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>
+            Thanks for wanting to support this project. The most effective way to make a donation would be to make
+            it to the <a href="https://gitcoin.co/grants/2148/ethstakertax-tax-information-for-stakers" target="_blank">Gitcoin grant</a> during a Gitcoin matching round.
+        </p>
+        <p>
+            You can also donate directly to
+        </p>
+        <pre>0xb0d3E03e215e30a08F4006D5AA5bec98BF3FEcF7</pre>
+        <p>
+            Thank you!
+        </p>
+        <a role="button" onclick="navigator.clipboard.writeText('0xb0d3E03e215e30a08F4006D5AA5bec98BF3FEcF7').then(() => alert('Address copied to clipboard'));"><i class="bi-save"></i> Copy to clipboard </a>
+        <br />
+        <a role="button" data-bs-toggle="collapse" data-bs-target="#collapseDonateQr" style="text-decoration: none; color: inherit"><i class="bi-qr-code"></i> Show QR code </a>
+        <div id="collapseDonateQr" class="accordion-collapse collapse" aria-labelledby="collapseDonateQr">
+          <img src="/static/images/donate-qr.png" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

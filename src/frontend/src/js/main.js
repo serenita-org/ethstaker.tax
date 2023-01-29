@@ -1,35 +1,43 @@
-function addInputElement(e) {
-    inputGroup = e.parentElement;
-    inputGroupContainer = inputGroup.parentElement;
-    newInputGroup = inputGroup.cloneNode(deep=true);
-    newInputGroup.classList.add("input-element-to-remove");
+import { clearChart, populateChart } from "/src/js/rewards_chart.js";
+import Pikaday from "pikaday";
+
+function addInputElement(event) {
+    const clickedElement = event.target;
+    const inputGroup = clickedElement.parentElement;
+    const inputGroupContainer = inputGroup.parentElement;
+    const newInputGroup = inputGroup.cloneNode(true);
 
     // Set value to empty for cloned input element
-    newInputGroup.children[0].value = "";
+    const newInputElement = newInputGroup.children[0];
+    newInputElement.value = "";
+
+    // Add event listener for "Add another" button
+    const newInputGroupAddAnotherBtn = newInputGroup.children[1];
+    newInputGroupAddAnotherBtn.addEventListener("click", (e) => addInputElement(e));
 
     // Add a remove button to the new input group if there is no remove button present
-    if (newInputGroup.children.length == 2) {
+    let removeButton;
+    if (newInputGroup.children.length === 2) {
         removeButton = document.createElement("button");
-        removeButton.className = "btn btn-outline-secondary input-element-remove";
+        removeButton.className = "btn btn-outline-secondary";
         removeButton.setAttribute("type", "button");
         removeButton.innerHTML = "<i class='bi-dash-circle'></i> Remove";
         newInputGroup.appendChild(removeButton);
+    } else {
+        removeButton = newInputGroup.children[2];
     }
+    removeButton.addEventListener("click", () => newInputGroup.remove());
 
     // Add the new input group to the parent input group container
     inputGroupContainer.appendChild(newInputGroup);
 
     // Focus on the new input element - so the user doesn't have to
     // select it to continue typing
-    newInputGroup.children[0].focus()
-}
-
-function initDatePickers() {
-
+    newInputElement.focus();
 }
 
 function showCustomDateRangeInput(show) {
-    element = document.getElementById("customDateRangeInput");
+    const element = document.getElementById("customDateRangeInput");
     if (show) {
         element.classList.remove("d-none");
     } else {
@@ -38,30 +46,30 @@ function showCustomDateRangeInput(show) {
 }
 
 function selectDateRangeByYear() {
-    selectDateRangeElement = document.getElementById("selectDateRange");
+    const selectDateRangeElement = document.getElementById("selectDateRange");
 
     // Toggle datepicker visibility depending on selected date range
-    if (selectDateRangeElement.value == "custom") {
+    if (selectDateRangeElement.value === "custom") {
         // Selected custom date, show datepickers
         showCustomDateRangeInput(true);
 
         // Init Pikaday date pickers
-        datePickerIds = ["datePickerStart", "datePickerEnd"];
+        const datePickerIds = ["datePickerStart", "datePickerEnd"];
         datePickerIds.forEach((elementId) => {
             var picker = new Pikaday({
                 field: document.getElementById(elementId),
                 format: "YYYY-MM-DD"
             });
         });
-    } else if (selectDateRangeElement.value == "since_genesis") {
+    } else if (selectDateRangeElement.value === "since_genesis") {
         // Selected since genesis as the date, hide datepickers
         showCustomDateRangeInput(false);
 
-        startDatePicker = document.getElementById("datePickerStart");
+        const startDatePicker = document.getElementById("datePickerStart");
         // Genesis was Dec 12th 12PM UTC, which may have still been November 30th in some timezones
         startDatePicker.value = "2020-11-30";
 
-        endDatePicker = document.getElementById("datePickerEnd");
+        const endDatePicker = document.getElementById("datePickerEnd");
         // toISOString first converts to UTC - handle that by adding the timezone offset
         var endDate = new Date();
         const offset = endDate.getTimezoneOffset();
@@ -71,18 +79,16 @@ function selectDateRangeByYear() {
         // Selected a year as a date, hide datepickers
         showCustomDateRangeInput(false);
 
-        startDatePicker = document.getElementById("datePickerStart");
+        const startDatePicker = document.getElementById("datePickerStart");
         startDatePicker.value = selectDateRangeElement.value  + "-01-01";
 
-        endDatePicker = document.getElementById("datePickerEnd");
+        const endDatePicker = document.getElementById("datePickerEnd");
         endDatePicker.value = selectDateRangeElement.value  + "-12-31";
     }
 }
 
-window.addEventListener("load", initDatePickers);
-
 window.addEventListener("load", () => {
-    selectDateRangeElement = document.getElementById("selectDateRange");
+    const selectDateRangeElement = document.getElementById("selectDateRange");
     selectDateRangeElement.addEventListener("change", selectDateRangeByYear);
     showCustomDateRangeInput(false);
     selectDateRangeByYear();
@@ -94,7 +100,7 @@ async function handleErrorMessage(response) {
     const text = await response.text();
     try {
         const parsed = JSON.parse(text);
-        if (status == 200) {
+        if (status === 200) {
             return parsed;
         } else {
             return Promise.reject(new Error(JSON.stringify(parsed)));
@@ -105,30 +111,33 @@ async function handleErrorMessage(response) {
 }
 
 function cleanupFromPreviousRequest() {
-    rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
+    const rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
     // Remove children elements
     while (rewardsTablesContainer.firstChild) {
         rewardsTablesContainer.firstChild.remove()
     }
 
-    combinedRewardsTable = document.getElementById("combinedRewardsTable");
+    const combinedRewardsTable = document.getElementById("combinedRewardsTable");
     // Remove children elements
     while (combinedRewardsTable.firstChild) {
         combinedRewardsTable.firstChild.remove()
     }
 
-    sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
+    const sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
     // Remove children tables
     while (sumRewardsTablesContainer.firstChild) {
         sumRewardsTablesContainer.firstChild.remove()
     }
 
     // Collapse
-    rewardsTablesCollapse = document.getElementById("rewardsTablesCollapse");
+    const rewardsTablesCollapse = document.getElementById("rewardsTablesCollapse");
     rewardsTablesCollapse.classList.remove("show");
 
     // Hide error message
     document.getElementById("calculateErrorMessage").classList.add("d-none");
+
+    // Clear chart
+    clearChart();
 }
 
 function enableCalculateButton(enabled) {
@@ -187,7 +196,7 @@ function sortTable(table, colnum) {
 }
 
 function getRewardsForValidatorIndexes(validatorIndexes) {
-    var params = new URLSearchParams();
+    const params = new URLSearchParams();
 
     validatorIndexes.forEach((validatorIndex) => {
         params.append("validator_indexes", validatorIndex);
@@ -200,35 +209,36 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
     params.append("currency", document.getElementById("selectCurrency").value)
 
-    var url = new URL("/api/v1/rewards", window.location.href)
+    const url = new URL("/api/v1/rewards", window.location.href)
     url.search = params.toString();
 
-    fetch(url)
+    fetch(url.href)
         .then(handleErrorMessage)
         .then(data => {
             // Sum total rewards over all validators
-            sumTotalIncomeEth = 0;
-            sumTotalIncomeCurr = 0;
-            currency = null;
+            let sumTotalIncomeEth = 0;
+            let sumTotalIncomeCurr = 0;
+            let currency = null;
 
             // Add a summary table for the total income over all validators
-            sumTotalDescriptionP = document.createElement("p");
-            sumTotalDescriptionP.innerText = "The following table shows the total rewards of all of your validators for the selected date range.";
-            sumRewardsTablesContainer.appendChild(sumTotalDescriptionP);
-            sumTotalTable = document.createElement("table");
+            const sumTotalTable = document.createElement("table");
             sumTotalTable.classList.add("table");
-            sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
             sumRewardsTablesContainer.appendChild(sumTotalTable);
 
+            // Add action buttons container
+            const actionButtonsDiv = document.createElement("div");
+            actionButtonsDiv.classList.add("text-center");
+            sumRewardsTablesContainer.appendChild(actionButtonsDiv);
+
             // Add a button to download a combined CSV export of the rewards
-            btn = document.createElement("a");
+            let btn = document.createElement("a");
             btn.classList.add("btn");
             btn.classList.add("btn-primary");
             btn.classList.add("m-3");
             btn.id = "combinedCsvExport";
-            btn.innerText = "Download CSV of daily rewards for all validators";
+            btn.innerHTML = "<i class=\"bi-cloud-download\"></i> Download CSV of daily rewards for all validators";
             btn.role = "button";
-            sumRewardsTablesContainer.appendChild(btn);
+            actionButtonsDiv.appendChild(btn);
 
             // Add a button to expand the collapsed details
             btn = document.createElement("a");
@@ -236,11 +246,32 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             btn.classList.add("btn-secondary");
             btn.classList.add("m-3");
             btn.href = "#rewardsTablesCollapse";
-            btn.innerText = "Show validator-specific details";
+            btn.innerHTML = "<i class=\"bi-table\"></i> Show validator-specific details";
             btn.role = "button";
             btn.setAttribute("data-bs-toggle", "collapse");
             btn.setAttribute("data-bs-target", "#rewardsTablesCollapse");
-            sumRewardsTablesContainer.appendChild(btn);
+            actionButtonsDiv.appendChild(btn);
+
+            // Add a Chart button
+            /*btn = document.createElement("a");
+            btn.classList.add("btn");
+            btn.classList.add("btn-info");
+            btn.classList.add("m-3");
+            btn.innerHTML = "<i class=\"bi-bar-chart\"></i> Show chart";
+            btn.role = "button";
+            btn.addEventListener("click", populateChart());
+            actionButtonsDiv.appendChild(btn);*/
+
+            // Add a Donate button
+            btn = document.createElement("a");
+            btn.classList.add("btn");
+            btn.classList.add("btn-success");
+            btn.classList.add("m-3");
+            btn.innerHTML = "<i class=\"bi-currency-exchange\"></i> Support this website";
+            btn.role = "button";
+            btn.setAttribute("data-bs-toggle", "modal");
+            btn.setAttribute("data-bs-target", "#donationModal");
+            actionButtonsDiv.appendChild(btn);
 
             // Populate an invisible table containing the combined
             // rewards for all validators to enable the combined CSV export
@@ -250,20 +281,20 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 "Validator Index",
                 "End-of-day validator balance [ETH]",
                 "Consensus layer income [ETH]",
-//                "Execution layer income [ETH]",
+                "Execution layer income [ETH]",
                 "Price [ETH/" + currency + "]",
                 "Consensus layer income [" + currency + "]",
-//                "Execution layer income [" + currency + "]"
+                "Execution layer income [" + currency + "]"
             ];
-            combinedRewardsTable = document.getElementById("combinedRewardsTable")
+            const combinedRewardsTable = document.getElementById("combinedRewardsTable")
 
             // Table head & body
-            combinedRewardsTableHead = document.createElement("thead");
-            combinedRewardsTableHeaderRow = document.createElement("tr");
-            combinedRewardsTableBody = document.createElement("tbody");
+            const combinedRewardsTableHead = document.createElement("thead");
+            const combinedRewardsTableHeaderRow = document.createElement("tr");
+            const combinedRewardsTableBody = document.createElement("tbody");
 
             rewardTableColumnNames.forEach((columnName) => {
-                headerColumn = document.createElement("th");
+                const headerColumn = document.createElement("th");
                 headerColumn.innerText=columnName;
                 combinedRewardsTableHeaderRow.appendChild(headerColumn);
             });
@@ -275,22 +306,23 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
 
             // Create a table for each validators' rewards
-            rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
+            const chartData = [];
+            const rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
             data.validator_rewards.forEach(
                 ({
                      eod_balances, initial_balance, validator_index,
-//                     exec_layer_block_rewards,
+                     exec_layer_block_rewards,
                      total_consensus_layer_eth, total_consensus_layer_currency,
-//                     total_execution_layer_eth, total_execution_layer_currency
+                     total_execution_layer_eth, total_execution_layer_currency
                 }) => {
                 // Wrapper div
-                divElement = document.createElement("div");
+                const divElement = document.createElement("div");
                 divElement.classList.add("m-3");
 
                 // Table description
-                descriptionDivElement = document.createElement("div");
+                const descriptionDivElement = document.createElement("div");
                 descriptionDivElement.classList.add("d-inline");
-                paragraph = document.createElement("p");
+                const paragraph = document.createElement("p");
                 paragraph.classList.add("lead");
                 paragraph.classList.add("d-inline");
                 paragraph.innerText = "Rewards for validator index " + validator_index;
@@ -298,7 +330,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 divElement.appendChild(descriptionDivElement);
 
                 // CSV download button
-                link = document.createElement("a");
+                const link = document.createElement("a");
                 link.href = "#";
                 link.classList.add("btn");
                 link.classList.add("btn-primary");
@@ -308,17 +340,17 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 link.innerText = "CSV";
                 divElement.appendChild(link);
 
-                tableElement = document.createElement("table");
+                const tableElement = document.createElement("table");
                 tableElement.id = "rewards_table_" + validator_index;
                 tableElement.classList.add("table");
 
                 // Table head
-                tableHead = document.createElement("thead");
-                headerRow = document.createElement("tr");
+                const tableHead = document.createElement("thead");
+                const headerRow = document.createElement("tr");
 
                 rewardTableColumnNames.forEach((columnName) => {
                     if (columnName !== "Validator Index") {
-                        headerColumn = document.createElement("th");
+                        const headerColumn = document.createElement("th");
                         headerColumn.innerText=columnName;
                         headerRow.appendChild(headerColumn);
                     }
@@ -327,84 +359,94 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 tableHead.appendChild(headerRow);
 
                 // Table body
-                tableBody = document.createElement("tbody");
+                const tableBody = document.createElement("tbody");
 
+                let prevBalance;
                 if (initial_balance !== null) {
-                    var prevBalance = initial_balance.balance;
+                    prevBalance = initial_balance.balance;
                 } else {
-                    var prevBalance = 0;
+                    prevBalance = 0;
                 }
                 eod_balances.forEach((balance) => {
-                    bodyRow = document.createElement("tr");
-                    combinedRewardsTableBodyRow = document.createElement("tr");
+                    const bodyRow = document.createElement("tr");
+                    const combinedRewardsTableBodyRow = document.createElement("tr");
+
+                    let dailyChartData = {};
 
                     // Date
-                    dateColumn = document.createElement("th");
+                    dailyChartData["date"] = balance.date;
+                    const dateColumn = document.createElement("th");
                     dateColumn.innerText = balance.date;
                     bodyRow.appendChild(dateColumn);
                     combinedRewardsTableBodyRow.appendChild(dateColumn.cloneNode(true));
 
                     // Validator index (only) for the combined table
-                    valIndexColumnValue = document.createElement("th");
+                    const valIndexColumnValue = document.createElement("th");
                     valIndexColumnValue.innerText = validator_index;
                     combinedRewardsTableBodyRow.appendChild(valIndexColumnValue);
 
                     // End-of-day validator balance [ETH]
-                    eodValidatorBalanceColumn = document.createElement("th");
+                    const eodValidatorBalanceColumn = document.createElement("th");
                     eodValidatorBalanceColumn.innerText = balance.balance;
                     bodyRow.appendChild(eodValidatorBalanceColumn);
                     combinedRewardsTableBodyRow.appendChild(eodValidatorBalanceColumn.cloneNode(true));
 
                     // Consensus layer income [ETH]
-                    consensusIncEthForDate = balance.balance - prevBalance;
-                    consensusIncEthColumn = document.createElement("th");
-                    consensusIncEthColumn.innerText = consensusIncEthForDate;
+                    const consensusIncEthForDate = balance.balance - prevBalance;
+                    dailyChartData["consensusLayerIncome"] = consensusIncEthForDate;
+                    const consensusIncEthColumn = document.createElement("th");
+                    consensusIncEthColumn.innerText = consensusIncEthForDate.toString();
                     bodyRow.appendChild(consensusIncEthColumn);
                     combinedRewardsTableBodyRow.appendChild(consensusIncEthColumn.cloneNode(true));
 
                     // // Execution layer income [ETH]
-                    // execIncEthForDate = 0;
-                    // exec_layer_block_rewards.filter(br => br.date === balance.date).forEach((br) => {
-                    //     execIncEthForDate += br.reward;
-                    // })
-                    // execIncEthColumn = document.createElement("th");
-                    // execIncEthColumn.innerText = execIncEthForDate;
-                    // bodyRow.appendChild(execIncEthColumn);
-                    // combinedRewardsTableBodyRow.appendChild(execIncEthColumn.cloneNode(true));
+                    let execIncEthForDate = 0;
+                    exec_layer_block_rewards.filter(br => br.date === balance.date).forEach((br) => {
+                        execIncEthForDate += br.reward;
+                    })
+                    dailyChartData["executionLayerIncome"] = execIncEthForDate;
+                    const execIncEthColumn = document.createElement("th");
+                    execIncEthColumn.innerText = execIncEthForDate;
+                    bodyRow.appendChild(execIncEthColumn);
+                    combinedRewardsTableBodyRow.appendChild(execIncEthColumn.cloneNode(true));
 
                     // Price [ETH/currency]
-                    priceForDate = data.eth_prices[balance.date];
-                    priceEthColumn = document.createElement("th");
+                    const priceForDate = data.eth_prices[balance.date];
+                    const priceEthColumn = document.createElement("th");
                     priceEthColumn.innerText = priceForDate
                     bodyRow.appendChild(priceEthColumn);
                     combinedRewardsTableBodyRow.appendChild(priceEthColumn.cloneNode(true));
 
                     // Consensus layer income [currency]
-                    consensusIncCurrForDate = priceForDate * consensusIncEthForDate;
-                    consensusIncCurrColumn = document.createElement("th");
-                    consensusIncCurrColumn.innerText = consensusIncCurrForDate;
+                    const consensusIncCurrForDate = priceForDate * consensusIncEthForDate;
+                    const consensusIncCurrColumn = document.createElement("th");
+                    consensusIncCurrColumn.innerText = consensusIncCurrForDate.toString();
                     bodyRow.appendChild(consensusIncCurrColumn);
                     combinedRewardsTableBodyRow.appendChild(consensusIncCurrColumn.cloneNode(true));
-                    //
+
                     // // Execution layer income [currency]
-                    // executionIncCurrForDate = priceForDate * execIncEthForDate;
-                    // executionIncCurrColumn = document.createElement("th");
-                    // executionIncCurrColumn.innerText = executionIncCurrForDate;
-                    // bodyRow.appendChild(executionIncCurrColumn);
-                    // combinedRewardsTableBodyRow.appendChild(executionIncCurrColumn.cloneNode(true));
+                    const executionIncCurrForDate = priceForDate * execIncEthForDate;
+                    const executionIncCurrColumn = document.createElement("th");
+                    executionIncCurrColumn.innerText = executionIncCurrForDate;
+                    bodyRow.appendChild(executionIncCurrColumn);
+                    combinedRewardsTableBodyRow.appendChild(executionIncCurrColumn.cloneNode(true));
 
                     prevBalance = balance.balance;
                     tableBody.appendChild(bodyRow);
                     combinedRewardsTableBody.appendChild(combinedRewardsTableBodyRow.cloneNode(true));
+
+
+                    chartData.push(dailyChartData);
                 });
                 tableElement.appendChild(tableBody);
 
                 // Table foot
-                tableFoot = document.createElement("tfoot");
+                const tableFoot = document.createElement("tfoot");
 
-                footRow = document.createElement("tr");
+                const footRow = document.createElement("tr");
 
                 // Under Date column
+                let footColumn;
                 footColumn = document.createElement("td");
                 footColumn.innerText="Total:";
                 footRow.appendChild(footColumn);
@@ -419,9 +461,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 footRow.appendChild(footColumn);
 
                 // Under exec layer income [ETH] column
-                // footColumn = document.createElement("td");
-                // footColumn.innerText=total_execution_layer_eth;
-                // footRow.appendChild(footColumn);
+                footColumn = document.createElement("td");
+                footColumn.innerText=total_execution_layer_eth;
+                footRow.appendChild(footColumn);
 
                 // Under price column
                 footColumn = document.createElement("td");
@@ -433,9 +475,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 footRow.appendChild(footColumn);
 
                 // Under exec layer income [currency] column
-                // footColumn = document.createElement("td");
-                // footColumn.innerText=total_execution_layer_currency;
-                // footRow.appendChild(footColumn);
+                footColumn = document.createElement("td");
+                footColumn.innerText=total_execution_layer_currency;
+                footRow.appendChild(footColumn);
 
                 tableFoot.appendChild(footRow);
 
@@ -448,18 +490,16 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                 rewardsTablesContainer.appendChild(divElement);
 
-                // sumTotalIncomeEth += total_consensus_layer_eth + total_execution_layer_eth;
-                sumTotalIncomeEth += total_consensus_layer_eth;
-                // sumTotalIncomeCurr += total_consensus_layer_currency + total_execution_layer_currency;
-                sumTotalIncomeCurr += total_consensus_layer_currency;
+                sumTotalIncomeEth += total_consensus_layer_eth + total_execution_layer_eth;
+                sumTotalIncomeCurr += total_consensus_layer_currency + total_execution_layer_currency;
             })
 
             // Sort combined rewards table by date (1st column)
             sortTable(combinedRewardsTable, 1);
 
             // Populate sum of total income table
-            tableHead = document.createElement("thead");
-            headerRow = document.createElement("tr");
+            const tableHead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
             tableHead.appendChild(headerRow);
 
             let columnNames = [
@@ -467,14 +507,14 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 "Total income [" + currency + "]"
             ];
             columnNames.forEach((columnName) => {
-                headerColumn = document.createElement("th");
+                const headerColumn = document.createElement("th");
                 headerColumn.innerText = columnName;
                 headerRow.appendChild(headerColumn);
             });
             sumTotalTable.appendChild(tableHead);
 
-            tableBody = document.createElement("tbody");
-            bodyRow = document.createElement("tr");
+            const tableBody = document.createElement("tbody");
+            const bodyRow = document.createElement("tr");
             tableBody.appendChild(bodyRow);
 
             let columnValues = [
@@ -482,7 +522,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 sumTotalIncomeCurr
             ];
             columnValues.forEach((columnValue) => {
-                bodyColumn = document.createElement("td");
+                const bodyColumn = document.createElement("td");
                 bodyColumn.innerText = columnValue;
                 bodyRow.appendChild(bodyColumn);
             })
@@ -491,10 +531,14 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             enableCalculateButton(true);
             showCalculateMessage(false);
 
+            // Populate rewards chart
+            populateChart(chartData);
+
             // Scroll to bottom to show resulting table
             window.scrollTo(0, document.body.scrollHeight);
         })
         .catch(error => {
+            let errorMessage;
             if (error.toString().indexOf("Too Many Requests") > -1) {
                 errorMessage = "You have been rate limited, please try again later.";
             } else {
@@ -508,9 +552,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 async function getRewards() {
     // Depending on the selected tab, it may be needed to fetch the
     // validator indexes first
-    tabElements = document.getElementById("validatorChoiceTab").children;
-    activeTab = null;
-    for (var i = 0; i < tabElements.length; i++) {
+    const tabElements = document.getElementById("validatorChoiceTab").children;
+    let activeTab = null;
+    for (let i = 0; i < tabElements.length; i++) {
         if (tabElements[i].children[0].className.includes("active")) {
             activeTab = tabElements[i].children[0];
         }
@@ -524,12 +568,12 @@ async function getRewards() {
     // Show message that it may take a while
     showCalculateMessage(true);
 
-    if (activeTab.textContent == "Validator Indexes") {
-        var validatorIndexes = Array();
+    if (activeTab.textContent === "Validator Indexes") {
+        let validatorIndexes = Array();
 
-        indexInputGroups = document.getElementById("index").children;
-        for (var i = 0; i < indexInputGroups.length; i++) {
-            indexInput = indexInputGroups[i].children[0];
+        const indexInputGroups = document.getElementById("index").children;
+        for (let i = 0; i < indexInputGroups.length; i++) {
+            const indexInput = indexInputGroups[i].children[0];
 
             indexInput.required = true;
             if (!indexInput.checkValidity()) {
@@ -543,7 +587,7 @@ async function getRewards() {
         }
         getRewardsForValidatorIndexes(validatorIndexes);
     }
-    else if (activeTab.textContent == "Validator public keys") {
+    else if (activeTab.textContent === "Validator public keys") {
         var pubKeyUrl = new URL("/api/v1/index_for_publickey", window.location.href)
 
         let pubKeyInputGroups = document.getElementById("pubkey").children;
@@ -551,7 +595,7 @@ async function getRewards() {
         const request = async (url) => {
             const response = await fetch(url);
             try {
-                data = await handleErrorMessage(response);
+                const data = await handleErrorMessage(response);
                 return data;
             } catch(error) {
                 showErrorMessage(error);
@@ -559,9 +603,9 @@ async function getRewards() {
             }
         }
 
-        var indexRequests = Array();
-        for (var i = 0; i < pubKeyInputGroups.length; i++) {
-            pubKeyInput = pubKeyInputGroups[i].children[0];
+        let indexRequests = Array();
+        for (let i = 0; i < pubKeyInputGroups.length; i++) {
+            const pubKeyInput = pubKeyInputGroups[i].children[0];
 
             pubKeyInput.required = true;
             if (!pubKeyInput.checkValidity()) {
@@ -571,7 +615,7 @@ async function getRewards() {
             }
             pubKeyInput.required = false;
 
-            var pubKeyParams = new URLSearchParams();
+            const pubKeyParams = new URLSearchParams();
             pubKeyParams.append("publickey", pubKeyInput.value);
             pubKeyUrl.search = pubKeyParams.toString();
 
@@ -580,15 +624,15 @@ async function getRewards() {
         let validatorIndexes = await Promise.all(indexRequests)
         getRewardsForValidatorIndexes(validatorIndexes);
     }
-    else if (activeTab.textContent == "ETH1 deposit addresses") {
-        var depositAddrUrl = new URL("/api/v1/indexes_for_eth1_address", window.location.href)
+    else if (activeTab.textContent === "ETH1 deposit addresses") {
+        const depositAddrUrl = new URL("/api/v1/indexes_for_eth1_address", window.location.href)
 
         let depositAddrInputGroups = document.getElementById("eth1").children;
 
         const request = async (url) => {
             const response = await fetch(url);
             try {
-                data = await handleErrorMessage(response);
+                const data = await handleErrorMessage(response);
                 return data;
             } catch (error) {
                 showErrorMessage(error);
@@ -596,9 +640,9 @@ async function getRewards() {
             }
         }
 
-        var validatorIndexes = Array();
-        for (var i = 0; i < depositAddrInputGroups.length; i++) {
-            depositAddrInput = depositAddrInputGroups[i].children[0];
+        let validatorIndexes = Array();
+        for (let i = 0; i < depositAddrInputGroups.length; i++) {
+            const depositAddrInput = depositAddrInputGroups[i].children[0];
 
             depositAddrInput.required = true;
             if (!depositAddrInput.checkValidity()) {
@@ -608,13 +652,13 @@ async function getRewards() {
             }
             depositAddrInput.required = false;
 
-            var depositAddrParams = new URLSearchParams();
+            const depositAddrParams = new URLSearchParams();
             depositAddrParams.append("eth1_address", depositAddrInput.value);
             depositAddrUrl.search = depositAddrParams.toString();
 
             const response = await fetch(depositAddrUrl);
             try {
-                data = await handleErrorMessage(response);
+                const data = await handleErrorMessage(response);
                 validatorIndexes = validatorIndexes.concat(data);
             } catch (error) {
                 showErrorMessage(error);
@@ -630,14 +674,14 @@ async function getRewards() {
 // Quick and simple export a HTML table into a csv
 function downloadTableAsCsv(table, separator = ';') {
     // Select table rows
-    var rows = table.getElementsByTagName("tr");
+    let rows = table.getElementsByTagName("tr");
     // Construct csv
-    var csv = [];
-    for (var i = 0; i < rows.length; i++) {
-        var row = [], cols = rows[i].querySelectorAll('td, th');
-        for (var j = 0; j < cols.length; j++) {
+    let csv = [];
+    for (let i = 0; i < rows.length; i++) {
+        let row = [], cols = rows[i].querySelectorAll('td, th');
+        for (let j = 0; j < cols.length; j++) {
             // Clean innerText to remove multiple spaces and jumpline (break csv)
-            var data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
+            let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
             // Escape double-quote with double-double-quote (see https://stackoverflow.com/questions/17808511/properly-escape-a-double-quote-in-csv)
             data = data.replace(/"/g, '""');
             // Push escaped string
@@ -645,22 +689,22 @@ function downloadTableAsCsv(table, separator = ';') {
         }
         csv.push(row.join(separator));
     }
-    var csv_string = csv.join('\n');
+    const csv_string = csv.join('\n');
 
     // Download it as a file
-    var filename = table.id + '.csv';
+    const filename = table.id + '.csv';
 
-    var link = document.createElement('a');
+    const link = document.createElement('a');
     link.style.display = 'none';
     link.setAttribute('target', '_blank');
     link.setAttribute('download', filename);
 
     if (window.Blob && window.URL) {
         // HTML5 Blob
-        var blob = new Blob([csv_string], {
+        const blob = new Blob([csv_string], {
             type: 'text/csv;charset=utf-8'
         });
-        var csvUrl = URL.createObjectURL(blob);
+        const csvUrl = URL.createObjectURL(blob);
         link.setAttribute('href', csvUrl);
     } else {
         // Create the data URI manually
@@ -673,12 +717,6 @@ function downloadTableAsCsv(table, separator = ';') {
 }
 
 document.addEventListener('click', function (event) {
-    // Remove input element buttons
-    if (event.target.matches('.input-element-remove')) {
-        inputGroupElement = event.target.parentElement;
-        inputGroupElement.parentElement.removeChild(inputGroupElement);
-    }
-
     // Combined CSV export
     if (event.target.matches("#combinedCsvExport")) {
         downloadTableAsCsv(document.getElementById("combinedRewardsTable"));
@@ -698,8 +736,8 @@ function getCookieValue(name) {
 
 function getSelectValues(selectElement)
 {
-    var values = Array();
-    for (var option of selectElement.options) {
+    let values = Array();
+    for (let option of selectElement.options) {
         values.push(option.value);
     }
     return values;
@@ -714,4 +752,15 @@ function populateInputsFromCookies() {
 
 window.addEventListener("load", function () {
     // populateInputsFromCookies();
+})
+
+window.addEventListener("load", () => {
+    document.getElementById("inputForm").addEventListener("submit", getRewards);
+})
+
+window.addEventListener("load", () => {
+    const addInputElements = document.getElementsByClassName("add-input-button");
+    for (let i = 0; i < addInputElements.length; i++) {
+        addInputElements[i].addEventListener("click", addInputElement);
+    }
 })

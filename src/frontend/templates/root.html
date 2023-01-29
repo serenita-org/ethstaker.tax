@@ -11,41 +11,21 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
     <link rel="manifest" href="/static/favicon/site.webmanifest">
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
-
-    <!-- Bootstrap icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
-
-    <!-- Moment.js - required by Pikaday -->
-    <script src="/static/momentjs/moment.js"></script>
-
-    <!-- Pikaday date picker -->
-    <link rel="stylesheet" href="/static/pikaday/pikaday.css">
-    <script src="/static/pikaday/pikaday.js"></script>
-
     <!-- Custom CSS/JS for this webapp -->
-    <link rel="stylesheet" href="/static/app.css">
-    <script src="/static/app.js"></script>
+    <link rel="stylesheet" href="/dist/main.css">
+    <script src="/dist/main.js"></script>
 
     <title>Ethereum Staking Rewards Calculator</title>
 </head>
 <body>
 
-<div class="container-fluid mt-3">
+<div class="container-fluid mt-3 mb-5">
     <div class="alert alert-info text-center alert-dismissible fade show" role="alert">
       <strong>ETH2.tax is now ethstaker.tax!</strong>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <div class="p-3">
-    <!--
-        <div class="alert alert-warning" role="alert">
-          Dear visitors, I apologize but my node at home went down and therefore the site doesn't currently work 😔
-            The server seems to be turned off and I have no way of turning it on remotely. I'll be back
-            home on Oct 10th to check on it, so the site should be working shortly after.
-        </div>
-    -->
-        <form id="inputForm" onsubmit="getRewards(); return false;">
+        <form id="inputForm" onsubmit="return false;">
             <div class="row p-3">
                 <h2>For which validators would you like to calculate rewards?</h2>
                 <p>
@@ -69,10 +49,10 @@
                     <div class="tab-pane fade show active m-3" id="index" role="tabpanel" aria-labelledby="index-tab">
                         <div class="input-group mb-1 p-2">
                             <input
-                                    type="number" min="0" max="500000"
+                                    type="number" min="0" max="1000000"
                                     class="form-control" placeholder="Type your validator index here"
                             >
-                            <button class="btn btn-outline-secondary" type="button" onclick="addInputElement(this);">
+                            <button class="btn btn-outline-secondary add-input-button" type="button">
                                 <i class="bi-plus-circle"></i>
                                 Add another
                             </button>
@@ -84,7 +64,7 @@
                                     type="text" pattern="^0x[a-fA-F0-9]{96}$"
                                     class="form-control" placeholder="Type your validator public key here"
                             >
-                            <button class="btn btn-outline-secondary" type="button" onclick="addInputElement(this);">
+                            <button class="btn btn-outline-secondary add-input-button" type="button">
                                 <i class="bi-plus-circle"></i>
                                 Add another
                             </button>
@@ -96,7 +76,7 @@
                                     type="text" pattern="^0x[a-fA-F0-9]{40}$"
                                     class="form-control" placeholder="Type your ETH1 deposit address here"
                             >
-                            <button class="btn btn-outline-secondary" type="button" onclick="addInputElement(this);">
+                            <button class="btn btn-outline-secondary add-input-button" type="button">
                                 <i class="bi-plus-circle"></i>
                                 Add another
                             </button>
@@ -159,6 +139,17 @@
         <div class="alert alert-danger d-none m-3" role="alert" id="calculateErrorMessage">
         </div>
     </div>
+    <div class="container-lg">
+      <div class="row align-items-center">
+        <div class="col-1">
+        </div>
+        <div class="col">
+          <canvas id="rewardsChartCanvas"></canvas>
+        </div>
+        <div class="col-1">
+        </div>
+      </div>
+    </div>
     <div id="sumRewardsTablesContainer">
     </div>
     <table style="display: none" id="combinedRewardsTable">
@@ -166,38 +157,69 @@
     <div class="collapse" id="rewardsTablesCollapse">
         <div class="card card-body" id="rewardsTablesContainer"></div>
     </div>
-    <nav class="navbar fixed-bottom bg-light">
-            <div class="col">
-                <a class="btn btn-outline-primary" href="https://gitcoin.co/grants/2148/ethstakertax-tax-information-for-stakers" role="button" target="_blank">
-                    <i class="bi-currency-dollar"></i>
-                    Support this website
-                </a>
-            </div>
-            <div class="col d-flex justify-content-center">
-                <a class="footer-image-link p-1" href="https://github.com/eth2353">
-                    <i class="bi-github"></i>
-                </a>
-                <a class="footer-image-link p-1" href="https://www.reddit.com/user/eth2353">
-                    <i class="bi-chat-left-text"></i>
-                </a>
-                <a class="footer-image-link p-1" href="https://twitter.com/eth2353">
-                    <i class="bi-twitter"></i>
-                </a>
-                <a class="footer-image-link p-1" href="https://discordapp.com/users/737740104281489531">
-                    <i class="bi-discord"></i>
-                </a>
-            </div>
-            <div class="col">
-                <a class="btn btn-outline-primary float-end" href="https://github.com/eth2353/ethstaker.tax/issues" role="button" target="_blank">
-                    <i class="bi-exclamation-circle"></i>
-                    Report an issue
-                </a>
-            </div>
-    </nav>
 </div>
 
-<!-- Bootstrap Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
+<nav class="navbar fixed-bottom bg-light">
+    <div class="col">
+        <a class="btn btn-outline-primary mx-2" role="button" data-bs-toggle="modal" data-bs-target="#donationModal">
+            <i class="bi-currency-dollar"></i>
+            Support this website
+        </a>
+    </div>
+    <div class="col d-flex justify-content-center">
+        <a class="footer-image-link p-1" href="https://github.com/eth2353">
+            <i class="bi-github"></i>
+        </a>
+        <a class="footer-image-link p-1" href="https://www.reddit.com/user/eth2353">
+            <i class="bi-chat-left-text"></i>
+        </a>
+        <a class="footer-image-link p-1" href="https://twitter.com/eth2353">
+            <i class="bi-twitter"></i>
+        </a>
+        <a class="footer-image-link p-1" href="https://discordapp.com/users/737740104281489531">
+            <i class="bi-discord"></i>
+        </a>
+    </div>
+    <div class="col">
+        <a class="btn btn-outline-primary float-end mx-2" href="https://github.com/eth2353/ethstaker.tax/issues" role="button" target="_blank">
+            <i class="bi-exclamation-circle"></i>
+            Report an issue
+        </a>
+    </div>
+</nav>
 
+<!-- Donation modal -->
+<div id="donationModal" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Support ethstaker.tax</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>
+            Thanks for wanting to support this project. The most effective way to make a donation would be to make
+            it to the <a href="https://gitcoin.co/grants/2148/ethstakertax-tax-information-for-stakers" target="_blank">Gitcoin grant</a> during a Gitcoin matching round.
+        </p>
+        <p>
+            You can also donate directly to
+        </p>
+        <pre>0xb0d3E03e215e30a08F4006D5AA5bec98BF3FEcF7</pre>
+        <p>
+            Thank you!
+        </p>
+        <a role="button" onclick="navigator.clipboard.writeText('0xb0d3E03e215e30a08F4006D5AA5bec98BF3FEcF7').then(() => alert('Address copied to clipboard'));"><i class="bi-save"></i> Copy to clipboard </a>
+        <br />
+        <a role="button" data-bs-toggle="collapse" data-bs-target="#collapseDonateQr" style="text-decoration: none; color: inherit"><i class="bi-qr-code"></i> Show QR code </a>
+        <div id="collapseDonateQr" class="accordion-collapse collapse" aria-labelledby="collapseDonateQr">
+          <img src="/static/images/donate-qr.png" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
