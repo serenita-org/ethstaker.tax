@@ -574,29 +574,19 @@ async function getRewards() {
         const indexInputGroups = document.getElementById("index").children;
         for (let i = 0; i < indexInputGroups.length; i++) {
             const indexInput = indexInputGroups[i].children[0];
-
-            indexInput.required = true;
-            if (!indexInput.checkValidity()) {
-                indexInput.required = false;
-                showErrorMessage("Invalid validator index: " + indexInput.value);
-                return false;
-            }
-            indexInput.required = false;
-
             validatorIndexes.push(indexInput.value);
         }
         getRewardsForValidatorIndexes(validatorIndexes);
     }
     else if (activeTab.textContent === "Validator public keys") {
-        var pubKeyUrl = new URL("/api/v1/index_for_publickey", window.location.href)
+        const pubKeyUrl = new URL("/api/v1/index_for_publickey", window.location.href);
 
         let pubKeyInputGroups = document.getElementById("pubkey").children;
 
         const request = async (url) => {
             const response = await fetch(url);
             try {
-                const data = await handleErrorMessage(response);
-                return data;
+                return await handleErrorMessage(response);
             } catch(error) {
                 showErrorMessage(error);
                 return false;
@@ -606,14 +596,6 @@ async function getRewards() {
         let indexRequests = Array();
         for (let i = 0; i < pubKeyInputGroups.length; i++) {
             const pubKeyInput = pubKeyInputGroups[i].children[0];
-
-            pubKeyInput.required = true;
-            if (!pubKeyInput.checkValidity()) {
-                pubKeyInput.required = false;
-                showErrorMessage("Invalid public key: " + pubKeyInput.value);
-                return false;
-            }
-            pubKeyInput.required = false;
 
             const pubKeyParams = new URLSearchParams();
             pubKeyParams.append("publickey", pubKeyInput.value);
@@ -632,8 +614,7 @@ async function getRewards() {
         const request = async (url) => {
             const response = await fetch(url);
             try {
-                const data = await handleErrorMessage(response);
-                return data;
+                return await handleErrorMessage(response);
             } catch (error) {
                 showErrorMessage(error);
                 throw error
@@ -643,14 +624,6 @@ async function getRewards() {
         let validatorIndexes = Array();
         for (let i = 0; i < depositAddrInputGroups.length; i++) {
             const depositAddrInput = depositAddrInputGroups[i].children[0];
-
-            depositAddrInput.required = true;
-            if (!depositAddrInput.checkValidity()) {
-                depositAddrInput.required = false;
-                showErrorMessage("Invalid deposit address: " + depositAddrInput.value);
-                return false;
-            }
-            depositAddrInput.required = false;
 
             const depositAddrParams = new URLSearchParams();
             depositAddrParams.append("eth1_address", depositAddrInput.value);
@@ -752,6 +725,23 @@ function populateInputsFromCookies() {
 
 window.addEventListener("load", function () {
     // populateInputsFromCookies();
+})
+
+window.addEventListener("load", (e) => {
+    const validatorChoiceTab = document.getElementById("validatorChoiceTab");
+    // Validator choice form inputs - make them required if tab is active
+    validatorChoiceTab.addEventListener("show.bs.tab", (event) => {
+        const inputs = document.querySelector(event.target.getAttribute("data-bs-target")).querySelectorAll("input");
+        for (let input of inputs) {
+            input.disabled = false;
+        }
+    });
+    validatorChoiceTab.addEventListener("hide.bs.tab", (event) => {
+        const inputs = document.querySelector(event.target.getAttribute("data-bs-target")).querySelectorAll("input");
+        for (let input of inputs) {
+            input.disabled = true;
+        }
+    });
 })
 
 window.addEventListener("load", () => {
