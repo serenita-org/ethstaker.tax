@@ -8,7 +8,7 @@ from collections import namedtuple
 import starlette.requests
 from fastapi import FastAPI
 from httpx import BasicAuth
-from aioredis import Redis
+from redis import Redis
 import pytz
 
 from db.tables import Balance
@@ -129,7 +129,7 @@ class BeaconNode:
 
         # Cache indexes for a limited amount of time
         # (person may deposit again)
-        await cache.set(cache_key, json.dumps(indexes), expire=1800)
+        await cache.set(cache_key, json.dumps(indexes), ex=1800)
 
         return indexes
 

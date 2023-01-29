@@ -6,7 +6,7 @@ import logging
 
 import starlette.requests
 from fastapi import FastAPI
-from aioredis import Redis
+from redis import Redis
 
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 from prometheus_client import Counter
@@ -46,7 +46,7 @@ class CoinGecko:
         currencies = [d.upper() for d in data]
 
         # Cache them for 7 days
-        await cache.set(cache_key, json.dumps(currencies), expire=7*86400)
+        await cache.set(cache_key, json.dumps(currencies), ex=7*86400)
 
         return currencies
 
@@ -136,7 +136,7 @@ class CoinGecko:
         # If the retrieved price is not the close price for the requested
         # date, expire it in 30 minutes (it may still change)
         if not price_is_close_price:
-            await cache.set(cache_key, json.dumps(prices), expire=1800)
+            await cache.set(cache_key, json.dumps(prices), ex=1800)
         else:
             await cache.set(cache_key, json.dumps(prices))
 

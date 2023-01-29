@@ -15,7 +15,7 @@ def get_db_uri():
 @contextmanager
 def session_scope():
     """Provide a transactional scope around a series of operations."""
-    engine = create_engine(get_db_uri(), executemany_mode="batch")
+    engine = create_engine(get_db_uri())
     session = Session(bind=engine)
     try:
         yield session

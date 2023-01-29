@@ -1,7 +1,7 @@
 from typing import List, Optional
 import logging
 
-from aioredis import Redis
+from redis import Redis
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
