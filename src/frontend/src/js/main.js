@@ -497,8 +497,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             tableHead.appendChild(headerRow);
 
             let columnNames = [
-                "Total income [ETH]",
-                "Total income [" + currency + "]"
+                "",
+                "ETH",
+                currency,
             ];
             columnNames.forEach((columnName) => {
                 const headerColumn = document.createElement("th");
@@ -512,6 +513,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             tableBody.appendChild(bodyRow);
 
             let columnValues = [
+                "Total Income",
                 sumTotalIncomeEth,
                 sumTotalIncomeCurr
             ];
