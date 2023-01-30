@@ -56,7 +56,7 @@ function selectDateRangeByYear() {
         // Init Pikaday date pickers
         const datePickerIds = ["datePickerStart", "datePickerEnd"];
         datePickerIds.forEach((elementId) => {
-            var picker = new Pikaday({
+            new Pikaday({
                 field: document.getElementById(elementId),
                 format: "YYYY-MM-DD"
             });
@@ -71,7 +71,7 @@ function selectDateRangeByYear() {
 
         const endDatePicker = document.getElementById("datePickerEnd");
         // toISOString first converts to UTC - handle that by adding the timezone offset
-        var endDate = new Date();
+        let endDate = new Date();
         const offset = endDate.getTimezoneOffset();
         endDate = new Date(endDate.getTime() - (offset*60*1000));
         endDatePicker.value = endDate.toISOString().split('T')[0];
@@ -177,7 +177,7 @@ function sortTable(table, colnum) {
     // but ignore the heading row:
     rows = rows.slice(1);
 
-    // set up the queryselector for getting the indicated
+    // set up the querySelector for getting the indicated
     // column from a row, so we can compare using its value:
     let qs = `th:nth-child(${colnum})`;
 
@@ -218,7 +218,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             // Sum total rewards over all validators
             let sumTotalIncomeEth = 0;
             let sumTotalIncomeCurr = 0;
-            let currency = null;
+            let currency;
 
             // Add a summary table for the total income over all validators
             const sumTotalTable = document.createElement("table");
@@ -427,7 +427,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                     // // Execution layer income [currency]
                     const executionIncCurrForDate = priceForDate * execIncEthForDate;
                     const executionIncCurrColumn = document.createElement("th");
-                    executionIncCurrColumn.innerText = executionIncCurrForDate;
+                    executionIncCurrColumn.innerText = executionIncCurrForDate.toString();
                     bodyRow.appendChild(executionIncCurrColumn);
                     combinedRewardsTableBodyRow.appendChild(executionIncCurrColumn.cloneNode(true));
 
@@ -523,7 +523,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             ];
             columnValues.forEach((columnValue) => {
                 const bodyColumn = document.createElement("td");
-                bodyColumn.innerText = columnValue;
+                bodyColumn.innerText = columnValue.toString();
                 bodyRow.appendChild(bodyColumn);
             })
             sumTotalTable.appendChild(tableBody);
@@ -611,16 +611,6 @@ async function getRewards() {
 
         let depositAddrInputGroups = document.getElementById("eth1").children;
 
-        const request = async (url) => {
-            const response = await fetch(url);
-            try {
-                return await handleErrorMessage(response);
-            } catch (error) {
-                showErrorMessage(error);
-                throw error
-            }
-        }
-
         let validatorIndexes = Array();
         for (let i = 0; i < depositAddrInputGroups.length; i++) {
             const depositAddrInput = depositAddrInputGroups[i].children[0];
@@ -629,7 +619,7 @@ async function getRewards() {
             depositAddrParams.append("eth1_address", depositAddrInput.value);
             depositAddrUrl.search = depositAddrParams.toString();
 
-            const response = await fetch(depositAddrUrl);
+            const response = await fetch(depositAddrUrl.href);
             try {
                 const data = await handleErrorMessage(response);
                 validatorIndexes = validatorIndexes.concat(data);
@@ -644,7 +634,7 @@ async function getRewards() {
     }
 }
 
-// Quick and simple export a HTML table into a csv
+// Quick and simple export an HTML table into a csv
 function downloadTableAsCsv(table, separator = ';') {
     // Select table rows
     let rows = table.getElementsByTagName("tr");
@@ -703,31 +693,7 @@ document.addEventListener('click', function (event) {
     }
 }, false);
 
-function getCookieValue(name) {
-    return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop() || ''
-}
-
-function getSelectValues(selectElement)
-{
-    let values = Array();
-    for (let option of selectElement.options) {
-        values.push(option.value);
-    }
-    return values;
-}
-
-function populateInputsFromCookies() {
-    const currencyInput = document.getElementById("selectCurrency");
-    if (getSelectValues(currencyInput).indexOf(getCookieValue("currency")) !== -1) {
-        currencyInput.value = getCookieValue("currency");
-    }
-}
-
-window.addEventListener("load", function () {
-    // populateInputsFromCookies();
-})
-
-window.addEventListener("load", (e) => {
+window.addEventListener("load", () => {
     const validatorChoiceTab = document.getElementById("validatorChoiceTab");
     // Validator choice form inputs - make them required if tab is active
     validatorChoiceTab.addEventListener("show.bs.tab", (event) => {
