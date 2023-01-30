@@ -337,7 +337,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 link.classList.add("csv-export");
                 link.classList.add("m-3");
                 link.role = "button";
-                link.innerText = "CSV";
+                link.innerHTML = "<i class='bi-cloud-download'></i> CSV";
                 divElement.appendChild(link);
 
                 const tableElement = document.createElement("table");

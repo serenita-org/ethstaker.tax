@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon/site.webmanifest">
+
+    <!-- Custom CSS/JS for this webapp -->
+    <link rel="stylesheet" href="/dist/main.css">
+    <script src="/dist/main.js"></script>
+
+    <title>{% block title %}{{ title }}{% endblock title %}</title>
+    <title>Ethereum Staking Rewards Calculator</title>
+</head>
+
+<body>
+  <div class="container-fluid mt-3 mb-5">
+      <div class="alert alert-info text-center alert-dismissible fade show" role="alert">
+        <strong>ETH2.tax is now ethstaker.tax!</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      <!--
+      <div class="alert alert-info text-center alert-dismissible fade show" role="alert">
+        <strong>ethstaker.tax is part of an ongoing Gitcoin matching round, please consider donating <a href="https://gitcoin.co/grants/2148/ethstakertax-tax-information-for-stakers" target="_blank">here</a> to help keep the site up!</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      -->
+      {% block content %}
+        <h1>Welcome to {{ title }}!</h1>
+      {% endblock content %}
+  </div>
+
+{% include "footer.j2" %}
+{% include "donationModal.j2" %}
+</body>
+</html>
