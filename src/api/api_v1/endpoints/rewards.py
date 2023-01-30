@@ -125,9 +125,6 @@ async def rewards(
 
     REWARDS_REQUEST_COUNT.labels(timezone.value, currency, calendar_year).inc()
 
-    # Increment the end date by 1 day to make it inclusive
-    end_date = end_date + datetime.timedelta(days=1)
-
     # Create timezone object and create a start datetime at 00:00 of that day
     timezone = pytz.timezone(timezone.value)
     start_dt = datetime.datetime.combine(start_date, datetime.time.min)
@@ -198,7 +195,7 @@ async def rewards(
     #   possible ( datetime arithmetics with DST doesn't work the way you'd expect )
     current_date = start_dt_utc.astimezone(timezone).date()
     eod_slots = set()
-    while current_date < end_date:
+    while current_date <= end_date:
         # Create a midnight datetime object
         current_dt = datetime.datetime.combine(
             current_date, time=datetime.time(hour=23, minute=59, second=59)
