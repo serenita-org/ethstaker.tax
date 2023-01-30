@@ -10,9 +10,11 @@ services:
     command: [
         "uvicorn", "src.frontend.app:app",
         "--host", "frontend",
-        "--port", "8000"
+        "--port", "8000",
+        "--log-config", "etc/logging.yml",
     ]
     environment:
+      FORWARDED_ALLOW_IPS: "*"
       REDIS_HOST:
       REDIS_PORT:
 

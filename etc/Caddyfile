@@ -4,9 +4,7 @@
 
 ethstaker.tax http://localhost:80 {
     handle /api/* {
-        reverse_proxy api:8000 {
-            header_up X-Forwarded-For {remote_host}
-        }
+        reverse_proxy api:8000
     }
 
     reverse_proxy frontend:8000

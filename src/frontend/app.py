@@ -23,6 +23,7 @@ templates = Jinja2Templates(directory="src/frontend/templates")
 
 
 @app.get("/", response_class=HTMLResponse)
+@app.head("/", response_class=HTMLResponse)
 async def read_root(
     request: Request,
     cache: Redis = Depends(depends_redis),
