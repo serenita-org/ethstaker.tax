@@ -64,7 +64,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: [ "python", "./src/indexer/block_rewards/block_rewards.py" ]
+    command: [ "python", "./src/indexer/block_rewards/main.py" ]
     environment:
       DB_URI:
       BEACON_NODE_USE_INFURA:
@@ -122,8 +122,8 @@ services:
     image: caddy:2.6.2-alpine
     restart: unless-stopped
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
@@ -155,7 +155,7 @@ services:
     image: adminer:4.8.1
     restart: unless-stopped
     ports:
-      - 8080:8080
+      - "8080:8080"
     depends_on:
       - db
 
@@ -163,7 +163,7 @@ services:
     image: grafana/grafana:9.3.6
     restart: unless-stopped
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/grafana/provisioning:/etc/grafana/provisioning
       - ${ABSOLUTE_ROOT_PATH}/etc/grafana/dashboards:/var/lib/grafana/dashboards
