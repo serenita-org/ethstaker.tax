@@ -47,7 +47,9 @@ class AsyncClientWithBackoff(AsyncClient):
         if resp.status_code == 429:
             # Rate limited
             logger.warning(f"Rate limited while getting {kwargs}. "
-                           f"Headers: {resp.headers}")
+                           f"Headers: {resp.headers}\n"
+                           f"Body: {resp.text}")
+
             raise RateLimited()
         elif resp.status_code == 404:
             # Resource not found at URL
