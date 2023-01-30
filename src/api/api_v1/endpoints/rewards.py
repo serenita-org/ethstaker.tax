@@ -19,6 +19,7 @@ from api.api_v1.models import (
     ExecLayerBlockReward,
     ValidatorRewards,
 )
+from db.tables import Balance
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
 from providers.coin_gecko import depends_coin_gecko, CoinGecko
 from providers.db_provider import depends_db, DbProvider
@@ -166,7 +167,16 @@ async def rewards(
         # the initial balance will be equal to its balance in the activation epoch.
         if activation_slot > first_slot_in_requested_period:
             initial_balance_slot = activation_slot
-            initial_balances_tmp = await beacon_node.balances_for_slot(initial_balance_slot, vi_with_this_as)
+            # In 99.999% of time the balance at the activation slot will be 32 -> return 32
+            # (otherwise retrieving it on-demand is very resource-intensive and slow)
+            initial_balances_tmp = [
+                Balance(
+                    slot=activation_slot,
+                    validator_index=vi,
+                    balance=32,
+                ) for vi in vi_with_this_as
+            ]
+            #initial_balances_tmp = await beacon_node.balances_for_slot(initial_balance_slot, vi_with_this_as)
         else:
             initial_balance_slot = await BeaconNode.slot_for_datetime(start_dt_utc)
             initial_balances_tmp = db_provider.balances(slots=[initial_balance_slot], validator_indexes=vi_with_this_as)
