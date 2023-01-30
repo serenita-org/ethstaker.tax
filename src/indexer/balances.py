@@ -5,6 +5,7 @@ import asyncio
 import pytz
 from tqdm import tqdm
 from prometheus_client import start_http_server, Gauge
+from sqlalchemy import text
 
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode, GENESIS_DATETIME
@@ -113,7 +114,9 @@ async def index_balances():
                 logger.warning(f"No balances retrieved for slot {slot}")
                 continue
             session.execute(
-                "INSERT INTO balance(validator_index, slot, balance) VALUES(:validator_index, :slot, :balance)",
+                text(
+                    "INSERT INTO balance(validator_index, slot, balance) VALUES(:validator_index, :slot, :balance)"
+                ),
                 [
                     {
                         "validator_index": balance.validator_index,
@@ -121,7 +124,7 @@ async def index_balances():
                         "balance": balance.balance,
                     }
                     for balance in balances_for_slot
-                ],
+                ]
             )
             ALREADY_INDEXED_SLOTS.append(slot)
             SLOTS_WITH_MISSING_BALANCES.dec(1)
