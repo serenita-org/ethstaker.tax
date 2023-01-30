@@ -87,6 +87,7 @@
                     <option value="2020">2020</option>
                     <option value="2021">2021</option>
                     <option value="2022" selected>2022</option>
+                    <option value="2023">2023</option>
                     <option value="since_genesis">Since genesis</option>
                     <option value="custom">Custom</option>
                 </select>
@@ -121,22 +122,15 @@
     <div class="alert alert-danger d-none m-3" role="alert" id="calculateErrorMessage">
     </div>
 </div>
-<div class="container-lg">
+<div id="allRewardsDataContainer" class="container-lg d-none">
   <div class="row align-items-center">
-    <div class="col-1">
-    </div>
-    <div class="col">
-      <canvas id="rewardsChartCanvas"></canvas>
-    </div>
-    <div class="col-1">
-    </div>
+    <canvas id="rewardsChartCanvas"></canvas>
   </div>
-</div>
-<div id="sumRewardsTablesContainer">
-</div>
-<table style="display: none" id="combinedRewardsTable">
-</table>
-<div class="collapse" id="rewardsTablesCollapse">
+  <div id="sumRewardsTablesContainer">
+  </div>
+  <table style="display: none" id="combinedRewardsTable"></table>
+  <div class="collapse" id="rewardsTablesCollapse">
     <div class="card card-body" id="rewardsTablesContainer"></div>
+  </div>
 </div>
 {% endblock content %}

@@ -111,6 +111,9 @@ async function handleErrorMessage(response) {
 }
 
 function cleanupFromPreviousRequest() {
+    // Hide container that contains all previously retrieved rewards data
+    document.getElementById("allRewardsDataContainer").classList.add("d-none");
+
     const rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
     // Remove children elements
     while (rewardsTablesContainer.firstChild) {
@@ -223,6 +226,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             // Add a summary table for the total income over all validators
             const sumTotalTable = document.createElement("table");
             sumTotalTable.classList.add("table");
+            sumTotalTable.classList.add("text-center");
             sumRewardsTablesContainer.appendChild(sumTotalTable);
 
             // Add action buttons container
@@ -251,16 +255,6 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             btn.setAttribute("data-bs-toggle", "collapse");
             btn.setAttribute("data-bs-target", "#rewardsTablesCollapse");
             actionButtonsDiv.appendChild(btn);
-
-            // Add a Chart button
-            /*btn = document.createElement("a");
-            btn.classList.add("btn");
-            btn.classList.add("btn-info");
-            btn.classList.add("m-3");
-            btn.innerHTML = "<i class=\"bi-bar-chart\"></i> Show chart";
-            btn.role = "button";
-            btn.addEventListener("click", populateChart());
-            actionButtonsDiv.appendChild(btn);*/
 
             // Add a Donate button
             btn = document.createElement("a");
@@ -533,6 +527,9 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
             // Populate rewards chart
             populateChart(chartData);
+
+            // Show container that contains retrieved rewards data
+            document.getElementById("allRewardsDataContainer").classList.remove("d-none");
 
             // Scroll to bottom to show resulting table
             window.scrollTo(0, document.body.scrollHeight);
