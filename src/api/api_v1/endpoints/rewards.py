@@ -3,8 +3,9 @@ from typing import List
 import datetime
 from enum import Enum
 import asyncio
+import json
 
-from aioredis import Redis
+from redis import Redis
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
@@ -21,6 +22,7 @@ from api.api_v1.models import (
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
 from providers.coin_gecko import depends_coin_gecko, CoinGecko
 from providers.db_provider import depends_db, DbProvider
+from indexer.block_rewards.main import CACHE_KEY_MISSING_DATA
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -57,12 +59,12 @@ async def rewards(
     start_date: datetime.date = Query(
         ...,
         description="The date at which to start.",
-        example=datetime.date.fromisoformat("2020-01-01"),
+        example=datetime.date.fromisoformat("2022-11-01"),
     ),
     end_date: datetime.date = Query(
         ...,
         description="The date at which to stop.",
-        example=datetime.date.fromisoformat("2020-12-31"),
+        example=datetime.date.fromisoformat("2022-12-31"),
     ),
     timezone: TimezoneEnum = Query(
         ...,
@@ -254,6 +256,17 @@ async def rewards(
     # Populate the object to return
     logger.debug("Populating object to return")
 
+    # Check if we have execution layer rewards data for the requested validator indexes
+    missing_exec_data = json.loads(await cache.get(CACHE_KEY_MISSING_DATA))
+    start_slot, end_slot = min(slots_needed), max(slots_needed)
+    for proposer_index, missing_slots in missing_exec_data.items():
+        if int(proposer_index) in validator_indexes:
+            if any(start_slot < s < end_slot for s in missing_slots):
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Execution layer rewards not available - missing data for proposer {proposer_index}"
+                )
+
     aggregate_rewards = AggregateRewards(
         validator_rewards=[],
         currency=currency,
@@ -277,14 +290,12 @@ async def rewards(
         total_consensus_layer_eth = 0
         total_consensus_layer_currency = 0
         for vb in validator_balances:
-            # This is bugged, commenting out for now # TODO look into it
-            if False and vb.slot > initial_balance.slot:
+            if vb.slot < initial_balance.slot:
                 # If multiple deposits are made, we may already have a balance in the DB
                 # even though the validator is not active yet (e.g. Rocketpool, balance on day 1 = 16ETH
                 # but it is not validating yet).
-                # This ignores all balance entries before the validator's activation.
+                # This ignores all balance entries in the DB before the validator's activation = "real" initial balance.
                 continue
-
 
             slot_date = (await BeaconNode.datetime_for_slot(vb.slot, timezone)).date()
 
@@ -332,11 +343,11 @@ async def rewards(
                 validator_index=validator_index,
                 initial_balance=initial_balance,
                 eod_balances=eod_balances,
-                #exec_layer_block_rewards=exec_layer_block_rewards,
+                exec_layer_block_rewards=exec_layer_block_rewards,
                 total_consensus_layer_eth=total_consensus_layer_eth,
                 total_consensus_layer_currency=total_consensus_layer_currency,
-                #total_execution_layer_eth=total_execution_layer_eth,
-                #total_execution_layer_currency=total_execution_layer_currency,
+                total_execution_layer_eth=total_execution_layer_eth,
+                total_execution_layer_currency=total_execution_layer_currency,
             )
         )
     return aggregate_rewards
