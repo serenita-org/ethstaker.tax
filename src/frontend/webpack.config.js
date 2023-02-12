@@ -2,10 +2,17 @@ const miniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   mode: 'production',
-  entry: './index.js',
+  entry: './index.ts',
+  // Enable sourcemaps for debugging webpack's output.
+  devtool: "source-map",
   plugins: [new miniCssExtractPlugin()],
   module: {
     rules: [
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
@@ -39,5 +46,11 @@ module.exports = {
         type: "asset/inline",
       },
     ]
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
+  },
+  output: {
+    filename: "main.js"
   }
 };

@@ -1,19 +1,25 @@
-import Chart from 'chart.js/auto';
+import Chart, {TooltipCallbacks, TooltipItem, TooltipModel} from 'chart.js/auto';
 import 'chartjs-adapter-moment';
 
 const CHART_ELEMENT_ID = "rewardsChartCanvas";
 
-export function clearChart(data) {
+export interface RewardsDailyChartData {
+    date: string;
+    consensusLayerIncome: number;
+    executionLayerIncome: number;
+}
+
+export function clearChart() {
     let existingChart = Chart.getChart(CHART_ELEMENT_ID); // <canvas> id
     if (existingChart !== undefined) {
       existingChart.destroy();
     }
 }
 
-export function populateChart(data) {
+export function populateChart(data: RewardsDailyChartData[]) {
     clearChart();
 
-    const canvasHtmlElement = document.getElementById(CHART_ELEMENT_ID);
+    const canvasHtmlElement = document.getElementById(CHART_ELEMENT_ID) as HTMLCanvasElement;
 
     // There may be multiple entries for the same date - consolidate them and round them - no need for superhigh precision
     // in the chart
@@ -28,7 +34,7 @@ export function populateChart(data) {
             .reduce(
                 (total, incomeForValidator) => incomeForValidator + total, 0
             );
-        consensusLayerIncome = consensusLayerIncome.toFixed(6);
+        consensusLayerIncome = parseFloat(consensusLayerIncome.toFixed(6));
         let executionLayerIncome = data.filter(
             (item) => item.date === date)
             .map(
@@ -37,7 +43,7 @@ export function populateChart(data) {
             .reduce(
                 (total, incomeForValidator) => incomeForValidator + total, 0
             );
-        executionLayerIncome = executionLayerIncome.toFixed(6);
+        executionLayerIncome = parseFloat(executionLayerIncome.toFixed(6));
         combinedDailyData.push({
             date: date,
             consensusLayerIncome: consensusLayerIncome,
@@ -65,13 +71,22 @@ export function populateChart(data) {
           options: {
             plugins: {
               tooltip: {
+                displayColors: false,
                 callbacks: {
+                  label: function(tooltipItem: TooltipItem<"bar">) {
+                    let labels = [];
+                    for (const dataset of tooltipItem.chart.data.datasets) {
+                        if (dataset.data[tooltipItem.dataIndex] > 0) {
+                            labels.push(dataset.label + ": " + dataset.data[tooltipItem.dataIndex] + " Ξ");
+                        }
+                    }
+                    return labels;
+
+                  },
                   footer: (context) => {
                       let total = 0;
                       for (let ctx of context) {
-                        for (let dataset of ctx.chart.data.datasets) {
-                          total += Number(dataset.data[ctx.dataIndex]);
-                        }
+                        total += data[ctx.dataIndex].executionLayerIncome + data[ctx.dataIndex].consensusLayerIncome;
                       }
                       return 'Total: ' + total + " Ξ";
                   }
@@ -90,24 +105,6 @@ export function populateChart(data) {
                 },
                 stacked: true,
               }
-            },
-            tooltips: {
-                mode: 'label',
-                callbacks: {
-                    label: function(tooltipItem, data) {
-                        const datasetLabel = data.datasets[tooltipItem.datasetIndex].label;
-                        const tooltipItemValue = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-
-                        let total = 0;
-                        for (let i = 0; i < data.datasets.length; i++)
-                            total += data.datasets[i].data[tooltipItem.index];
-                        if (tooltipItem.datasetIndex !== data.datasets.length - 1) {
-                            return datasetLabel + " : $" + tooltipItemValue.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
-                        } else {
-                            return [datasetLabel + " : $" + tooltipItemValue.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,'), "Total : $" + total];
-                        }
-                    }
-                }
             },
           }
         }

@@ -1,19 +1,50 @@
-import { clearChart, populateChart } from "/src/js/rewards_chart.js";
+import { clearChart, populateChart, RewardsDailyChartData } from "./rewards_chart";
 import Pikaday from "pikaday";
 
-function addInputElement(event) {
-    const clickedElement = event.target;
-    const inputGroup = clickedElement.parentElement;
-    const inputGroupContainer = inputGroup.parentElement;
-    const newInputGroup = inputGroup.cloneNode(true);
+import {AggregateRewards, EndOfDayBalance} from "./schema";
+
+let REWARDS_DATA: AggregateRewards;
+
+
+function handleErrorMessage(errorMessage: string, error: Error | null) {
+    if (errorMessage.toString().indexOf("Too Many Requests") > -1) {
+        errorMessage = "You have been rate limited, please try again later.";
+    } else {
+        errorMessage = "An error occurred, please try again. If the issue persists, check the browser console for more information.";
+    }
+    showErrorMessage(errorMessage);
+    console.error('An error occurred:', error);
+}
+
+async function requestWithErrorHandling(url: string) {
+    const response = await fetch(url);
+    const { status } = response;
+
+    if (status !== 200) {
+        handleErrorMessage(await response.text(), null);
+    }
+
+    try {
+        return await response.json();
+    } catch(err) {
+        handleErrorMessage(err.message, err);
+        throw err;
+    }
+}
+
+function addInputElement(event: Event) {
+    const clickedElement = event.target as HTMLElement;
+    const inputGroup = clickedElement.parentElement as HTMLElement;
+    const inputGroupContainer = inputGroup.parentElement as HTMLElement;
+    const newInputGroup = inputGroup.cloneNode(true) as HTMLElement;
 
     // Set value to empty for cloned input element
-    const newInputElement = newInputGroup.children[0];
+    const newInputElement = newInputGroup.children[0] as HTMLInputElement;
     newInputElement.value = "";
 
     // Add event listener for "Add another" button
     const newInputGroupAddAnotherBtn = newInputGroup.children[1];
-    newInputGroupAddAnotherBtn.addEventListener("click", (e) => addInputElement(e));
+    newInputGroupAddAnotherBtn.addEventListener("click", addInputElement);
 
     // Add a remove button to the new input group if there is no remove button present
     let removeButton;
@@ -36,7 +67,7 @@ function addInputElement(event) {
     newInputElement.focus();
 }
 
-function showCustomDateRangeInput(show) {
+function showCustomDateRangeInput(show: Boolean) {
     const element = document.getElementById("customDateRangeInput");
     if (show) {
         element.classList.remove("d-none");
@@ -46,7 +77,7 @@ function showCustomDateRangeInput(show) {
 }
 
 function selectDateRangeByYear() {
-    const selectDateRangeElement = document.getElementById("selectDateRange");
+    const selectDateRangeElement = document.getElementById("selectDateRange") as HTMLSelectElement;
 
     // Toggle datepicker visibility depending on selected date range
     if (selectDateRangeElement.value === "custom") {
@@ -65,11 +96,11 @@ function selectDateRangeByYear() {
         // Selected since genesis as the date, hide datepickers
         showCustomDateRangeInput(false);
 
-        const startDatePicker = document.getElementById("datePickerStart");
+        const startDatePicker = document.getElementById("datePickerStart") as HTMLInputElement;
         // Genesis was Dec 12th 12PM UTC, which may have still been November 30th in some timezones
         startDatePicker.value = "2020-11-30";
 
-        const endDatePicker = document.getElementById("datePickerEnd");
+        const endDatePicker = document.getElementById("datePickerEnd") as HTMLInputElement;
         // toISOString first converts to UTC - handle that by adding the timezone offset
         let endDate = new Date();
         const offset = endDate.getTimezoneOffset();
@@ -79,10 +110,10 @@ function selectDateRangeByYear() {
         // Selected a year as a date, hide datepickers
         showCustomDateRangeInput(false);
 
-        const startDatePicker = document.getElementById("datePickerStart");
+        const startDatePicker = document.getElementById("datePickerStart") as HTMLInputElement;
         startDatePicker.value = selectDateRangeElement.value  + "-01-01";
 
-        const endDatePicker = document.getElementById("datePickerEnd");
+        const endDatePicker = document.getElementById("datePickerEnd") as HTMLInputElement;
         endDatePicker.value = selectDateRangeElement.value  + "-12-31";
     }
 }
@@ -94,25 +125,11 @@ window.addEventListener("load", () => {
     selectDateRangeByYear();
 })
 
-async function handleErrorMessage(response) {
-    const {status} = response;
-
-    const text = await response.text();
-    try {
-        const parsed = JSON.parse(text);
-        if (status === 200) {
-            return parsed;
-        } else {
-            return Promise.reject(new Error(JSON.stringify(parsed)));
-        }
-    } catch(err) {
-        throw new Error(text)
-    }
-}
-
 function cleanupFromPreviousRequest() {
     // Hide container that contains all previously retrieved rewards data
     document.getElementById("allRewardsDataContainer").classList.add("d-none");
+
+    REWARDS_DATA = null;
 
     const rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
     // Remove children elements
@@ -120,6 +137,7 @@ function cleanupFromPreviousRequest() {
         rewardsTablesContainer.firstChild.remove()
     }
 
+    // TODO remove
     const combinedRewardsTable = document.getElementById("combinedRewardsTable");
     // Remove children elements
     while (combinedRewardsTable.firstChild) {
@@ -143,13 +161,13 @@ function cleanupFromPreviousRequest() {
     clearChart();
 }
 
-function enableCalculateButton(enabled) {
-    document.getElementById("calculateButton").disabled = !enabled;
+function enableCalculateButton(enabled: Boolean) {
+    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !enabled;
 
-    document.getElementById("calculateButton").disabled = !enabled;
+    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !enabled;
 }
 
-function showCalculateMessage(show) {
+function showCalculateMessage(show: Boolean) {
     if (show) {
         document.getElementById("calculateInfoMessage").classList.remove("d-none");
     }
@@ -158,14 +176,14 @@ function showCalculateMessage(show) {
     }
 }
 
-function showErrorMessage(message) {
+function showErrorMessage(message: string) {
     document.getElementById("calculateErrorMessage").classList.remove("d-none");
     document.getElementById("calculateErrorMessage").innerText = message;
     enableCalculateButton(true);
     showCalculateMessage(false);
 }
 
-function compareValues(a, b) {
+function compareValues(a: unknown, b: unknown) {
     // return -1/0/1 based on what you "know" a and b
     // are here. Numbers, text, some custom case-insensitive
     // and natural number ordering, etc. That's up to you.
@@ -173,7 +191,7 @@ function compareValues(a, b) {
     return (a<b) ? -1 : (a>b) ? 1 : 0;
 }
 
-function sortTable(table, colnum) {
+function sortTable(table: HTMLTableElement, colnum: number) {
     // get all the rows in this table:
     let rows = Array.from(table.querySelectorAll(`tr`));
 
@@ -198,32 +216,34 @@ function sortTable(table, colnum) {
     rows.forEach(row => table.appendChild(row));
 }
 
-function getRewardsForValidatorIndexes(validatorIndexes) {
+function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
     const params = new URLSearchParams();
 
     validatorIndexes.forEach((validatorIndex) => {
-        params.append("validator_indexes", validatorIndex);
+        params.append("validator_indexes", validatorIndex.toString());
     })
 
-    params.append("start_date", document.getElementById("datePickerStart").value)
-    params.append("end_date", document.getElementById("datePickerEnd").value)
+    params.append("start_date", (document.getElementById("datePickerStart") as HTMLInputElement).value)
+    params.append("end_date", (document.getElementById("datePickerEnd") as HTMLInputElement).value)
 
     params.append("timezone", "UTC")
 
-    params.append("currency", document.getElementById("selectCurrency").value)
+    params.append("currency", (document.getElementById("selectCurrency") as HTMLSelectElement).value)
 
-    const url = new URL("/api/v1/rewards", window.location.href)
+    const url = new URL("https://ethstaker.tax/api/v1/rewards", window.location.href)
     url.search = params.toString();
 
-    fetch(url.href)
-        .then(handleErrorMessage)
-        .then(data => {
+    requestWithErrorHandling(url.href)
+        .then((data: AggregateRewards) => {
+            REWARDS_DATA = data;
+
             // Sum total rewards over all validators
             let sumConsensusIncomeEth = 0;
             let sumConsensusIncomeCurr = 0;
             let sumExecutionIncomeEth = 0;
             let sumExecutionIncomeCurr = 0;
             let currency;
+            const sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
 
             // Add a summary table for the total income over all validators
             const sumTotalTable = document.createElement("table");
@@ -282,7 +302,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 "Consensus layer income [" + currency + "]",
                 "Execution layer income [" + currency + "]"
             ];
-            const combinedRewardsTable = document.getElementById("combinedRewardsTable")
+            const combinedRewardsTable = document.getElementById("combinedRewardsTable") as HTMLTableElement;
 
             // Table head & body
             const combinedRewardsTableHead = document.createElement("thead");
@@ -302,7 +322,7 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
 
             // Create a table for each validators' rewards
-            const chartData = [];
+            const chartData: RewardsDailyChartData[] = [];
             const rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
             data.validator_rewards.forEach(
                 ({
@@ -357,17 +377,15 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                 // Table body
                 const tableBody = document.createElement("tbody");
 
-                let prevBalance;
+                let prevBalance = 0;
                 if (initial_balance !== null) {
                     prevBalance = initial_balance.balance;
-                } else {
-                    prevBalance = 0;
                 }
                 eod_balances.forEach((balance) => {
                     const bodyRow = document.createElement("tr");
                     const combinedRewardsTableBodyRow = document.createElement("tr");
 
-                    let dailyChartData = {};
+                    let dailyChartData = {} as RewardsDailyChartData;
 
                     // Date
                     dailyChartData["date"] = balance.date;
@@ -378,12 +396,12 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                     // Validator index (only) for the combined table
                     const valIndexColumnValue = document.createElement("th");
-                    valIndexColumnValue.innerText = validator_index;
+                    valIndexColumnValue.innerText = validator_index.toString();
                     combinedRewardsTableBodyRow.appendChild(valIndexColumnValue);
 
                     // End-of-day validator balance [ETH]
                     const eodValidatorBalanceColumn = document.createElement("th");
-                    eodValidatorBalanceColumn.innerText = balance.balance;
+                    eodValidatorBalanceColumn.innerText = balance.balance.toString();
                     bodyRow.appendChild(eodValidatorBalanceColumn);
                     combinedRewardsTableBodyRow.appendChild(eodValidatorBalanceColumn.cloneNode(true));
 
@@ -402,14 +420,14 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
                     })
                     dailyChartData["executionLayerIncome"] = execIncEthForDate;
                     const execIncEthColumn = document.createElement("th");
-                    execIncEthColumn.innerText = execIncEthForDate;
+                    execIncEthColumn.innerText = execIncEthForDate.toString();
                     bodyRow.appendChild(execIncEthColumn);
                     combinedRewardsTableBodyRow.appendChild(execIncEthColumn.cloneNode(true));
 
                     // Price [ETH/currency]
                     const priceForDate = data.eth_prices[balance.date];
                     const priceEthColumn = document.createElement("th");
-                    priceEthColumn.innerText = priceForDate
+                    priceEthColumn.innerText = priceForDate.toString()
                     bodyRow.appendChild(priceEthColumn);
                     combinedRewardsTableBodyRow.appendChild(priceEthColumn.cloneNode(true));
 
@@ -453,12 +471,12 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                 // Under consensus layer income [ETH] column
                 footColumn = document.createElement("td");
-                footColumn.innerText=total_consensus_layer_eth;
+                footColumn.innerText = total_consensus_layer_eth.toString();
                 footRow.appendChild(footColumn);
 
                 // Under exec layer income [ETH] column
                 footColumn = document.createElement("td");
-                footColumn.innerText=total_execution_layer_eth;
+                footColumn.innerText = total_execution_layer_eth.toString();
                 footRow.appendChild(footColumn);
 
                 // Under price column
@@ -467,12 +485,12 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                 // Under consensus layer income [currency] column
                 footColumn = document.createElement("td");
-                footColumn.innerText=total_consensus_layer_currency;
+                footColumn.innerText = total_consensus_layer_currency.toString();
                 footRow.appendChild(footColumn);
 
                 // Under exec layer income [currency] column
                 footColumn = document.createElement("td");
-                footColumn.innerText=total_execution_layer_currency;
+                footColumn.innerText = total_execution_layer_currency.toString();
                 footRow.appendChild(footColumn);
 
                 tableFoot.appendChild(footRow);
@@ -567,16 +585,6 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             // Scroll to bottom to show resulting table
             window.scrollTo(0, document.body.scrollHeight);
         })
-        .catch(error => {
-            let errorMessage;
-            if (error.toString().indexOf("Too Many Requests") > -1) {
-                errorMessage = "You have been rate limited, please try again later.";
-            } else {
-                errorMessage = "An error occurred, please try again. If the issue persists, check the browser console for more information.";
-            }
-            showErrorMessage(errorMessage);
-            console.error('An error occurred while fetching rewards:', error);
-        });
 }
 
 async function getRewards() {
@@ -599,12 +607,12 @@ async function getRewards() {
     showCalculateMessage(true);
 
     if (activeTab.textContent === "Validator Indexes") {
-        let validatorIndexes = Array();
+        let validatorIndexes: number[] = Array();
 
-        const indexInputGroups = document.getElementById("index").children;
+        const indexInputGroups = document.getElementById("index").children as HTMLCollection;
         for (let i = 0; i < indexInputGroups.length; i++) {
-            const indexInput = indexInputGroups[i].children[0];
-            validatorIndexes.push(indexInput.value);
+            const indexInput = indexInputGroups[i].children[0] as HTMLInputElement;
+            validatorIndexes.push(parseInt(indexInput.value));
         }
         getRewardsForValidatorIndexes(validatorIndexes);
     }
@@ -613,25 +621,15 @@ async function getRewards() {
 
         let pubKeyInputGroups = document.getElementById("pubkey").children;
 
-        const request = async (url) => {
-            const response = await fetch(url);
-            try {
-                return await handleErrorMessage(response);
-            } catch(error) {
-                showErrorMessage(error);
-                return false;
-            }
-        }
-
         let indexRequests = Array();
         for (let i = 0; i < pubKeyInputGroups.length; i++) {
-            const pubKeyInput = pubKeyInputGroups[i].children[0];
+            const pubKeyInput = pubKeyInputGroups[i].children[0] as HTMLInputElement;
 
             const pubKeyParams = new URLSearchParams();
             pubKeyParams.append("publickey", pubKeyInput.value);
             pubKeyUrl.search = pubKeyParams.toString();
 
-            indexRequests.push(request(pubKeyUrl));
+            indexRequests.push(requestWithErrorHandling(pubKeyUrl.href));
         }
         let validatorIndexes = await Promise.all(indexRequests)
         getRewardsForValidatorIndexes(validatorIndexes);
@@ -643,20 +641,14 @@ async function getRewards() {
 
         let validatorIndexes = Array();
         for (let i = 0; i < depositAddrInputGroups.length; i++) {
-            const depositAddrInput = depositAddrInputGroups[i].children[0];
+            const depositAddrInput = depositAddrInputGroups[i].children[0] as HTMLInputElement;
 
             const depositAddrParams = new URLSearchParams();
             depositAddrParams.append("eth1_address", depositAddrInput.value);
             depositAddrUrl.search = depositAddrParams.toString();
 
-            const response = await fetch(depositAddrUrl.href);
-            try {
-                const data = await handleErrorMessage(response);
-                validatorIndexes = validatorIndexes.concat(data);
-            } catch (error) {
-                showErrorMessage(error);
-                throw error
-            }
+            const data = await requestWithErrorHandling(depositAddrUrl.href);
+            validatorIndexes = validatorIndexes.concat(data);
         }
         getRewardsForValidatorIndexes(validatorIndexes);
     } else {
@@ -665,7 +657,7 @@ async function getRewards() {
 }
 
 // Quick and simple export an HTML table into a csv
-function downloadTableAsCsv(table, separator = ';') {
+function downloadRewardsDataAsCsv(table: HTMLTableElement, separator = ';') {
     // Select table rows
     let rows = table.getElementsByTagName("tr");
     // Construct csv
@@ -674,7 +666,7 @@ function downloadTableAsCsv(table, separator = ';') {
         let row = [], cols = rows[i].querySelectorAll('td, th');
         for (let j = 0; j < cols.length; j++) {
             // Clean innerText to remove multiple spaces and jumpline (break csv)
-            let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
+            let data = (cols[j] as HTMLElement).innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
             // Escape double-quote with double-double-quote (see https://stackoverflow.com/questions/17808511/properly-escape-a-double-quote-in-csv)
             data = data.replace(/"/g, '""');
             // Push escaped string
@@ -711,14 +703,14 @@ function downloadTableAsCsv(table, separator = ';') {
 
 document.addEventListener('click', function (event) {
     // Combined CSV export
-    if (event.target.matches("#combinedCsvExport")) {
-        downloadTableAsCsv(document.getElementById("combinedRewardsTable"));
+    if ((event.target as HTMLElement).matches("#combinedCsvExport")) {
+        downloadRewardsDataAsCsv(document.getElementById("combinedRewardsTable") as HTMLTableElement);
         event.preventDefault();
     }
 
     // Per-table CSV export
-    if (event.target.matches('.csv-export')) {
-        downloadTableAsCsv(event.target.parentElement.getElementsByTagName("table")[0]);
+    if ((event.target as HTMLElement).matches('.csv-export')) {
+        downloadRewardsDataAsCsv((event.target as HTMLTableElement).parentElement.getElementsByTagName("table")[0]);
         event.preventDefault();
     }
 }, false);
@@ -727,13 +719,13 @@ window.addEventListener("load", () => {
     const validatorChoiceTab = document.getElementById("validatorChoiceTab");
     // Validator choice form inputs - make them required if tab is active
     validatorChoiceTab.addEventListener("show.bs.tab", (event) => {
-        const inputs = document.querySelector(event.target.getAttribute("data-bs-target")).querySelectorAll("input");
-        for (let input of inputs) {
+        const inputs = document.querySelector((event.target as HTMLElement).getAttribute("data-bs-target")).querySelectorAll("input");
+        for (const input of inputs) {
             input.disabled = false;
         }
     });
     validatorChoiceTab.addEventListener("hide.bs.tab", (event) => {
-        const inputs = document.querySelector(event.target.getAttribute("data-bs-target")).querySelectorAll("input");
+        const inputs = document.querySelector((event.target as HTMLElement).getAttribute("data-bs-target")).querySelectorAll("input");
         for (let input of inputs) {
             input.disabled = true;
         }
