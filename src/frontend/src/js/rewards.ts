@@ -1,9 +1,9 @@
 import { clearChart, populateChart, RewardsDailyChartData } from "./rewards_chart";
 import Pikaday from "pikaday";
 
-import {AggregateRewards, EndOfDayBalance} from "./schema";
+import { AggregateRewards } from "./schema";
 
-let REWARDS_DATA: AggregateRewards;
+let AGGREGATE_REWARDS_DATA: AggregateRewards;
 
 
 function handleErrorMessage(errorMessage: string, error: Error | null) {
@@ -129,19 +129,12 @@ function cleanupFromPreviousRequest() {
     // Hide container that contains all previously retrieved rewards data
     document.getElementById("allRewardsDataContainer").classList.add("d-none");
 
-    REWARDS_DATA = null;
+    AGGREGATE_REWARDS_DATA = null;
 
     const rewardsTablesContainer = document.getElementById("rewardsTablesContainer");
     // Remove children elements
     while (rewardsTablesContainer.firstChild) {
         rewardsTablesContainer.firstChild.remove()
-    }
-
-    // TODO remove
-    const combinedRewardsTable = document.getElementById("combinedRewardsTable");
-    // Remove children elements
-    while (combinedRewardsTable.firstChild) {
-        combinedRewardsTable.firstChild.remove()
     }
 
     const sumRewardsTablesContainer = document.getElementById("sumRewardsTablesContainer");
@@ -183,38 +176,6 @@ function showErrorMessage(message: string) {
     showCalculateMessage(false);
 }
 
-function compareValues(a: unknown, b: unknown) {
-    // return -1/0/1 based on what you "know" a and b
-    // are here. Numbers, text, some custom case-insensitive
-    // and natural number ordering, etc. That's up to you.
-    // A typical "do whatever JS would do" is:
-    return (a<b) ? -1 : (a>b) ? 1 : 0;
-}
-
-function sortTable(table: HTMLTableElement, colnum: number) {
-    // get all the rows in this table:
-    let rows = Array.from(table.querySelectorAll(`tr`));
-
-    // but ignore the heading row:
-    rows = rows.slice(1);
-
-    // set up the querySelector for getting the indicated
-    // column from a row, so we can compare using its value:
-    let qs = `th:nth-child(${colnum})`;
-
-    // and then just... sort the rows:
-    rows.sort( (r1,r2) => {
-        // get each row's relevant column
-        let t1 = r1.querySelector(qs);
-        let t2 = r2.querySelector(qs);
-
-        // and then effect sorting by comparing their content:
-        return compareValues(t1.textContent, t2.textContent);
-    });
-
-    // and then the magic part that makes the sorting appear on-page:
-    rows.forEach(row => table.appendChild(row));
-}
 
 function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
     const params = new URLSearchParams();
@@ -235,7 +196,7 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
 
     requestWithErrorHandling(url.href)
         .then((data: AggregateRewards) => {
-            REWARDS_DATA = data;
+            AGGREGATE_REWARDS_DATA = data;
 
             // Sum total rewards over all validators
             let sumConsensusIncomeEth = 0;
@@ -261,9 +222,9 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             btn.classList.add("btn");
             btn.classList.add("btn-primary");
             btn.classList.add("m-3");
-            btn.id = "combinedCsvExport";
             btn.innerHTML = "<i class=\"bi-cloud-download\"></i> Download CSV of daily rewards for all validators";
             btn.role = "button";
+            btn.addEventListener("click", () => downloadRewardsDataAsCsv(null));
             actionButtonsDiv.appendChild(btn);
 
             // Add a button to expand the collapsed details
@@ -289,8 +250,6 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             btn.setAttribute("data-bs-target", "#donationModal");
             actionButtonsDiv.appendChild(btn);
 
-            // Populate an invisible table containing the combined
-            // rewards for all validators to enable the combined CSV export
             currency = data.currency;
             let rewardTableColumnNames = [
                 "Date",
@@ -302,24 +261,6 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 "Consensus layer income [" + currency + "]",
                 "Execution layer income [" + currency + "]"
             ];
-            const combinedRewardsTable = document.getElementById("combinedRewardsTable") as HTMLTableElement;
-
-            // Table head & body
-            const combinedRewardsTableHead = document.createElement("thead");
-            const combinedRewardsTableHeaderRow = document.createElement("tr");
-            const combinedRewardsTableBody = document.createElement("tbody");
-
-            rewardTableColumnNames.forEach((columnName) => {
-                const headerColumn = document.createElement("th");
-                headerColumn.innerText=columnName;
-                combinedRewardsTableHeaderRow.appendChild(headerColumn);
-            });
-
-            combinedRewardsTableHead.appendChild(combinedRewardsTableHeaderRow);
-
-            combinedRewardsTable.appendChild(combinedRewardsTableHead);
-            combinedRewardsTable.appendChild(combinedRewardsTableBody);
-
 
             // Create a table for each validators' rewards
             const chartData: RewardsDailyChartData[] = [];
@@ -350,10 +291,10 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 link.href = "#";
                 link.classList.add("btn");
                 link.classList.add("btn-primary");
-                link.classList.add("csv-export");
                 link.classList.add("m-3");
                 link.role = "button";
                 link.innerHTML = "<i class='bi-cloud-download'></i> CSV";
+                link.addEventListener("click", () => downloadRewardsDataAsCsv(validator_index));
                 divElement.appendChild(link);
 
                 const tableElement = document.createElement("table");
@@ -383,7 +324,6 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 }
                 eod_balances.forEach((balance) => {
                     const bodyRow = document.createElement("tr");
-                    const combinedRewardsTableBodyRow = document.createElement("tr");
 
                     let dailyChartData = {} as RewardsDailyChartData;
 
@@ -392,18 +332,11 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     const dateColumn = document.createElement("th");
                     dateColumn.innerText = balance.date;
                     bodyRow.appendChild(dateColumn);
-                    combinedRewardsTableBodyRow.appendChild(dateColumn.cloneNode(true));
-
-                    // Validator index (only) for the combined table
-                    const valIndexColumnValue = document.createElement("th");
-                    valIndexColumnValue.innerText = validator_index.toString();
-                    combinedRewardsTableBodyRow.appendChild(valIndexColumnValue);
 
                     // End-of-day validator balance [ETH]
                     const eodValidatorBalanceColumn = document.createElement("th");
                     eodValidatorBalanceColumn.innerText = balance.balance.toString();
                     bodyRow.appendChild(eodValidatorBalanceColumn);
-                    combinedRewardsTableBodyRow.appendChild(eodValidatorBalanceColumn.cloneNode(true));
 
                     // Consensus layer income [ETH]
                     const consensusIncEthForDate = balance.balance - prevBalance;
@@ -411,7 +344,6 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     const consensusIncEthColumn = document.createElement("th");
                     consensusIncEthColumn.innerText = consensusIncEthForDate.toString();
                     bodyRow.appendChild(consensusIncEthColumn);
-                    combinedRewardsTableBodyRow.appendChild(consensusIncEthColumn.cloneNode(true));
 
                     // // Execution layer income [ETH]
                     let execIncEthForDate = 0;
@@ -422,33 +354,27 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     const execIncEthColumn = document.createElement("th");
                     execIncEthColumn.innerText = execIncEthForDate.toString();
                     bodyRow.appendChild(execIncEthColumn);
-                    combinedRewardsTableBodyRow.appendChild(execIncEthColumn.cloneNode(true));
 
                     // Price [ETH/currency]
                     const priceForDate = data.eth_prices[balance.date];
                     const priceEthColumn = document.createElement("th");
                     priceEthColumn.innerText = priceForDate.toString()
                     bodyRow.appendChild(priceEthColumn);
-                    combinedRewardsTableBodyRow.appendChild(priceEthColumn.cloneNode(true));
 
                     // Consensus layer income [currency]
                     const consensusIncCurrForDate = priceForDate * consensusIncEthForDate;
                     const consensusIncCurrColumn = document.createElement("th");
                     consensusIncCurrColumn.innerText = consensusIncCurrForDate.toString();
                     bodyRow.appendChild(consensusIncCurrColumn);
-                    combinedRewardsTableBodyRow.appendChild(consensusIncCurrColumn.cloneNode(true));
 
                     // // Execution layer income [currency]
                     const executionIncCurrForDate = priceForDate * execIncEthForDate;
                     const executionIncCurrColumn = document.createElement("th");
                     executionIncCurrColumn.innerText = executionIncCurrForDate.toString();
                     bodyRow.appendChild(executionIncCurrColumn);
-                    combinedRewardsTableBodyRow.appendChild(executionIncCurrColumn.cloneNode(true));
 
                     prevBalance = balance.balance;
                     tableBody.appendChild(bodyRow);
-                    combinedRewardsTableBody.appendChild(combinedRewardsTableBodyRow.cloneNode(true));
-
 
                     chartData.push(dailyChartData);
                 });
@@ -509,9 +435,6 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 sumExecutionIncomeEth += total_execution_layer_eth;
                 sumExecutionIncomeCurr += total_execution_layer_currency;
             })
-
-            // Sort combined rewards table by date (1st column)
-            sortTable(combinedRewardsTable, 1);
 
             // Populate sum of total income table
             const tableHead = document.createElement("thead");
@@ -656,28 +579,68 @@ async function getRewards() {
     }
 }
 
-// Quick and simple export an HTML table into a csv
-function downloadRewardsDataAsCsv(table: HTMLTableElement, separator = ';') {
-    // Select table rows
-    let rows = table.getElementsByTagName("tr");
-    // Construct csv
-    let csv = [];
-    for (let i = 0; i < rows.length; i++) {
-        let row = [], cols = rows[i].querySelectorAll('td, th');
-        for (let j = 0; j < cols.length; j++) {
-            // Clean innerText to remove multiple spaces and jumpline (break csv)
-            let data = (cols[j] as HTMLElement).innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
-            // Escape double-quote with double-double-quote (see https://stackoverflow.com/questions/17808511/properly-escape-a-double-quote-in-csv)
-            data = data.replace(/"/g, '""');
-            // Push escaped string
-            row.push('"' + data + '"');
-        }
-        csv.push(row.join(separator));
+function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';') {
+    let rewardsDataToDownload = AGGREGATE_REWARDS_DATA.validator_rewards;
+    if (validatorIndex != null) {
+        // Do not download all data, just for a specific validator
+        rewardsDataToDownload = rewardsDataToDownload.filter((vr) => vr.validator_index === validatorIndex);
     }
-    const csv_string = csv.join('\n');
+
+    let csvRows = [];
+
+    const headerColumns = [
+        "Date",
+        "Validator Index",
+        "End-of-day validator balance [ETH]",
+        "Consensus layer income [ETH]",
+        "Execution layer income [ETH]",
+        "Price [ETH/" + AGGREGATE_REWARDS_DATA.currency + "]",
+        "Consensus layer income [" + AGGREGATE_REWARDS_DATA.currency + "]",
+        "Execution layer income [" + AGGREGATE_REWARDS_DATA.currency + "]"
+    ];
+
+    csvRows.push(headerColumns.join(separator));
+
+    let dataColumnValues: string[] = [];
+    for (let validatorRewards of rewardsDataToDownload) {
+        let prevBalance = 0
+        if (validatorRewards.initial_balance != null) {
+            prevBalance = validatorRewards.initial_balance.balance;
+        }
+        validatorRewards.eod_balances.forEach((endOfDayBalance) => {
+            // Execution layer income
+            let execIncEthForDate = 0;
+            validatorRewards.exec_layer_block_rewards.filter(br => br.date === endOfDayBalance.date).forEach((br) => {
+                execIncEthForDate += br.reward;
+            })
+
+            // Price for date
+            const price = AGGREGATE_REWARDS_DATA.eth_prices[endOfDayBalance.date];
+
+            dataColumnValues.push([
+                endOfDayBalance.date,
+                validatorRewards.validator_index,
+                endOfDayBalance.balance,
+                endOfDayBalance.balance - prevBalance,
+                execIncEthForDate,
+                price,
+                (endOfDayBalance.balance - prevBalance) * price,
+                execIncEthForDate * price
+            ].join(separator))
+
+            prevBalance = endOfDayBalance.balance;
+        })
+    }
+    for (const dcv of dataColumnValues.sort()) {
+        csvRows.push(dcv);
+    }
+    const csv_string = csvRows.join('\n');
 
     // Download it as a file
-    const filename = table.id + '.csv';
+    let filename = "combinedRewards.csv";
+    if (validatorIndex != null) {
+        filename = "rewards_" + validatorIndex + ".csv";
+    }
 
     const link = document.createElement('a');
     link.style.display = 'none';
@@ -700,20 +663,6 @@ function downloadRewardsDataAsCsv(table: HTMLTableElement, separator = ';') {
     link.click();
     document.body.removeChild(link);
 }
-
-document.addEventListener('click', function (event) {
-    // Combined CSV export
-    if ((event.target as HTMLElement).matches("#combinedCsvExport")) {
-        downloadRewardsDataAsCsv(document.getElementById("combinedRewardsTable") as HTMLTableElement);
-        event.preventDefault();
-    }
-
-    // Per-table CSV export
-    if ((event.target as HTMLElement).matches('.csv-export')) {
-        downloadRewardsDataAsCsv((event.target as HTMLTableElement).parentElement.getElementsByTagName("table")[0]);
-        event.preventDefault();
-    }
-}, false);
 
 window.addEventListener("load", () => {
     const validatorChoiceTab = document.getElementById("validatorChoiceTab");
