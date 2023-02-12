@@ -350,11 +350,11 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
 
                     // End-of-day validator balance [ETH]
                     const eodValidatorBalanceColumn = document.createElement("th");
-                    eodValidatorBalanceColumn.innerText = balance.balance.toString();
+                    eodValidatorBalanceColumn.innerText = balance.balance.toFixed(6).toString();
                     bodyRow.appendChild(eodValidatorBalanceColumn);
 
                     // Consensus layer income [ETH]
-                    const consensusIncEthForDate = balance.balance - prevBalance;
+                    const consensusIncEthForDate = parseFloat((balance.balance - prevBalance).toFixed(6));
                     dailyChartData["consensusLayerIncome"] = consensusIncEthForDate;
                     const consensusIncEthColumn = document.createElement("th");
                     consensusIncEthColumn.innerText = consensusIncEthForDate.toString();
@@ -363,7 +363,7 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     // // Execution layer income [ETH]
                     let execIncEthForDate = 0;
                     exec_layer_block_rewards.filter(br => br.date === balance.date).forEach((br) => {
-                        execIncEthForDate += br.reward;
+                        execIncEthForDate += parseFloat(br.reward.toFixed(6));
                     })
                     dailyChartData["executionLayerIncome"] = execIncEthForDate;
                     const execIncEthColumn = document.createElement("th");
@@ -371,24 +371,24 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     bodyRow.appendChild(execIncEthColumn);
 
                     // Price [ETH/currency]
-                    const priceForDate = data.eth_prices[balance.date];
+                    const priceForDate = parseFloat(data.eth_prices[balance.date].toFixed(2));
                     const priceEthColumn = document.createElement("th");
                     priceEthColumn.innerText = priceForDate.toString()
                     bodyRow.appendChild(priceEthColumn);
 
                     // Consensus layer income [currency]
-                    const consensusIncCurrForDate = priceForDate * consensusIncEthForDate;
+                    const consensusIncCurrForDate = parseFloat((priceForDate * consensusIncEthForDate).toFixed(6));
                     const consensusIncCurrColumn = document.createElement("th");
                     consensusIncCurrColumn.innerText = consensusIncCurrForDate.toString();
                     bodyRow.appendChild(consensusIncCurrColumn);
 
                     // // Execution layer income [currency]
-                    const executionIncCurrForDate = priceForDate * execIncEthForDate;
+                    const executionIncCurrForDate = parseFloat((priceForDate * execIncEthForDate).toFixed(6));
                     const executionIncCurrColumn = document.createElement("th");
                     executionIncCurrColumn.innerText = executionIncCurrForDate.toString();
                     bodyRow.appendChild(executionIncCurrColumn);
 
-                    prevBalance = balance.balance;
+                    prevBalance = parseFloat(balance.balance.toFixed(6));
                     tableBody.appendChild(bodyRow);
 
                     chartData.push(dailyChartData);
@@ -445,10 +445,10 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
 
                 rewardsTablesContainer.appendChild(divElement);
 
-                sumConsensusIncomeEth += total_consensus_layer_eth;
-                sumConsensusIncomeCurr += total_consensus_layer_currency;
-                sumExecutionIncomeEth += total_execution_layer_eth;
-                sumExecutionIncomeCurr += total_execution_layer_currency;
+                sumConsensusIncomeEth += parseFloat(total_consensus_layer_eth.toFixed(6));
+                sumConsensusIncomeCurr += parseFloat(total_consensus_layer_currency.toFixed(3));
+                sumExecutionIncomeEth += parseFloat(total_execution_layer_eth.toFixed(6));
+                sumExecutionIncomeCurr += parseFloat(total_execution_layer_currency.toFixed(3));
             })
 
             // Populate sum of total income table
@@ -648,17 +648,17 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
             })
 
             // Price for date
-            const price = AGGREGATE_REWARDS_DATA.eth_prices[endOfDayBalance.date];
+            const price = parseFloat(AGGREGATE_REWARDS_DATA.eth_prices[endOfDayBalance.date].toFixed(3));
 
             dataColumnValues.push({
                 date: endOfDayBalance.date,
                 validatorIndex: validatorRewards.validator_index,
-                endOfDayBalance: endOfDayBalance.balance,
-                consensusIncomeEth: endOfDayBalance.balance - prevBalance,
-                executionIncomeEth: execIncEthForDate,
+                endOfDayBalance: parseFloat(endOfDayBalance.balance.toFixed(6)),
+                consensusIncomeEth: parseFloat((endOfDayBalance.balance - prevBalance).toFixed(6)),
+                executionIncomeEth: parseFloat(execIncEthForDate.toFixed(6)),
                 price: price,
-                consensusIncomeCurr: (endOfDayBalance.balance - prevBalance) * price,
-                executionIncomeCurr: execIncEthForDate * price,
+                consensusIncomeCurr: parseFloat(((endOfDayBalance.balance - prevBalance) * price).toFixed(3)),
+                executionIncomeCurr: parseFloat((execIncEthForDate * price).toFixed(3)),
             })
 
             prevBalance = endOfDayBalance.balance;
