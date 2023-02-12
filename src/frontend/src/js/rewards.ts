@@ -1,5 +1,6 @@
 import { clearChart, populateChart, RewardsDailyChartData } from "./rewards_chart";
 import Pikaday from "pikaday";
+import _ from "lodash";
 
 import { AggregateRewards } from "./schema";
 
@@ -191,7 +192,7 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
 
     params.append("currency", (document.getElementById("selectCurrency") as HTMLSelectElement).value)
 
-    const url = new URL("https://ethstaker.tax/api/v1/rewards", window.location.href)
+    const url = new URL("/api/v1/rewards", window.location.href)
     url.search = params.toString();
 
     requestWithErrorHandling(url.href)
@@ -218,6 +219,9 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             sumRewardsTablesContainer.appendChild(actionButtonsDiv);
 
             // Add a button to download a combined CSV export of the rewards
+            let exportCombinedDiv = document.createElement("div");
+            actionButtonsDiv.appendChild(exportCombinedDiv);
+
             let btn = document.createElement("a");
             btn.classList.add("btn");
             btn.classList.add("btn-primary");
@@ -225,7 +229,18 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             btn.innerHTML = "<i class=\"bi-cloud-download\"></i> Download CSV of daily rewards for all validators";
             btn.role = "button";
             btn.addEventListener("click", () => downloadRewardsDataAsCsv(null));
-            actionButtonsDiv.appendChild(btn);
+            exportCombinedDiv.appendChild(btn);
+
+            // Add the option to group combined rewards by date
+            let groupByDateCheckBox = document.createElement("input");
+            groupByDateCheckBox.type = "checkbox";
+            groupByDateCheckBox.classList.add("m-3");
+            groupByDateCheckBox.id = "groupByDateCheckBox";
+            groupByDateCheckBox.value = "groupByDate";
+            let groupByDateCheckBoxLabel = document.createElement("label");
+            groupByDateCheckBoxLabel.innerText = "Group by date";
+            exportCombinedDiv.appendChild(groupByDateCheckBox);
+            exportCombinedDiv.appendChild(groupByDateCheckBoxLabel);
 
             // Add a button to expand the collapsed details
             btn = document.createElement("a");
@@ -579,6 +594,17 @@ async function getRewards() {
     }
 }
 
+interface CsvDataColumnValue {
+    date: string,
+    validatorIndex?: number,
+    endOfDayBalance: number,
+    consensusIncomeEth: number,
+    executionIncomeEth: number,
+    price: number,
+    consensusIncomeCurr: number,
+    executionIncomeCurr: number,
+}
+
 function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';') {
     let rewardsDataToDownload = AGGREGATE_REWARDS_DATA.validator_rewards;
     if (validatorIndex != null) {
@@ -588,7 +614,10 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
 
     let csvRows = [];
 
-    const headerColumns = [
+    const groupByDate = (document.getElementById("groupByDateCheckBox") as HTMLInputElement).checked;
+    const groupByDateSkipColumns = ["Validator Index"]
+
+    let headerColumns = [
         "Date",
         "Validator Index",
         "End-of-day validator balance [ETH]",
@@ -599,9 +628,13 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
         "Execution layer income [" + AGGREGATE_REWARDS_DATA.currency + "]"
     ];
 
+    if (groupByDate) {
+        headerColumns = headerColumns.filter((columnName) => !groupByDateSkipColumns.includes(columnName));
+    }
+
     csvRows.push(headerColumns.join(separator));
 
-    let dataColumnValues: string[] = [];
+    let dataColumnValues: CsvDataColumnValue[] = [];
     for (let validatorRewards of rewardsDataToDownload) {
         let prevBalance = 0
         if (validatorRewards.initial_balance != null) {
@@ -617,22 +650,62 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
             // Price for date
             const price = AGGREGATE_REWARDS_DATA.eth_prices[endOfDayBalance.date];
 
-            dataColumnValues.push([
-                endOfDayBalance.date,
-                validatorRewards.validator_index,
-                endOfDayBalance.balance,
-                endOfDayBalance.balance - prevBalance,
-                execIncEthForDate,
-                price,
-                (endOfDayBalance.balance - prevBalance) * price,
-                execIncEthForDate * price
-            ].join(separator))
+            dataColumnValues.push({
+                date: endOfDayBalance.date,
+                validatorIndex: validatorRewards.validator_index,
+                endOfDayBalance: endOfDayBalance.balance,
+                consensusIncomeEth: endOfDayBalance.balance - prevBalance,
+                executionIncomeEth: execIncEthForDate,
+                price: price,
+                consensusIncomeCurr: (endOfDayBalance.balance - prevBalance) * price,
+                executionIncomeCurr: execIncEthForDate * price,
+            })
 
             prevBalance = endOfDayBalance.balance;
         })
     }
-    for (const dcv of dataColumnValues.sort()) {
-        csvRows.push(dcv);
+
+    // Group by date
+    if (groupByDate) {
+        let groupedDataColumnValues: CsvDataColumnValue[] = [];
+        let grouped = _.groupBy(dataColumnValues, (el) => el.date);
+
+        for (const date in grouped) {
+            let allRewardsForDate: CsvDataColumnValue[] = grouped[date];
+            const price = AGGREGATE_REWARDS_DATA.eth_prices[date];
+
+            // Consensus income
+            let consensusIncomeEth = 0;
+            let consensusIncomeCurr = 0;
+            let executionIncomeEth = 0;
+            let executionIncomeCurr = 0;
+            let endOfDayBalance = 0;
+            allRewardsForDate.forEach((reward) => {
+                consensusIncomeEth += reward.consensusIncomeEth;
+                executionIncomeEth += reward.executionIncomeEth;
+                consensusIncomeCurr += reward.consensusIncomeCurr;
+                executionIncomeCurr += reward.executionIncomeCurr;
+                endOfDayBalance += reward.endOfDayBalance;
+            })
+
+            groupedDataColumnValues.push({
+                date: date,
+                endOfDayBalance: endOfDayBalance,
+                consensusIncomeEth: consensusIncomeEth,
+                executionIncomeEth: executionIncomeEth,
+                price: price,
+                consensusIncomeCurr: consensusIncomeCurr,
+                executionIncomeCurr: executionIncomeCurr,
+            })
+        }
+        // Overwrite existing data with grouped data
+        dataColumnValues = groupedDataColumnValues;
+    }
+
+    for (const dcv of dataColumnValues.sort(
+        (a, b) => a.date.localeCompare(b.date))
+        ) {
+        csvRows.push(Object.values(dcv).join(separator));
     }
     const csv_string = csvRows.join('\n');
 

@@ -7,6 +7,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
+    "@types/lodash": "^4.14.191",
     "@types/pikaday": "^1.7.6",
     "autoprefixer": "^10.4.13",
     "css-loader": "^6.7.3",
@@ -27,6 +28,7 @@
     "bootstrap-icons": "^1.10.3",
     "chart.js": "^4.2.0",
     "chartjs-adapter-moment": "^1.0.1",
+    "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "pikaday": "^1.8.2"
   }
