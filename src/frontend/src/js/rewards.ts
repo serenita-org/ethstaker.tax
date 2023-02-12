@@ -668,7 +668,7 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
 
         for (const date in grouped) {
             let allRewardsForDate: CsvDataColumnValue[] = grouped[date];
-            const price = AGGREGATE_REWARDS_DATA.eth_prices[date];
+            const price = parseFloat(AGGREGATE_REWARDS_DATA.eth_prices[date].toFixed(3));
 
             // Consensus income
             let consensusIncomeEth = 0;
@@ -686,12 +686,12 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
 
             groupedDataColumnValues.push({
                 date: date,
-                endOfDayBalance: endOfDayBalance,
-                consensusIncomeEth: consensusIncomeEth,
-                executionIncomeEth: executionIncomeEth,
+                endOfDayBalance: parseFloat(endOfDayBalance.toFixed(6)),
+                consensusIncomeEth: parseFloat(consensusIncomeEth.toFixed(6)),
+                executionIncomeEth: parseFloat(executionIncomeEth.toFixed(6)),
                 price: price,
-                consensusIncomeCurr: consensusIncomeCurr,
-                executionIncomeCurr: executionIncomeCurr,
+                consensusIncomeCurr: parseFloat(consensusIncomeCurr.toFixed(3)),
+                executionIncomeCurr: parseFloat(executionIncomeCurr.toFixed(3)),
             })
         }
         // Overwrite existing data with grouped data
