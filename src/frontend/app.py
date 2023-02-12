@@ -32,7 +32,7 @@ async def read_root(
     currencies = sorted(await CoinGecko.supported_vs_currencies(cache))
 
     return templates.TemplateResponse(
-        "calculator.j2",
+        "rewards.j2",
         {
             "request": request,
             "currencies": currencies,
