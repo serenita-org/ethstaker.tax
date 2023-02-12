@@ -10,11 +10,13 @@ services:
     command: [
         "uvicorn", "src.frontend.app:app",
         "--host", "frontend",
-        "--port", "8000"
+        "--port", "8000",
+        "--log-config", "etc/logging.yml",
     ]
     environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
+      FORWARDED_ALLOW_IPS: "*"
+      REDIS_HOST:
+      REDIS_PORT:
 
   api:
     image: eth2-tax:latest
@@ -24,16 +26,17 @@ services:
     restart: unless-stopped
     command: "./tools/entrypoint_api_multiproc.sh"
     environment:
-      - DB_URI=${DB_URI}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - BEACON_NODE_USE_INFURA=${BEACON_NODE_USE_INFURA}
-      - INFURA_PROJECT_ID=${INFURA_PROJECT_ID}
-      - INFURA_SECRET=${INFURA_SECRET}
-      - BEACON_NODE_HOST=${BEACON_NODE_HOST}
-      - BEACON_NODE_PORT=${BEACON_NODE_PORT}
-      - BEACON_NODE_RESPONSE_TIMEOUT=${BEACON_NODE_RESPONSE_TIMEOUT}
-      - WEB_CONCURRENCY=${CONCURRENCY_API}
+      DB_URI:
+      REDIS_HOST:
+      REDIS_PORT:
+      BEACON_NODE_USE_INFURA:
+      INFURA_PROJECT_ID:
+      INFURA_SECRET:
+      BEACON_NODE_HOST:
+      BEACON_NODE_PORT:
+      BEACON_NODE_RESPONSE_TIMEOUT:
+      WEB_CONCURRENCY: ${CONCURRENCY_API}
+      PROMETHEUS_MULTIPROC_DIR:
     depends_on:
       - db
       - redis
@@ -46,18 +49,43 @@ services:
     restart: unless-stopped
     command: [ "python", "./src/indexer/balances.py" ]
     environment:
-      - DB_URI=${DB_URI}
-      - BEACON_NODE_USE_INFURA=${BEACON_NODE_USE_INFURA}
-      - INFURA_PROJECT_ID=${INFURA_PROJECT_ID}
-      - INFURA_SECRET=${INFURA_SECRET}
-      - BEACON_NODE_HOST=${BEACON_NODE_HOST}
-      - BEACON_NODE_PORT=${BEACON_NODE_PORT}
-      - BEACON_NODE_RESPONSE_TIMEOUT=${BEACON_NODE_RESPONSE_TIMEOUT}
+      DB_URI:
+      BEACON_NODE_USE_INFURA:
+      INFURA_PROJECT_ID:
+      INFURA_SECRET:
+      BEACON_NODE_HOST:
+      BEACON_NODE_PORT:
+      BEACON_NODE_RESPONSE_TIMEOUT:
+    depends_on:
+      - db
+
+
+  indexer_block_rewards:
+    image: eth2-tax:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: [ "python", "./src/indexer/block_rewards/main.py" ]
+    environment:
+      DB_URI:
+      BEACON_NODE_USE_INFURA:
+      INFURA_PROJECT_ID:
+      INFURA_SECRET:
+      BEACON_NODE_HOST:
+      BEACON_NODE_PORT:
+      BEACON_NODE_RESPONSE_TIMEOUT:
+      EXECUTION_NODE_HOST:
+      EXECUTION_NODE_PORT:
+      EXECUTION_NODE_RESPONSE_TIMEOUT:
+      EXECUTION_NODE_INFURA_ARCHIVE_URL:
+      REDIS_HOST:
+      REDIS_PORT:
     depends_on:
       - db
 
   beacon_node:
-    image: sigp/lighthouse:v2.1.5
+    image: sigp/lighthouse:v2.3.1
     restart: unless-stopped
     command: [
         "lighthouse",
@@ -75,17 +103,17 @@ services:
       - beacon_node_data:/root/.lighthouse
 
   db:
-    image: postgres:13.2
+    image: postgres:13.9
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=${DB_USERNAME}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_DATABASE_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
     volumes:
       - db_data:/var/lib/postgresql/data
 
   redis:
-    image: redis:6.0.10
+    image: redis:7.0.8
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
@@ -93,51 +121,51 @@ services:
       - redis_data:/data
 
   caddy:
-    image: caddy:2.4.6-alpine
+    image: caddy:2.6.2-alpine
     restart: unless-stopped
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config_data:/config
 
   prometheus:
-    image: prom/prometheus:v2.34.0
+    image: prom/prometheus:v2.41.0
     restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.retention.time=5y'
+      - '--storage.tsdb.retention.time=1y'
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
 
   node_exporter:
-    image: prom/node-exporter:v1.1.1
+    image: prom/node-exporter:v1.5.0
     restart: unless-stopped
 
   pg_exporter:
-    image: prometheuscommunity/postgres-exporter:master
+    image: prometheuscommunity/postgres-exporter:v0.11.1
     restart: unless-stopped
     environment:
-      - DATA_SOURCE_NAME=postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE_NAME}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE_NAME}?sslmode=disable
     depends_on:
       - db
 
   adminer:
-    image: adminer:4.8.0
+    image: adminer:4.8.1
     restart: unless-stopped
     ports:
-      - 8080:8080
+      - "8080:8080"
     depends_on:
       - db
 
   grafana:
-    image: grafana/grafana:7.4.1
+    image: grafana/grafana:9.3.6
     restart: unless-stopped
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/grafana/provisioning:/etc/grafana/provisioning
       - ${ABSOLUTE_ROOT_PATH}/etc/grafana/dashboards:/var/lib/grafana/dashboards

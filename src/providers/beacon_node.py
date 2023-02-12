@@ -1,13 +1,14 @@
 import logging
 import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Iterable
 import datetime
 import json
+from collections import namedtuple
 
 import starlette.requests
 from fastapi import FastAPI
 from httpx import BasicAuth
-from aioredis import Redis
+from redis import Redis
 import pytz
 
 from db.tables import Balance
@@ -24,7 +25,10 @@ BEACONCHAIN_REQUEST_COUNT = Counter("beaconchain_request_count",
                                     "Count of requests to beaconcha.in")
 BEACON_NODE_REQUEST_COUNT = Counter("beacon_node_request_count",
                                     "Count of requests made to the beacon node",
-                                    labelnames=("path",))
+                                    labelnames=("endpoint", "function_name"))
+
+
+SlotProposerData = namedtuple("SlotProposerData", ["slot", "proposer_index", "fee_recipient", "block_number"])
 
 
 class BeaconNode:
@@ -33,7 +37,7 @@ class BeaconNode:
 
     @staticmethod
     def _use_infura() -> bool:
-        return os.getenv("BEACON_USE_INFURA", "false") == "true"
+        return os.getenv("BEACON_NODE_USE_INFURA", "false") == "true"
 
     def _get_http_client(self) -> AsyncClientWithBackoff:
         auth = None
@@ -125,7 +129,7 @@ class BeaconNode:
 
         # Cache indexes for a limited amount of time
         # (person may deposit again)
-        await cache.set(cache_key, json.dumps(indexes), expire=1800)
+        await cache.set(cache_key, json.dumps(indexes), ex=1800)
 
         return indexes
 
@@ -141,7 +145,7 @@ class BeaconNode:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators/{publickey}"
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("index_for_publickey").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validators/{validator_id}", "index_for_publickey").inc()
 
         if resp.status_code == 404:
             return None
@@ -154,13 +158,45 @@ class BeaconNode:
 
         return index
 
-    async def activation_slots_for_validators(self, validator_indexes: List[int], cache: Redis) -> Dict[int, Optional[int]]:
+    async def get_slot_proposer_data(self, slot: int) -> SlotProposerData:
+        url = f"{self.BASE_URL}/eth/v2/beacon/blocks/{slot}"
+
+        logger.debug(f"Getting proposer index and fee recipient for slot {slot}")
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/headers/{block_id}", "get_slot_proposer_data").inc()
+
+        data = resp.json()
+        if "data" not in data.keys():
+            # Missed proposals return like this
+            if data.get("code") == 404:
+                return SlotProposerData(
+                    slot=slot,
+                    proposer_index=None,
+                    fee_recipient=None,
+                    block_number=None,
+                )
+            else:
+                raise ValueError(f"Beacon node returned an error while requesting block for slot {slot}")
+
+        proposer_idx = data["data"]["message"]["proposer_index"]
+        fee_recipient = data["data"]["message"]["body"]["execution_payload"]["fee_recipient"]
+        block_number = int(data["data"]["message"]["body"]["execution_payload"]["block_number"])
+
+        return SlotProposerData(
+            slot=slot,
+            proposer_index=proposer_idx,
+            fee_recipient=fee_recipient,
+            block_number=block_number,
+        )
+
+    async def activation_slots_for_validators(self, validator_indexes: List[int]) -> Dict[int, Optional[int]]:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
         params = {"id": ",".join([str(vi) for vi in validator_indexes])}
         logger.debug(f"Getting activation slots for {len(validator_indexes)} indexes")
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url, params=params)
-        BEACON_NODE_REQUEST_COUNT.labels("activation_slot_for_validator").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validators", "activation_slot_for_validator").inc()
 
         try:
             data = resp.json()["data"]
@@ -180,9 +216,23 @@ class BeaconNode:
 
         return activation_slots
 
+    async def is_slot_finalized(self, slot: int) -> bool:
+        url = f"{self.BASE_URL}/eth/v1/beacon/states/head/finality_checkpoints"
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/head/finality_checkpoint", "is_slot_finalized").inc()
+
+        data = resp.json()["data"]
+        finalized_epoch = int(data["finalized"]["epoch"])
+
+        if finalized_epoch * SLOTS_PER_EPOCH < slot:
+            return False
+
+        return True
+
     async def balances_for_slot(self,
                                 slot: int,
-                                validator_indexes: List[int] = None,
+                                validator_indexes: Iterable[int] = None,
                                 ) -> List[Balance]:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/{slot}/validator_balances"
         params = None
@@ -190,7 +240,7 @@ class BeaconNode:
             params = {"id": ",".join([str(v) for v in validator_indexes])}
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url, params=params)
-        BEACON_NODE_REQUEST_COUNT.labels("balances_for_slot").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validator_balances", "balances_for_slot").inc()
 
         try:
             data = resp.json()["data"]
@@ -210,6 +260,47 @@ class BeaconNode:
             )
 
         return balances
+
+    async def get_full_state(self, state_id: str) -> dict:
+        # Use proxy - add extra 0 to change port to 50510
+        url = f"{self.BASE_URL}/eth/v2/debug/beacon/states/{state_id}"
+
+        status_code = None
+        while status_code != 200:
+            async with self._get_http_client() as client:
+                resp = await client.get_w_backoff(url=url)
+                status_code = resp.status_code
+                if status_code != 200:
+                    from time import sleep
+                    logger.warning(f"Status code {status_code} received for {state_id} in get_full_state")
+                    sleep(1)
+
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v2/debug/beacon/states/{state_id}", "get_full_state").inc()
+
+        data = resp.json()["data"]
+
+        # Get rid of data that's big and not interesting right now
+        keys_to_delete = set(data.keys())
+        for ktd in keys_to_delete:
+            if ktd not in ("previous_epoch_participation", "current_epoch_participation"):
+                data.pop(ktd)
+
+        return data
+
+    async def get_validator_inclusion_global(self, epoch: int) -> dict:
+        url = f"{self.BASE_URL}/teku/v1/validator_inclusion/{epoch}/global"
+
+        status_code = None
+        while status_code != 200:
+            async with self._get_http_client() as client:
+                resp = await client.get_w_backoff(url=url)
+                status_code = resp.status_code
+                if status_code != 200:
+                    logger.warning(f"Status code {status_code} received for {epoch} in get_validator_inclusion_global")
+        BEACON_NODE_REQUEST_COUNT.labels("/teku/v1/validator_inclusion/{epoch}/global", "get_validator_inclusion_global").inc()
+
+        data = resp.json()["data"]
+        return data
 
 
 beacon_node_plugin = BeaconNode()

@@ -9,4 +9,4 @@ mkdir -p /tmp/prometheus_multiproc_dir
 rm -f /tmp/prometheus_multiproc_dir/*
 
 # Run the API
-uvicorn src.api.app:app --host api --port 8000 --log-config etc/logging.yml
+uvicorn src.api.app:app --host api --port 8000 --log-config etc/logging.yml --proxy-headers --forwarded-allow-ips="*"

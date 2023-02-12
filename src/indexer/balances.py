@@ -1,21 +1,18 @@
 import datetime
 import logging
-from contextlib import contextmanager
 import asyncio
 
 import pytz
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 from tqdm import tqdm
 from prometheus_client import start_http_server, Gauge
+from sqlalchemy import text
 
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode, GENESIS_DATETIME
 from db.tables import Balance
-from db.db_helpers import get_db_uri
+from db.db_helpers import session_scope
 
 logger = logging.getLogger(__name__)
-engine = create_engine(get_db_uri(), executemany_mode="batch")
 
 START_DATE = "2020-01-01"
 TIMEZONES_TO_INDEX = (
@@ -28,20 +25,6 @@ SLOTS_WITH_MISSING_BALANCES = Gauge(
     "slots_with_missing_balances",
     "Slots for which balances still need to be indexed and inserted into the database",
 )
-
-
-@contextmanager
-def session_scope():
-    """Provide a transactional scope around a series of operations."""
-    session = Session(bind=engine)
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 
 async def index_balances():
@@ -95,8 +78,8 @@ async def index_balances():
         for slot in slots:
             slots_needed.add(slot)
 
-    # Remove slots that have already been retrieved previously
-    logger.info("Removing previously retrieved slots")
+    # Remove slots that have already been indexed previously
+    logger.info("Removing previously indexed slots")
     if len(ALREADY_INDEXED_SLOTS) == 0:
         with session_scope() as session:
             ALREADY_INDEXED_SLOTS = [
@@ -109,7 +92,7 @@ async def index_balances():
     # Order the slots - to retrieve the balances for the oldest slots first
     slots_needed = sorted(slots_needed)
 
-    logger.info(f"Getting balances for {len(slots_needed)} slots")
+    logger.info(f"Indexing balances for {len(slots_needed)} slots")
     SLOTS_WITH_MISSING_BALANCES.set(len(slots_needed))
 
     commit_every = 1
@@ -117,6 +100,12 @@ async def index_balances():
     with session_scope() as session:
         for slot in tqdm(slots_needed):
             current_tx += 1
+
+            # Wait for slot to be finalized
+            if not await beacon_node.is_slot_finalized(slot):
+                logger.info(f"Waiting for slot {slot} to be finalized")
+                continue
+
             # Store balances in DB
             balances_for_slot = await beacon_node.balances_for_slot(slot)
             logger.debug(f"Executing insert statements for slot {slot}")
@@ -125,7 +114,9 @@ async def index_balances():
                 logger.warning(f"No balances retrieved for slot {slot}")
                 continue
             session.execute(
-                "INSERT INTO balance(validator_index, slot, balance) VALUES(:validator_index, :slot, :balance)",
+                text(
+                    "INSERT INTO balance(validator_index, slot, balance) VALUES(:validator_index, :slot, :balance)"
+                ),
                 [
                     {
                         "validator_index": balance.validator_index,
@@ -133,7 +124,7 @@ async def index_balances():
                         "balance": balance.balance,
                     }
                     for balance in balances_for_slot
-                ],
+                ]
             )
             ALREADY_INDEXED_SLOTS.append(slot)
             SLOTS_WITH_MISSING_BALANCES.dec(1)

@@ -1,4 +1,4 @@
-# ETH2.tax
+# ETHstaker.tax
 
 ### Deployment
 

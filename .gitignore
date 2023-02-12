@@ -1,2 +1,6 @@
 .pytest_cache/
 data/
+
+# Prod configuration
+.env.prod
+docker-compose.prod.yml

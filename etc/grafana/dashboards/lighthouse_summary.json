@@ -15,6 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
+  "id": 22,
   "links": [],
   "panels": [
     {
@@ -311,6 +312,71 @@
         }
       ],
       "valueName": "avg"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgb(199, 208, 217)",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 3,
+        "x": 19,
+        "y": 0
+      },
+      "id": 122,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "name"
+      },
+      "pluginVersion": "7.4.1",
+      "targets": [
+        {
+          "expr": "lighthouse_info",
+          "interval": "",
+          "legendFormat": "",
+          "queryType": "randomWalk",
+          "refId": "A"
+        }
+      ],
+      "title": "Build",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "valueLabel": "version"
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
     },
     {
       "cacheTimeout": null,
@@ -902,7 +968,7 @@
           {
             "evaluator": {
               "params": [
-                3
+                1
               ],
               "type": "gt"
             },
@@ -927,7 +993,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Slots since Best Block alert > 3",
+        "name": "Slots since Best Block alert",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -993,7 +1059,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 3,
+          "value": 1,
           "visible": true
         }
       ],
@@ -1016,7 +1082,7 @@
       },
       "yaxes": [
         {
-          "$$hashKey": "object:202",
+          "$$hashKey": "object:285",
           "decimals": 0,
           "format": "short",
           "label": "Slots",
@@ -1026,7 +1092,7 @@
           "show": true
         },
         {
-          "$$hashKey": "object:203",
+          "$$hashKey": "object:286",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -2271,6 +2337,41 @@
       "type": "text"
     },
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                30
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "libp2p Connected Peers alert",
+        "noDataState": "no_data",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "cacheTimeout": null,
@@ -2321,13 +2422,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "libp2p_peer_connected_peers_total",
+          "expr": "libp2p_peers",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "lt",
+          "value": 30,
+          "visible": true
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
@@ -2347,6 +2457,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:387",
           "decimals": 0,
           "format": "short",
           "label": "Peers",
@@ -2356,6 +2467,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:388",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -4591,5 +4703,5 @@
   "timezone": "",
   "title": "Lighthouse Summary",
   "uid": "yY7PIGdZd",
-  "version": 1
+  "version": 2
 }
