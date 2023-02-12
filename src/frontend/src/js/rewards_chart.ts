@@ -1,4 +1,4 @@
-import Chart, {TooltipCallbacks, TooltipItem, TooltipModel} from 'chart.js/auto';
+import Chart, { TooltipItem } from 'chart.js/auto';
 import 'chartjs-adapter-moment';
 
 const CHART_ELEMENT_ID = "rewardsChartCanvas";
@@ -76,17 +76,17 @@ export function populateChart(data: RewardsDailyChartData[]) {
                   label: function(tooltipItem: TooltipItem<"bar">) {
                     let labels = [];
                     for (const dataset of tooltipItem.chart.data.datasets) {
-                        if (dataset.data[tooltipItem.dataIndex] > 0) {
-                            labels.push(dataset.label + ": " + dataset.data[tooltipItem.dataIndex] + " Ξ");
-                        }
+                        const datasetValue = dataset.data[tooltipItem.dataIndex];
+                        labels.push(dataset.label + ": " + datasetValue + " Ξ");
                     }
                     return labels;
-
                   },
                   footer: (context) => {
                       let total = 0;
                       for (let ctx of context) {
-                        total += data[ctx.dataIndex].executionLayerIncome + data[ctx.dataIndex].consensusLayerIncome;
+                        for (const dataset of ctx.chart.data.datasets) {
+                          total += dataset.data[ctx.dataIndex] as number;
+                        }
                       }
                       return 'Total: ' + total + " Ξ";
                   }
