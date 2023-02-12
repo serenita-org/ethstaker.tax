@@ -222,12 +222,11 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             let exportCombinedDiv = document.createElement("div");
             actionButtonsDiv.appendChild(exportCombinedDiv);
 
-            let btn = document.createElement("a");
+            let btn = document.createElement("button");
             btn.classList.add("btn");
             btn.classList.add("btn-primary");
             btn.classList.add("m-3");
             btn.innerHTML = "<i class=\"bi-cloud-download\"></i> Download CSV of daily rewards for all validators";
-            btn.role = "button";
             btn.addEventListener("click", () => downloadRewardsDataAsCsv(null));
             exportCombinedDiv.appendChild(btn);
 
@@ -243,24 +242,23 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             exportCombinedDiv.appendChild(groupByDateCheckBoxLabel);
 
             // Add a button to expand the collapsed details
-            btn = document.createElement("a");
+            btn = document.createElement("button");
             btn.classList.add("btn");
             btn.classList.add("btn-secondary");
             btn.classList.add("m-3");
-            btn.href = "#rewardsTablesCollapse";
-            btn.innerHTML = "<i class=\"bi-table\"></i> Show validator-specific details";
-            btn.role = "button";
+            btn.type = "button"
             btn.setAttribute("data-bs-toggle", "collapse");
             btn.setAttribute("data-bs-target", "#rewardsTablesCollapse");
+            btn.setAttribute("aria-controls", "rewardsTablesCollapse");
+            btn.innerHTML = "<i class=\"bi-table\"></i> Show validator-specific details";
             actionButtonsDiv.appendChild(btn);
 
             // Add a Donate button
-            btn = document.createElement("a");
+            btn = document.createElement("button");
             btn.classList.add("btn");
             btn.classList.add("btn-success");
             btn.classList.add("m-3");
             btn.innerHTML = "<i class=\"bi-currency-exchange\"></i> Support this website";
-            btn.role = "button";
             btn.setAttribute("data-bs-toggle", "modal");
             btn.setAttribute("data-bs-target", "#donationModal");
             actionButtonsDiv.appendChild(btn);
@@ -302,15 +300,13 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 divElement.appendChild(descriptionDivElement);
 
                 // CSV download button
-                const link = document.createElement("a");
-                link.href = "#";
-                link.classList.add("btn");
-                link.classList.add("btn-primary");
-                link.classList.add("m-3");
-                link.role = "button";
-                link.innerHTML = "<i class='bi-cloud-download'></i> CSV";
-                link.addEventListener("click", () => downloadRewardsDataAsCsv(validator_index));
-                divElement.appendChild(link);
+                const btn = document.createElement("button");
+                btn.classList.add("btn");
+                btn.classList.add("btn-primary");
+                btn.classList.add("m-3");
+                btn.innerHTML = "<i class='bi-cloud-download'></i> CSV";
+                btn.addEventListener("click", () => downloadRewardsDataAsCsv(validator_index));
+                divElement.appendChild(btn);
 
                 const tableElement = document.createElement("table");
                 tableElement.id = "rewards_table_" + validator_index;
