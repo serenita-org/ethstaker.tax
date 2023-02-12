@@ -1,5 +1,8 @@
 {
     admin caddy:2019
+    servers {
+        metrics
+    }
 }
 
 ethstaker.tax http://localhost:80 {
