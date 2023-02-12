@@ -53,11 +53,11 @@ export function populateChart(data) {
             labels: combinedDailyData.map(item => item.date),
             datasets: [
               {
-                label: 'Consensus Income',
+                label: 'Consensus Layer Income',
                 data: combinedDailyData.map(item => item.consensusLayerIncome),
               },
               {
-                label: 'Execution Income',
+                label: 'Execution Layer Income',
                 data: combinedDailyData.map(item => item.executionLayerIncome)
               },
             ]

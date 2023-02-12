@@ -219,8 +219,10 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
         .then(handleErrorMessage)
         .then(data => {
             // Sum total rewards over all validators
-            let sumTotalIncomeEth = 0;
-            let sumTotalIncomeCurr = 0;
+            let sumConsensusIncomeEth = 0;
+            let sumConsensusIncomeCurr = 0;
+            let sumExecutionIncomeEth = 0;
+            let sumExecutionIncomeCurr = 0;
             let currency;
 
             // Add a summary table for the total income over all validators
@@ -484,8 +486,10 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
 
                 rewardsTablesContainer.appendChild(divElement);
 
-                sumTotalIncomeEth += total_consensus_layer_eth + total_execution_layer_eth;
-                sumTotalIncomeCurr += total_consensus_layer_currency + total_execution_layer_currency;
+                sumConsensusIncomeEth += total_consensus_layer_eth;
+                sumConsensusIncomeCurr += total_consensus_layer_currency;
+                sumExecutionIncomeEth += total_execution_layer_eth;
+                sumExecutionIncomeCurr += total_execution_layer_currency;
             })
 
             // Sort combined rewards table by date (1st column)
@@ -509,19 +513,46 @@ function getRewardsForValidatorIndexes(validatorIndexes) {
             sumTotalTable.appendChild(tableHead);
 
             const tableBody = document.createElement("tbody");
-            const bodyRow = document.createElement("tr");
-            tableBody.appendChild(bodyRow);
 
-            let columnValues = [
-                "Total Income",
-                sumTotalIncomeEth,
-                sumTotalIncomeCurr
+            let sumConsensusColumnValues = [
+                "Consensus Layer Income",
+                sumConsensusIncomeEth,
+                sumConsensusIncomeCurr,
             ];
-            columnValues.forEach((columnValue) => {
+            const consensusBodyRow = document.createElement("tr");
+            sumConsensusColumnValues.forEach((columnValue) => {
                 const bodyColumn = document.createElement("td");
                 bodyColumn.innerText = columnValue.toString();
-                bodyRow.appendChild(bodyColumn);
+                consensusBodyRow.appendChild(bodyColumn);
             })
+            tableBody.appendChild(consensusBodyRow);
+
+            let sumExecutionColumnValues = [
+                "Execution Layer Income",
+                sumExecutionIncomeEth,
+                sumExecutionIncomeCurr,
+            ];
+            const executionBodyRow = document.createElement("tr");
+            sumExecutionColumnValues.forEach((columnValue) => {
+                const bodyColumn = document.createElement("td");
+                bodyColumn.innerText = columnValue.toString();
+                executionBodyRow.appendChild(bodyColumn);
+            })
+            tableBody.appendChild(executionBodyRow);
+
+            let sumTotalColumnValues = [
+                "Total Income",
+                sumConsensusIncomeEth + sumExecutionIncomeEth,
+                sumConsensusIncomeCurr + sumExecutionIncomeCurr,
+            ];
+            const totalBodyRow = document.createElement("tr");
+            sumTotalColumnValues.forEach((columnValue) => {
+                const bodyColumn = document.createElement("td");
+                bodyColumn.innerText = columnValue.toString();
+                totalBodyRow.appendChild(bodyColumn);
+            })
+            tableBody.appendChild(totalBodyRow);
+
             sumTotalTable.appendChild(tableBody);
 
             enableCalculateButton(true);
