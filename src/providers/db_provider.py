@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from db.tables import Balance, BlockReward
+from db.tables import Balance, BlockReward, Withdrawal
 from db.db_helpers import get_db_uri
 from prometheus_client.metrics import Histogram
 
@@ -70,6 +70,18 @@ class DbProvider:
             session.expunge_all()
 
         return block_rewards
+
+    @DB_REQUESTS_SECONDS.time()
+    def withdrawals(self, min_slot: int, max_slot: int, validator_indexes: Iterable[int]) -> List[Withdrawal]:
+        with session_scope(self.engine) as session:
+            withdrawals = session\
+                .query(Withdrawal) \
+                .filter(Withdrawal.slot.between(min_slot, max_slot))\
+                .filter(Withdrawal.validator_index.in_(validator_indexes))\
+                .all()
+            session.expunge_all()
+
+        return withdrawals
 
 
 db_plugin = DbProvider()
