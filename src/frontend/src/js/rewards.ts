@@ -442,6 +442,15 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 footColumn.innerText = total_execution_layer_currency.toString();
                 footRow.appendChild(footColumn);
 
+                // Under withdrawals [ETH] column
+                footColumn = document.createElement("td");
+                let totalWithdrawals = 0;
+                withdrawals.forEach((w) => {
+                    totalWithdrawals += w.amount;
+                })
+                footColumn.innerText = parseFloat(totalWithdrawals.toFixed(6)).toString();
+                footRow.appendChild(footColumn);
+
                 tableFoot.appendChild(footRow);
 
                 // Add all parts to the table
