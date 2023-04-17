@@ -28,7 +28,7 @@ BEACON_NODE_REQUEST_COUNT = Counter("beacon_node_request_count",
                                     labelnames=("endpoint", "function_name"))
 
 
-SlotProposerData = namedtuple("SlotProposerData", ["slot", "proposer_index", "fee_recipient", "block_number"])
+SlotProposerData = namedtuple("SlotProposerData", ["slot", "proposer_index", "fee_recipient", "block_number", "block_hash"])
 
 
 class BeaconNode:
@@ -175,6 +175,7 @@ class BeaconNode:
                     proposer_index=None,
                     fee_recipient=None,
                     block_number=None,
+                    block_hash=None,
                 )
             else:
                 raise ValueError(f"Beacon node returned an error while requesting block for slot {slot}")
@@ -182,12 +183,14 @@ class BeaconNode:
         proposer_idx = data["data"]["message"]["proposer_index"]
         fee_recipient = data["data"]["message"]["body"]["execution_payload"]["fee_recipient"]
         block_number = int(data["data"]["message"]["body"]["execution_payload"]["block_number"])
+        block_hash = data["data"]["message"]["body"]["execution_payload"]["block_hash"]
 
         return SlotProposerData(
             slot=slot,
             proposer_index=proposer_idx,
             fee_recipient=fee_recipient,
             block_number=block_number,
+            block_hash=block_hash,
         )
 
     async def activation_slots_for_validators(self, validator_indexes: List[int]) -> Dict[int, Optional[int]]:

@@ -247,7 +247,7 @@ async def rewards(
     # Use a semaphore to make sure we don't overload CoinGecko with
     # too many requests at once in case the prices aren't cached
     sem = asyncio.Semaphore(5)
-    date_eth_price = {}
+    date_eth_price: dict[datetime.date, float] = {}
     for slot in slots_needed:
         date = (await BeaconNode.datetime_for_slot(slot, timezone)).date()
 

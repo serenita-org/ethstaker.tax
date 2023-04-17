@@ -1,10 +1,12 @@
 import logging
 import re
 from collections import namedtuple
+from typing import Optional
 
 from providers.beacon_node import SlotProposerData
 from providers.execution_node import ExecutionNode
 from providers.mev_builders import BUILDER_FEE_RECIPIENTS
+from providers.mev_relay import MevRelay
 from indexer.block_rewards.mev_bots import SMART_CONTRACTS_MEV_BOTS
 from indexer.block_rewards.smart_contract_fee_recipients import (
     _get_rocketpool_rewards_distribution_value, SMART_CONTRACTS_ROCKETPOOL,
@@ -19,6 +21,26 @@ BlockRewardValue = namedtuple(
     "BlockRewardValue",
     ["block_priority_tx_fees", "contains_mev", "mev_recipient", "mev_recipient_balance_change"]
 )
+
+# Smart contract forwarder contracts - they immediately forward the reward to another address
+# -> cannot compare values
+SMART_CONTRACT_FORWARDER_RECIPIENTS = {
+    addr.lower() for addr in (
+        "0xd6bdD5c289a38ea7bBd57Da9625dba60CeE94879",
+        "0x7cd1af7d5299c5bfd4a63291eb5aa57f0ce60024", # Kraken
+        "0x6386eD8A268Ce332Db01b992402430968760C86d", # Kraken
+    )
+}
+
+# Relayooor.wtf relay is down -> cannot get delivered payloads
+RELAYOOOR_SLOTS = {
+    5246635,
+    5954337,
+    6021316,
+    6071117,
+    6126366,
+    6130893,
+}
 
 
 class ManualInspectionRequired(ValueError):
@@ -88,7 +110,10 @@ async def _get_balance_change_adjusted(address: str, block_number: int, block_pr
     return balance_change
 
 
-async def _mev_return_value(block_number: int, mev_recipient: str, execution_node: ExecutionNode) -> BlockRewardValue:
+async def _mev_return_value(
+        block_number: int, mev_recipient: str, execution_node: ExecutionNode,
+        expected_value: Optional[int],
+) -> BlockRewardValue:
     miner_data = await execution_node.get_miner_data(block_number=block_number)
     block_priority_tx_fees = await execution_node.get_block_priority_tx_fees(block_number, miner_data.tx_fee)
 
@@ -99,6 +124,15 @@ async def _mev_return_value(block_number: int, mev_recipient: str, execution_nod
         block_priority_tx_fees=block_priority_tx_fees,
         execution_node=execution_node
     )
+
+    if mev_recipient.lower() in SMART_CONTRACT_FORWARDER_RECIPIENTS:
+        # Skip verification - may need to implement logic for every forwarder contract...
+        mev_recipient_balance_change = expected_value
+
+    if expected_value is not None:
+        # Check if the expected payload value matches what the proposer got
+        if mev_recipient_balance_change != expected_value and mev_recipient_balance_change != expected_value + block_priority_tx_fees:
+            raise ManualInspectionRequired(f"Proposer balance change {mev_recipient_balance_change} != expected value {expected_value}")
 
     if mev_recipient_balance_change == 0:
         raise ManualInspectionRequired(f"0 MEV recipient balance change in {block_number}")
@@ -136,6 +170,108 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
     """
     block_number = slot_proposer_data.block_number
     fee_recipient = slot_proposer_data.fee_recipient
+
+    # Check MEV relays for the block
+    relays: list[MevRelay] = [
+        MevRelay(api_url=api_url)
+        for api_url in [
+            # see https://ethstaker.cc/mev-relay-list/
+            "https://aestus.live",
+            "https://agnostic-relay.net",
+            "https://builder-relay-mainnet.blocknative.com",
+            "https://bloxroute.ethical.blxrbdn.com",
+            "https://bloxroute.max-profit.blxrbdn.com",
+            "https://bloxroute.regulated.blxrbdn.com",
+            "https://relay.edennetwork.io",
+            "https://boost-relay.flashbots.net",
+            "https://mainnet-relay.securerpc.com",
+            "https://relay.ultrasound.money",
+        ]
+    ]
+    for relay in relays:
+        payload = await relay.get_payload(slot_proposer_data.block_hash)
+        if payload:
+            # MEV! Block hash matches with payload delivered by MEV relay
+            logger.info(f"MEV found in {slot_proposer_data.slot} - {relay.api_url}")
+            return await _mev_return_value(
+                block_number=block_number,
+                mev_recipient=payload.proposer_fee_recipient,
+                execution_node=execution_node,
+                expected_value=payload.value,
+            )
+
+    # No MEV detected based on relays
+    miner_data = await execution_node.get_miner_data(block_number=block_number)
+    block_extra_data_decoded = bytes.fromhex(miner_data.extra_data[2:]).decode(
+        errors="ignore") if len(
+        miner_data.extra_data) > 2 else None
+    block_priority_tx_fees = await execution_node.get_block_priority_tx_fees(
+        block_number, miner_data.tx_fee)
+
+    # Relayooor.wtf relay is down - cannot get data about it, identify based on
+    # block extra data
+    if block_extra_data_decoded in ("Viva relayooor.wtf",) or slot_proposer_data.slot in RELAYOOOR_SLOTS:
+        return await _mev_return_value(
+            block_number=block_number,
+            mev_recipient=fee_recipient,
+            execution_node=execution_node,
+            expected_value=None,
+        )
+
+    # Check if fee recipient's balance change is equal to tx fees
+    # -> should be the case when there is no MEV transferred in a tx
+    fee_rec_bal_change = await _get_balance_change_adjusted(
+        address=fee_recipient, block_number=block_number,
+        block_priority_tx_fees=block_priority_tx_fees,
+        execution_node=execution_node
+    )
+    if fee_rec_bal_change != block_priority_tx_fees:
+        # Check for MEV transfer tx in last tx in block (from fee recipient)
+        tx_count = await execution_node.get_block_tx_count(block_number=block_number)
+
+        if tx_count > 0:
+            last_tx = await execution_node.get_tx_data(block_number=block_number,
+                                                       tx_index=tx_count - 1)
+            if fee_recipient.lower() in (
+                a.lower() for a in (
+                "0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5",  # beaverbuild
+                "0x1f9090aae28b8a3dceadf281b0f12828e676c326",  # rsync-builder
+                "0x5F927395213ee6b95dE97bDdCb1b2B1C0F16844F",  # manta-builder
+            )):
+                # MEV reward recipient = recipient of last tx in block
+                assert last_tx.from_.lower() == fee_recipient.lower(), \
+                    f"Expected MEV distribution in last tx, but not found in slot {slot_proposer_data.slot}"
+
+                return await _mev_return_value(block_number=block_number,
+                                               mev_recipient=last_tx.to,
+                                               execution_node=execution_node,
+                                               expected_value=last_tx.value)
+
+            full_block = await execution_node.get_block(block_number, verbose=True)
+            if any(
+                    tx["to"].lower() in SMART_CONTRACTS_MEV_BOTS for tx in full_block["transactions"] if tx["to"] is not None
+            ) and fee_rec_bal_change > block_priority_tx_fees:
+                logger.info(f"Fee recipient's balance change > tx fees."
+                            f" MEV Bot contract call found in slot {slot_proposer_data.slot}")
+                return await _mev_return_value(
+                    block_number=block_number,
+                    mev_recipient=fee_recipient,
+                    execution_node=execution_node,
+                    expected_value=fee_rec_bal_change,
+                )
+
+        raise ManualInspectionRequired(
+            f"No MEV but fee recipient's balance change ({fee_rec_bal_change})"
+            f" not equal to tx fees ({block_priority_tx_fees}) - MEV in {slot_proposer_data.slot}?"
+        )
+
+    logger.info(f"No MEV found in {slot_proposer_data.slot}")
+    return BlockRewardValue(
+        block_priority_tx_fees=block_priority_tx_fees,
+        contains_mev=False,
+        mev_recipient=None,
+        mev_recipient_balance_change=None,
+    )
 
     # Check for MEV distribution in last tx
     last_tx = None
