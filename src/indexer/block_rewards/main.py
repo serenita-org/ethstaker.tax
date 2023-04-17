@@ -19,9 +19,6 @@ from indexer.block_rewards.block_rewards_mev_simple import get_block_reward_valu
 logger = logging.getLogger(__name__)
 
 START_SLOT = 4700013  # First PoS slot
-TIMEZONES_TO_INDEX = (
-    pytz.utc,
-)
 
 ALREADY_INDEXED_SLOTS = set()
 CACHE_KEY_MISSING_DATA = "INDEXER_BLOCK_REWARDS_MISSING_DATA"

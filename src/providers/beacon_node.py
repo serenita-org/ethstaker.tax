@@ -11,7 +11,7 @@ from httpx import BasicAuth
 from redis import Redis
 import pytz
 
-from db.tables import Balance
+from db.tables import Balance, Withdrawal
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 from prometheus_client.metrics import Counter
 
@@ -263,6 +263,27 @@ class BeaconNode:
             )
 
         return balances
+
+    async def withdrawals_for_slot(self, slot: int) -> list[Withdrawal]:
+        url = f"{self.BASE_URL}/eth/v2/beacon/blocks/{slot}"
+
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels(
+            "/eth/v2/beacon/blocks/{state_id}",
+            "withdrawals_for_slot").inc()
+
+        if resp.status_code == 404:
+            # Block not found - missed
+            return []
+
+        data = resp.json()["data"]
+
+        return [Withdrawal(
+            slot=slot,
+            validator_index=int(w["validator_index"]),
+            amount=int(w["amount"]),
+        ) for w in data["message"]["body"]["execution_payload"]["withdrawals"]]
 
     async def get_full_state(self, state_id: str) -> dict:
         # Use proxy - add extra 0 to change port to 50510
