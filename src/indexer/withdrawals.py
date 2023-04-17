@@ -1,10 +1,10 @@
 import logging
 import asyncio
-import os
 
 from tqdm import tqdm
 from prometheus_client import start_http_server, Gauge
 from sqlalchemy import text
+from sqlalchemy import func
 
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 
 START_SLOT = 6_209_536  # First post-Shapella slot
 
-ALREADY_INDEXED_SLOTS = set()
-
 SLOTS_WITH_MISSING_WITHDRAWAL_DATA = Gauge(
     "slots_with_missing_withdrawal_data",
     "Slots for which withdrawals still need to be indexed and inserted into the database",
@@ -24,33 +22,27 @@ SLOTS_WITH_MISSING_WITHDRAWAL_DATA = Gauge(
 
 
 async def index_withdrawals():
-    global ALREADY_INDEXED_SLOTS
     beacon_node = BeaconNode()
 
-    slots_needed = {s for s in range(START_SLOT, (await beacon_node.head_slot()))}
-
     # Remove slots that have already been indexed previously
-    if not os.getenv("INDEX_ALL") == "true":
-        logger.info("Removing previously indexed slots")
-        if len(ALREADY_INDEXED_SLOTS) == 0:
-            with session_scope() as session:
-                ALREADY_INDEXED_SLOTS = {s for s, in
-                                         session.query(Withdrawal.slot).all()}
-        slots_needed = slots_needed.difference(ALREADY_INDEXED_SLOTS)
+    logger.info("Calculating where to start indexing")
+    with session_scope() as session:
+        LATEST_SLOT_IN_DB, = session.query(func.max(Withdrawal.slot)).one_or_none()
+        logger.info(f"Latest slot: {LATEST_SLOT_IN_DB}")
+
+        if LATEST_SLOT_IN_DB is not None:
+            START_SLOT = LATEST_SLOT_IN_DB + 1
+
+    slots_needed = {s for s in range(START_SLOT, (await beacon_node.head_finalized()) + 1)}
+    logger.info(f"Slots needed: {slots_needed}")
 
     logger.info(f"Indexing withdrawals for {len(slots_needed)} slots")
     SLOTS_WITH_MISSING_WITHDRAWAL_DATA.set(len(slots_needed))
-    commit_every = 100
+    commit_every = 10
     current_tx = 0
     with session_scope() as session:
         for slot in tqdm(sorted(slots_needed, reverse=True)):
             current_tx += 1
-
-            # Wait for slot to be finalized
-            if not await beacon_node.is_slot_finalized(slot):
-                SLOTS_WITH_MISSING_WITHDRAWAL_DATA.dec(1)
-                logger.info(f"Waiting for slot {slot} to be finalized")
-                continue
 
             logger.debug(f"Getting withdrawals for {slot}")
             withdrawals = await beacon_node.withdrawals_for_slot(slot=slot)
@@ -70,7 +62,6 @@ async def index_withdrawals():
                     for withdrawal in withdrawals
                 ]
             )
-            ALREADY_INDEXED_SLOTS.add(slot)
             SLOTS_WITH_MISSING_WITHDRAWAL_DATA.dec(1)
             if current_tx == commit_every:
                 logger.debug(f"Committing @ {slot}")

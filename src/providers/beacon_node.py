@@ -219,19 +219,23 @@ class BeaconNode:
 
         return activation_slots
 
-    async def is_slot_finalized(self, slot: int) -> bool:
+    async def head_finalized(self) -> int:
+        """Returns the last slot that is finalized"""
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/finality_checkpoints"
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/head/finality_checkpoint", "is_slot_finalized").inc()
+        BEACON_NODE_REQUEST_COUNT.labels(
+            "/eth/v1/beacon/states/head/finality_checkpoint", "head_finalized").inc()
 
         data = resp.json()["data"]
         finalized_epoch = int(data["finalized"]["epoch"])
 
-        if finalized_epoch * SLOTS_PER_EPOCH < slot:
-            return False
+        return finalized_epoch * SLOTS_PER_EPOCH + SLOTS_PER_EPOCH - 1
 
-        return True
+    async def is_slot_finalized(self, slot: int) -> bool:
+        if slot <= await self.head_finalized():
+            return True
+        return False
 
     async def balances_for_slot(self,
                                 slot: int,
