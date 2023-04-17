@@ -272,7 +272,8 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                 "Execution layer income [ETH]",
                 "Price [ETH/" + currency + "]",
                 "Consensus layer income [" + currency + "]",
-                "Execution layer income [" + currency + "]"
+                "Execution layer income [" + currency + "]",
+                "Withdrawals [ETH]"
             ];
 
             // Create a table for each validators' rewards
@@ -281,7 +282,7 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             data.validator_rewards.forEach(
                 ({
                      eod_balances, initial_balance, validator_index,
-                     exec_layer_block_rewards,
+                     exec_layer_block_rewards, withdrawals,
                      total_consensus_layer_eth, total_consensus_layer_currency,
                      total_execution_layer_eth, total_execution_layer_currency
                 }) => {
@@ -349,11 +350,17 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     eodValidatorBalanceColumn.innerText = balance.balance.toFixed(6).toString();
                     bodyRow.appendChild(eodValidatorBalanceColumn);
 
-                    // Consensus layer income [ETH]
-                    const consensusIncEthForDate = parseFloat((balance.balance - prevBalance).toFixed(6));
+                    // Consensus layer income [ETH] - account for withdrawals
+                    let consensusIncEthForDate = balance.balance - prevBalance;
+                    let withdrawalsForDate = 0;
+                    withdrawals.filter(w => w.date == balance.date).forEach((w) => {
+                        withdrawalsForDate += w.amount;
+                    })
+                    consensusIncEthForDate += withdrawalsForDate
+
                     dailyChartData["consensusLayerIncome"] = consensusIncEthForDate;
                     const consensusIncEthColumn = document.createElement("th");
-                    consensusIncEthColumn.innerText = consensusIncEthForDate.toString();
+                    consensusIncEthColumn.innerText = parseFloat(consensusIncEthForDate.toFixed(6)).toString();
                     bodyRow.appendChild(consensusIncEthColumn);
 
                     // // Execution layer income [ETH]
@@ -383,6 +390,11 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
                     const executionIncCurrColumn = document.createElement("th");
                     executionIncCurrColumn.innerText = executionIncCurrForDate.toString();
                     bodyRow.appendChild(executionIncCurrColumn);
+
+                    // Withdrawals [ETH]
+                    const withdrawalsColumn = document.createElement("th");
+                    withdrawalsColumn.innerText = parseFloat(withdrawalsForDate.toFixed(6)).toString();
+                    bodyRow.appendChild(withdrawalsColumn);
 
                     prevBalance = parseFloat(balance.balance.toFixed(6));
                     tableBody.appendChild(bodyRow);
@@ -599,6 +611,7 @@ interface CsvDataColumnValue {
     price: number,
     consensusIncomeCurr: number,
     executionIncomeCurr: number,
+    withdrawalsEth: number,
 }
 
 function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';') {
@@ -621,7 +634,8 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
         "Execution layer income [ETH]",
         "Price [ETH/" + AGGREGATE_REWARDS_DATA.currency + "]",
         "Consensus layer income [" + AGGREGATE_REWARDS_DATA.currency + "]",
-        "Execution layer income [" + AGGREGATE_REWARDS_DATA.currency + "]"
+        "Execution layer income [" + AGGREGATE_REWARDS_DATA.currency + "]",
+        "Withdrawals [ETH]"
     ];
 
     if (groupByDate) {
@@ -637,6 +651,14 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
             prevBalance = validatorRewards.initial_balance.balance;
         }
         validatorRewards.eod_balances.forEach((endOfDayBalance) => {
+            // Consensus layer income - account for withdrawals
+            let consensusIncEthForDate = endOfDayBalance.balance - prevBalance;
+            let withdrawalsForDate = 0;
+            validatorRewards.withdrawals.filter(w => w.date == endOfDayBalance.date).forEach((w) => {
+                withdrawalsForDate += w.amount;
+            })
+            consensusIncEthForDate += withdrawalsForDate;
+
             // Execution layer income
             let execIncEthForDate = 0;
             validatorRewards.exec_layer_block_rewards.filter(br => br.date === endOfDayBalance.date).forEach((br) => {
@@ -650,11 +672,12 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
                 date: endOfDayBalance.date,
                 validatorIndex: validatorRewards.validator_index,
                 endOfDayBalance: parseFloat(endOfDayBalance.balance.toFixed(6)),
-                consensusIncomeEth: parseFloat((endOfDayBalance.balance - prevBalance).toFixed(6)),
+                consensusIncomeEth: parseFloat(consensusIncEthForDate.toFixed(6)),
                 executionIncomeEth: parseFloat(execIncEthForDate.toFixed(6)),
                 price: price,
-                consensusIncomeCurr: parseFloat(((endOfDayBalance.balance - prevBalance) * price).toFixed(3)),
+                consensusIncomeCurr: parseFloat((consensusIncEthForDate * price).toFixed(3)),
                 executionIncomeCurr: parseFloat((execIncEthForDate * price).toFixed(3)),
+                withdrawalsEth: parseFloat((withdrawalsForDate).toFixed(6)),
             })
 
             prevBalance = endOfDayBalance.balance;
@@ -675,12 +698,14 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
             let consensusIncomeCurr = 0;
             let executionIncomeEth = 0;
             let executionIncomeCurr = 0;
+            let withdrawalsEth = 0;
             let endOfDayBalance = 0;
             allRewardsForDate.forEach((reward) => {
                 consensusIncomeEth += reward.consensusIncomeEth;
                 executionIncomeEth += reward.executionIncomeEth;
                 consensusIncomeCurr += reward.consensusIncomeCurr;
                 executionIncomeCurr += reward.executionIncomeCurr;
+                withdrawalsEth += reward.withdrawalsEth;
                 endOfDayBalance += reward.endOfDayBalance;
             })
 
@@ -692,6 +717,7 @@ function downloadRewardsDataAsCsv(validatorIndex: number | null, separator = ';'
                 price: price,
                 consensusIncomeCurr: parseFloat(consensusIncomeCurr.toFixed(3)),
                 executionIncomeCurr: parseFloat(executionIncomeCurr.toFixed(3)),
+                withdrawalsEth: parseFloat(withdrawalsEth.toFixed(6)),
             })
         }
         // Overwrite existing data with grouped data
