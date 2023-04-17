@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  test_runner:
+    image: eth2-tax:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: [
+        "pytest",
+    ]
+    depends_on:
+      - db_test
+      - redis_test
+
+  db_test:
+    image: postgres:13.9
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: db_test_username
+      POSTGRES_PASSWORD: db_test_password
+      POSTGRES_DB: db_test
+
+  redis_test:
+    image: redis:7.0.8
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ${ABSOLUTE_ROOT_PATH}/etc/redis.conf:/usr/local/etc/redis/redis.conf
