@@ -43,7 +43,7 @@ function addInputElement(event: Event) {
     const newInputElement = newInputGroup.children[0] as HTMLInputElement;
     newInputElement.value = "";
 
-    // Add event listener for "Add another" button
+    // Add event listener for "Add more" button
     const newInputGroupAddAnotherBtn = newInputGroup.children[1];
     newInputGroupAddAnotherBtn.addEventListener("click", addInputElement);
 
@@ -567,7 +567,10 @@ async function getRewards() {
         const indexInputGroups = document.getElementById("index").children as HTMLCollection;
         for (let i = 0; i < indexInputGroups.length; i++) {
             const indexInput = indexInputGroups[i].children[0] as HTMLInputElement;
-            validatorIndexes.push(parseInt(indexInput.value));
+            indexInput.value.split(",").forEach((value) => {
+                if (value.length == 0) return;
+                validatorIndexes.push(parseInt(value.trim()));
+            })
         }
         getRewardsForValidatorIndexes(validatorIndexes);
     }
@@ -580,11 +583,13 @@ async function getRewards() {
         for (let i = 0; i < pubKeyInputGroups.length; i++) {
             const pubKeyInput = pubKeyInputGroups[i].children[0] as HTMLInputElement;
 
-            const pubKeyParams = new URLSearchParams();
-            pubKeyParams.append("publickey", pubKeyInput.value);
-            pubKeyUrl.search = pubKeyParams.toString();
-
-            indexRequests.push(requestWithErrorHandling(pubKeyUrl.href));
+            pubKeyInput.value.split(",").forEach((value) => {
+                if (value.length == 0) return;
+                const pubKeyParams = new URLSearchParams();
+                pubKeyParams.append("publickey", value.trim());
+                pubKeyUrl.search = pubKeyParams.toString();
+                indexRequests.push(requestWithErrorHandling(pubKeyUrl.href));
+            })
         }
         let validatorIndexes = await Promise.all(indexRequests)
         getRewardsForValidatorIndexes(validatorIndexes);
@@ -594,17 +599,19 @@ async function getRewards() {
 
         let depositAddrInputGroups = document.getElementById("eth1").children;
 
-        let validatorIndexes = Array();
+        let indexRequests = Array();
         for (let i = 0; i < depositAddrInputGroups.length; i++) {
             const depositAddrInput = depositAddrInputGroups[i].children[0] as HTMLInputElement;
 
-            const depositAddrParams = new URLSearchParams();
-            depositAddrParams.append("eth1_address", depositAddrInput.value);
-            depositAddrUrl.search = depositAddrParams.toString();
-
-            const data = await requestWithErrorHandling(depositAddrUrl.href);
-            validatorIndexes = validatorIndexes.concat(data);
+            depositAddrInput.value.split(",").forEach((value) => {
+                if (value.length == 0) return;
+                const depositAddrParams = new URLSearchParams();
+                depositAddrParams.append("eth1_address", value.trim());
+                depositAddrUrl.search = depositAddrParams.toString();
+                indexRequests.push(requestWithErrorHandling(depositAddrUrl.href));
+            })
         }
+        let validatorIndexes = (await Promise.all(indexRequests) as Array<Array<number>>).flat();
         getRewardsForValidatorIndexes(validatorIndexes);
     } else {
         showErrorMessage("Invalid tab selected");
