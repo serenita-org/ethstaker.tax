@@ -11,7 +11,7 @@ from httpx import BasicAuth
 from redis import Redis
 import pytz
 
-from db.tables import Balance
+from db.tables import Balance, Withdrawal
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 from prometheus_client.metrics import Counter
 
@@ -28,7 +28,7 @@ BEACON_NODE_REQUEST_COUNT = Counter("beacon_node_request_count",
                                     labelnames=("endpoint", "function_name"))
 
 
-SlotProposerData = namedtuple("SlotProposerData", ["slot", "proposer_index", "fee_recipient", "block_number"])
+SlotProposerData = namedtuple("SlotProposerData", ["slot", "proposer_index", "fee_recipient", "block_number", "block_hash"])
 
 
 class BeaconNode:
@@ -175,6 +175,7 @@ class BeaconNode:
                     proposer_index=None,
                     fee_recipient=None,
                     block_number=None,
+                    block_hash=None,
                 )
             else:
                 raise ValueError(f"Beacon node returned an error while requesting block for slot {slot}")
@@ -182,12 +183,14 @@ class BeaconNode:
         proposer_idx = data["data"]["message"]["proposer_index"]
         fee_recipient = data["data"]["message"]["body"]["execution_payload"]["fee_recipient"]
         block_number = int(data["data"]["message"]["body"]["execution_payload"]["block_number"])
+        block_hash = data["data"]["message"]["body"]["execution_payload"]["block_hash"]
 
         return SlotProposerData(
             slot=slot,
             proposer_index=proposer_idx,
             fee_recipient=fee_recipient,
             block_number=block_number,
+            block_hash=block_hash,
         )
 
     async def activation_slots_for_validators(self, validator_indexes: List[int]) -> Dict[int, Optional[int]]:
@@ -216,19 +219,23 @@ class BeaconNode:
 
         return activation_slots
 
-    async def is_slot_finalized(self, slot: int) -> bool:
+    async def head_finalized(self) -> int:
+        """Returns the last slot that is finalized"""
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/finality_checkpoints"
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/head/finality_checkpoint", "is_slot_finalized").inc()
+        BEACON_NODE_REQUEST_COUNT.labels(
+            "/eth/v1/beacon/states/head/finality_checkpoint", "head_finalized").inc()
 
         data = resp.json()["data"]
         finalized_epoch = int(data["finalized"]["epoch"])
 
-        if finalized_epoch * SLOTS_PER_EPOCH < slot:
-            return False
+        return finalized_epoch * SLOTS_PER_EPOCH + SLOTS_PER_EPOCH - 1
 
-        return True
+    async def is_slot_finalized(self, slot: int) -> bool:
+        if slot <= await self.head_finalized():
+            return True
+        return False
 
     async def balances_for_slot(self,
                                 slot: int,
@@ -260,6 +267,27 @@ class BeaconNode:
             )
 
         return balances
+
+    async def withdrawals_for_slot(self, slot: int) -> list[Withdrawal]:
+        url = f"{self.BASE_URL}/eth/v2/beacon/blocks/{slot}"
+
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels(
+            "/eth/v2/beacon/blocks/{state_id}",
+            "withdrawals_for_slot").inc()
+
+        if resp.status_code == 404:
+            # Block not found - missed
+            return []
+
+        data = resp.json()["data"]
+
+        return [Withdrawal(
+            slot=slot,
+            validator_index=int(w["validator_index"]),
+            amount=int(w["amount"]),
+        ) for w in data["message"]["body"]["execution_payload"]["withdrawals"]]
 
     async def get_full_state(self, state_id: str) -> dict:
         # Use proxy - add extra 0 to change port to 50510

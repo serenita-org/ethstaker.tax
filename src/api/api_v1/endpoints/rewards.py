@@ -18,6 +18,7 @@ from api.api_v1.models import (
     EndOfDayBalance,
     ExecLayerBlockReward,
     ValidatorRewards,
+    Withdrawal,
 )
 from db.tables import Balance
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
@@ -247,7 +248,7 @@ async def rewards(
     # Use a semaphore to make sure we don't overload CoinGecko with
     # too many requests at once in case the prices aren't cached
     sem = asyncio.Semaphore(5)
-    date_eth_price = {}
+    date_eth_price: dict[datetime.date, float] = {}
     for slot in slots_needed:
         date = (await BeaconNode.datetime_for_slot(slot, timezone)).date()
 
@@ -290,9 +291,19 @@ async def rewards(
         # Sort them by the slot number
         validator_balances = sorted(validator_balances, key=lambda x: x.slot)
 
+        # Retrieve the withdrawals
+        withdrawals = db_provider.withdrawals(
+            min_slot=await beacon_node.slot_for_datetime(start_dt_utc),
+            max_slot=await beacon_node.slot_for_datetime(datetime.datetime.combine(
+                end_date,
+                datetime.time(hour=23, minute=59, second=59, tzinfo=timezone)
+            )),
+            validator_indexes=[validator_index]
+        )
+
         # Populate the initial and end-of-day validator balances
         initial_balance = initial_balances[validator_index]
-        prev_balance = initial_balance.balance
+        prev_balance = initial_balance
         eod_balances = []
         total_consensus_layer_eth = 0
         total_consensus_layer_currency = 0
@@ -314,13 +325,18 @@ async def rewards(
                 )
             )
 
-            # Calculate earnings
-            day_rewards_eth = vb.balance - prev_balance
+            # Calculate earnings, accounting for withdrawals
+            amount_withdrawn_this_day = sum(
+                w.amount for w in db_provider.withdrawals(
+                min_slot=prev_balance.slot, max_slot=vb.slot, validator_indexes=[validator_index]
+            ))
+            day_rewards_eth = vb.balance - prev_balance.balance + int(amount_withdrawn_this_day) / 1e9
+
             total_consensus_layer_eth += day_rewards_eth
             total_consensus_layer_currency += day_rewards_eth * date_eth_price[slot_date]
 
             # Set prev_balance to current balance for next loop iteration
-            prev_balance = vb.balance
+            prev_balance = vb
 
         # Retrieve the execution layer rewards
         block_rewards = db_provider.block_rewards(
@@ -351,6 +367,10 @@ async def rewards(
                 initial_balance=initial_balance,
                 eod_balances=eod_balances,
                 exec_layer_block_rewards=exec_layer_block_rewards,
+                withdrawals=[Withdrawal(
+                    date=(await BeaconNode.datetime_for_slot(w.slot, timezone)).date(),
+                    amount=int(w.amount) / 1e9,
+                ) for w in withdrawals],
                 total_consensus_layer_eth=total_consensus_layer_eth,
                 total_consensus_layer_currency=total_consensus_layer_currency,
                 total_execution_layer_eth=total_execution_layer_eth,

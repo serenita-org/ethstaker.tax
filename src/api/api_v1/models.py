@@ -27,6 +27,14 @@ class ExecLayerBlockReward(BaseModel):
     reward: float = Field(..., example=0.013)
 
 
+class Withdrawal(BaseModel):
+    date: datetime.date = Field(..., example=datetime.date.fromisoformat("2022-09-15"))
+    amount: float = Field(..., example=0.013)
+
+    class Config:
+        orm_mode = True
+
+
 class ValidatorRewards(BaseModel):
     validator_index: int = Field(..., example=1234)
     # This field is optional - if a validator has not been active in the requested
@@ -35,6 +43,7 @@ class ValidatorRewards(BaseModel):
     eod_balances: List[EndOfDayBalance]
 
     exec_layer_block_rewards: List[ExecLayerBlockReward]
+    withdrawals: List[Withdrawal]
 
     total_consensus_layer_eth: float = Field(...,
                                              example=12.456,

@@ -26,3 +26,11 @@ class BlockReward(Base):
     mev = Column(Boolean, nullable=True)
     mev_reward_recipient = Column(String(length=42), nullable=True)
     mev_reward_value = Column(Numeric(precision=27), nullable=True)
+
+
+class Withdrawal(Base):
+    __tablename__ = "withdrawal"
+
+    slot = Column(Integer, nullable=False, primary_key=True)
+    validator_index = Column(Integer, nullable=False, primary_key=True)
+    amount = Column(Numeric(precision=27), nullable=True)
