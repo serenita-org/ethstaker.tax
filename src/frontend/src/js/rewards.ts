@@ -155,13 +155,11 @@ function cleanupFromPreviousRequest() {
     clearChart();
 }
 
-function enableCalculateButton(enabled: Boolean) {
-    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !enabled;
-
-    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !enabled;
+function toggleCalculateButton(show: Boolean) {
+    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !show;
 }
 
-function showCalculateMessage(show: Boolean) {
+function toggleCalculateMessage(show: Boolean) {
     if (show) {
         document.getElementById("calculateInfoMessage").classList.remove("d-none");
     }
@@ -173,8 +171,8 @@ function showCalculateMessage(show: Boolean) {
 function showErrorMessage(message: string) {
     document.getElementById("calculateErrorMessage").classList.remove("d-none");
     document.getElementById("calculateErrorMessage").innerText = message;
-    enableCalculateButton(true);
-    showCalculateMessage(false);
+    toggleCalculateButton(true);
+    toggleCalculateMessage(false);
 }
 
 
@@ -528,8 +526,8 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
 
             sumTotalTable.appendChild(tableBody);
 
-            enableCalculateButton(true);
-            showCalculateMessage(false);
+            toggleCalculateButton(true);
+            toggleCalculateMessage(false);
 
             // Populate rewards chart
             populateChart(chartData);
@@ -556,10 +554,10 @@ async function getRewards() {
     cleanupFromPreviousRequest();
 
     // Disable the calculate button to avoid users clicking it multiple times
-    enableCalculateButton(false);
+    toggleCalculateButton(false);
 
     // Show message that it may take a while
-    showCalculateMessage(true);
+    toggleCalculateMessage(true);
 
     if (activeTab.textContent === "Validator Indexes") {
         let validatorIndexes: number[] = Array();
