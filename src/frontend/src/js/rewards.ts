@@ -179,6 +179,12 @@ function showErrorMessage(message: string) {
 function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
     const params = new URLSearchParams();
 
+    if (validatorIndexes.length == 0) {
+        alert("No validators found for your inputs!");
+        showErrorMessage("No validators found for your inputs!");
+        return;
+    }
+
     validatorIndexes.forEach((validatorIndex) => {
         params.append("validator_indexes", validatorIndex.toString());
     })
