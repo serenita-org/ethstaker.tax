@@ -21,11 +21,11 @@ class BlockReward(Base):
     slot = Column(Integer, nullable=False, primary_key=True, autoincrement=False)
     proposer_index = Column(Integer, nullable=True)
     fee_recipient = Column(String(length=42), nullable=True)
-    priority_fees = Column(Numeric(precision=27), nullable=True)
+    priority_fees_wei = Column(Numeric(precision=27), nullable=True)
     block_extra_data = Column(LargeBinary)
     mev = Column(Boolean, nullable=True)
     mev_reward_recipient = Column(String(length=42), nullable=True)
-    mev_reward_value = Column(Numeric(precision=27), nullable=True)
+    mev_reward_value_wei = Column(Numeric(precision=27), nullable=True)
 
 
 class Withdrawal(Base):
@@ -33,4 +33,4 @@ class Withdrawal(Base):
 
     slot = Column(Integer, nullable=False, primary_key=True)
     validator_index = Column(Integer, nullable=False, primary_key=True)
-    amount = Column(Numeric(precision=27), nullable=True)
+    amount_gwei = Column(Numeric(precision=18), nullable=True)

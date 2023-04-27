@@ -12,44 +12,49 @@ def _populated_db():
     with session_scope() as session:
         for db_entry in [
             Balance(
-                slot=6_202_798,
+                slot=6_202_798,  # Apr-11-2023 23:59:59 UTC
                 validator_index=226152,
                 balance=34.247005602,
             ),
             Balance(
-                slot=6_209_998,
+                slot=6_209_998,  # Apr-12-2023 23:59:59 UTC
                 validator_index=226152,
                 balance=34.249813825,
             ),
             Balance(
-                slot=6_217_198,
+                slot=6_217_198,  # Apr-13-2023 23:59:59 UTC
                 validator_index=226152,
                 balance=32.002092287,
             ),
             Balance(
-                slot=6_224_398,
+                slot=6_224_398,  # Apr-14-2023 23:59:59 UTC
                 validator_index=226152,
                 balance=32.004865082,
             ),
             Balance(
-                slot=6_231_598,
+                slot=6_231_598,  # Apr-15-2023 23:59:59 UTC
                 validator_index=226152,
                 balance=32.00765765,
             ),
             Balance(
-                slot=6_238_798,
+                slot=6_238_798,  # Apr-16-2023 23:59:59 UTC
                 validator_index=226152,
                 balance=32.00001272,
             ),
-            Withdrawal(
-                slot=6211586,
+            Balance(
+                slot=6_245_998,  # Apr-17-2023 23:59:59 UTC
                 validator_index=226152,
-                amount=2250393207,
+                balance=32.002792297,
             ),
             Withdrawal(
-                slot=6238774,
+                slot=6_211_586,  # Apr-13-2023 05:17:35 UTC
                 validator_index=226152,
-                amount=10466575,
+                amount_gwei=2_250_393_207,
+            ),
+            Withdrawal(
+                slot=6_238_774,  # Apr-16-2023 23:55:11 UTC
+                validator_index=226152,
+                amount_gwei=10_466_575,
             ),
         ]:
             session.add(db_entry)
@@ -81,10 +86,14 @@ def test_rewards():
         for reward_data in rewards:
             assert reward_data["validator_index"] == 226152
             assert reward_data["initial_balance"]["balance"] == 34.247005602
+            assert reward_data["initial_balance"]["slot"] == 6202798
+            assert reward_data["initial_balance"]["date"] == "2023-04-11"
             assert len(reward_data["eod_balances"]) == 6
             assert len(reward_data["exec_layer_block_rewards"]) == 0
             assert len(reward_data["withdrawals"]) == 2
             assert reward_data["withdrawals"][0]["date"] == "2023-04-13"
-            assert reward_data["withdrawals"][0]["amount"] == 2.250393207e-09
-            assert reward_data["total_consensus_layer_eth"] == 0.01572061699999535
-            assert reward_data["total_consensus_layer_currency"] == 32.263073623277684
+            assert reward_data["withdrawals"][0]["amount"] == 2.250393207
+            assert reward_data["withdrawals"][1]["date"] == "2023-04-16"
+            assert reward_data["withdrawals"][1]["amount"] == 0.010466575
+            assert reward_data["total_consensus_layer_eth"] == 0.016646476999997738
+            assert reward_data["total_consensus_layer_currency"] == 34.198862900917845
