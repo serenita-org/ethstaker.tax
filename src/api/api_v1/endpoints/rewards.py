@@ -327,9 +327,12 @@ async def rewards(
 
             # Calculate earnings, accounting for withdrawals
             amount_withdrawn_this_day = sum(
-                w.amount for w in db_provider.withdrawals(
-                min_slot=prev_balance.slot, max_slot=vb.slot, validator_indexes=[validator_index]
-            ))
+                w.amount_gwei for w in db_provider.withdrawals(
+                    min_slot=prev_balance.slot,
+                    max_slot=vb.slot,
+                    validator_indexes=[validator_index]
+                )
+            )
             day_rewards_eth = vb.balance - prev_balance.balance + int(amount_withdrawn_this_day) / 1e9
 
             total_consensus_layer_eth += day_rewards_eth
@@ -353,9 +356,9 @@ async def rewards(
         exec_layer_block_rewards = []
         for br in block_rewards:
             if br.mev is True:
-                br_reward_eth = int(br.mev_reward_value) / 1e18
+                br_reward_eth = int(br.mev_reward_value_wei) / 1e18
             else:
-                br_reward_eth = int(br.priority_fees) / 1e18
+                br_reward_eth = int(br.priority_fees_wei) / 1e18
             total_execution_layer_eth += br_reward_eth
             slot_date = (await BeaconNode.datetime_for_slot(br.slot, timezone)).date()
             total_execution_layer_currency += br_reward_eth * date_eth_price[slot_date]
@@ -369,7 +372,7 @@ async def rewards(
                 exec_layer_block_rewards=exec_layer_block_rewards,
                 withdrawals=[Withdrawal(
                     date=(await BeaconNode.datetime_for_slot(w.slot, timezone)).date(),
-                    amount=int(w.amount) / 1e9,
+                    amount=int(w.amount_gwei) / 1e9,
                 ) for w in withdrawals],
                 total_consensus_layer_eth=total_consensus_layer_eth,
                 total_consensus_layer_currency=total_consensus_layer_currency,

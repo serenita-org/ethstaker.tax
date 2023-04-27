@@ -59,5 +59,5 @@ async def test_get_withdrawals(slot: int, exp_withdrawal_count: int, exp_max_amo
     withdrawals = await beacon_node.withdrawals_for_slot(slot)
     assert len(withdrawals) == exp_withdrawal_count
     if len(withdrawals) > 0:
-        assert max(w.amount for w in withdrawals) == exp_max_amount
-        assert min(w.amount for w in withdrawals) == exp_min_amount
+        assert max(w.amount_gwei for w in withdrawals) == exp_max_amount
+        assert min(w.amount_gwei for w in withdrawals) == exp_min_amount

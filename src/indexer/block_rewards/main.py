@@ -122,11 +122,11 @@ async def index_block_rewards():
                     slot=slot,
                     proposer_index=slot_proposer_data.proposer_index,
                     fee_recipient=slot_proposer_data.fee_recipient,
-                    priority_fees=block_reward_value.block_priority_tx_fees,
+                    priority_fees_wei=block_reward_value.block_priority_tx_fees,
                     block_extra_data=bytes.fromhex(block_extra_data[2:]) if block_extra_data else None,
                     mev=block_reward_value.contains_mev,
                     mev_reward_recipient=block_reward_value.mev_recipient,
-                    mev_reward_value=block_reward_value.mev_recipient_balance_change,
+                    mev_reward_value_wei=block_reward_value.mev_recipient_balance_change,
                 ),
             )
             ALREADY_INDEXED_SLOTS.add(slot)
