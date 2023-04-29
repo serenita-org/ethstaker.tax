@@ -94,6 +94,11 @@ async def rewards(
     )
     VALIDATORS_PER_REWARDS_REQUEST.observe(len(validator_indexes))
 
+    if end_date < start_date:
+        raise HTTPException(
+            status_code=400, detail=f"End date must be after start date"
+        )
+
     # See if rewards for a calendar year were requested
     cal_year_cond = (
         start_date.day == 1
