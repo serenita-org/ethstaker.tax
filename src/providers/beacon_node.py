@@ -286,7 +286,7 @@ class BeaconNode:
         return [Withdrawal(
             slot=slot,
             validator_index=int(w["validator_index"]),
-            amount=int(w["amount"]),
+            amount_gwei=int(w["amount"]),
         ) for w in data["message"]["body"]["execution_payload"]["withdrawals"]]
 
     async def get_full_state(self, state_id: str) -> dict:
