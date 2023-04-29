@@ -41,7 +41,7 @@ async def index_withdrawals():
     commit_every = 10
     current_tx = 0
     with session_scope() as session:
-        for slot in tqdm(sorted(slots_needed, reverse=True)):
+        for slot in tqdm(sorted(slots_needed)):
             current_tx += 1
 
             logger.debug(f"Getting withdrawals for {slot}")
