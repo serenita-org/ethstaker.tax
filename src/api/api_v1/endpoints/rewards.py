@@ -99,6 +99,11 @@ async def rewards(
             status_code=400, detail=f"End date must be after start date"
         )
 
+    # Cap end date at previous day - income and price for today (current day)
+    # are not final yet
+    today = datetime.date.today()
+    end_date = min(end_date, today - datetime.timedelta(days=1))
+
     # See if rewards for a calendar year were requested
     cal_year_cond = (
         start_date.day == 1
@@ -109,7 +114,6 @@ async def rewards(
     )
 
     # Split the REWARDS_REQUEST_COUNT metrics by timezone, daterange and currency
-    today = datetime.date.today()
     ytd_cond = (
         start_date.day == 1
         and start_date.month == 1
