@@ -51,7 +51,7 @@ async def index_withdrawals():
 
             session.execute(
                 text(
-                    "INSERT INTO withdrawal(slot, validator_index, amount_gwei) VALUES(:slot, :validator_index, :amount)"
+                    "INSERT INTO withdrawal(slot, validator_index, amount_gwei) VALUES(:slot, :validator_index, :amount_gwei)"
                 ),
                 [
                     {
