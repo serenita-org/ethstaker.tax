@@ -52,19 +52,9 @@ class CoinGecko:
 
     @staticmethod
     async def price_for_date(date: datetime.date, currency: str, cache: Redis) -> float:
-        # TODO rethink this - why cant we just pull the price for the
-        # requested date, and if not available, get the current price?
-        # TODO coingecko returns open price for day,
+        # Gets the "close" price for the given date.
+        # Coingecko returns open price for day,
         # we need to get the close price (=open price for next day)
-        # this could cause trouble when the date = today -> coingecko returns
-        # "invalid date" if you try to get tomorrow's open price
-        # TODO when it's 1am in Asia (=tomorrow) and
-        # we try to pull the price for that date, it fails, because
-        # there's no open price for that date yet
-
-        # -> basically solution for both issues is to
-        # get the current price from coingecko if the
-        # close price is not available
 
         # Add 1 day interval to date to get close price
         # for the date
@@ -96,49 +86,15 @@ class CoinGecko:
 
         data = resp.json()
         prices = []
-        price_is_close_price = True
 
         # Historical price data may not be available for that date
         if "market_data" not in data.keys():
-            logger.debug(f"No market_data returned for {close_date}, trying current price")
-            logger.debug(f"Close date: {close_date}")
-            logger.debug(f"Today: {datetime.date.today()}")
-            logger.debug(f"Seconds: {(close_date - datetime.date.today()).total_seconds()}")
-            if (close_date - datetime.date.today()).total_seconds() >= 0:
-                # Requested close price for today/tomorrow - impossible
-                # -> return the current ETH price
-                url = f"{CoinGecko.BASE_URL}/simple/price"
-                params = {
-                    "ids": "ethereum",
-                    "vs_currencies": ",".join(await CoinGecko.supported_vs_currencies(cache)),
-                }
-                resp = await AsyncClientWithBackoff(timeout=CoinGecko.RESPONSE_TIMEOUT).get_w_backoff(url=url, params=params)
-                COIN_GECKO_REQUEST_COUNT.labels("/simple/price").inc()
-
-                data = resp.json()
-                for c, p in data["ethereum"].items():
-                    prices.append(Price(
-                        currency=c,
-                        price=p
-                    ))
-                price_is_close_price = False
-            else:
-                raise Exception(f"CoinGecko returned no market data for {close_date}: {data},"
-                                f"not trying current price")
-        else:
-            for c, p in data["market_data"]["current_price"].items():
-                prices.append(Price(
-                    currency=c,
-                    price=p
-                ))
+            raise Exception(
+                f"CoinGecko returned no market data for {close_date}: {data},"
+                f"not trying current price")
 
         # Cache prices
-        # If the retrieved price is not the close price for the requested
-        # date, expire it in 30 minutes (it may still change)
-        if not price_is_close_price:
-            await cache.set(cache_key, json.dumps(prices), ex=1800)
-        else:
-            await cache.set(cache_key, json.dumps(prices))
+        await cache.set(cache_key, json.dumps(prices))
 
         # Return currency-specific price
         for c, p in prices:

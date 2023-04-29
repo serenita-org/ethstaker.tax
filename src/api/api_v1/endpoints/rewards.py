@@ -213,18 +213,10 @@ async def rewards(
         current_date += datetime.timedelta(days=1)
     slots_needed.update(eod_slots)
 
-    # And lastly, if the end_date is today/in the future,
-    # the user probably wants to see today's rewards too,
-    # not just up til the last end-of-day slot, so include
-    # the head slot
-    head_slot = await BeaconNode.head_slot()
-    if any([s > head_slot for s in slots_needed]):
-        logger.debug("Including head slot!")
-        slots_needed.add(head_slot)
-
     # Keep only slots that are <= head slot
     # since we cannot retrieve balances for future
     # slots
+    head_slot = await BeaconNode.head_slot()
     slots_needed = [s for s in slots_needed if s <= head_slot]
     slots_needed = sorted(slots_needed)
 
@@ -235,14 +227,6 @@ async def rewards(
     balances = db_provider.balances(
         slots=slots_needed, validator_indexes=validator_indexes
     )
-
-    # Validator balances for the head slot are not present in the database
-    # - these need to be retrieved on-demand from the beacon node
-    logger.debug("Retrieving head slot balances from beacon node")
-    if head_slot in slots_needed:
-        balances.extend(
-            await beacon_node.balances_for_slot(head_slot, validator_indexes)
-        )
 
     # Retrieve ETH price for the relevant dates
     # - these are determined by the end-of-day slots
