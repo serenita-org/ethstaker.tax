@@ -155,8 +155,8 @@ function cleanupFromPreviousRequest() {
     clearChart();
 }
 
-function toggleCalculateButton(show: Boolean) {
-    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !show;
+function toggleCalculateButton(enabled: Boolean) {
+    (document.getElementById("calculateButton") as HTMLButtonElement).disabled = !enabled;
 }
 
 function toggleCalculateMessage(show: Boolean) {
@@ -798,6 +798,13 @@ window.addEventListener("load", () => {
 
 window.addEventListener("load", () => {
     document.getElementById("inputForm").addEventListener("submit", getRewards);
+
+    // Scrolls validator-specific rewards table into view after clicking on the
+    // "Show validator-specific details" button
+    const rewardsTablesCollapse = document.getElementById('rewardsTablesCollapse');
+    rewardsTablesCollapse.addEventListener('shown.bs.collapse', event => {
+        (event.target as HTMLElement).scrollIntoView();
+    })
 })
 
 window.addEventListener("load", () => {
