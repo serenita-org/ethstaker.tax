@@ -93,6 +93,12 @@ class CoinGecko:
                 f"CoinGecko returned no market data for {close_date}: {data},"
                 f"not trying current price")
 
+        for c, p in data["market_data"]["current_price"].items():
+            prices.append(Price(
+                currency=c,
+                price=p
+            ))
+
         # Cache prices
         await cache.set(cache_key, json.dumps(prices))
 
