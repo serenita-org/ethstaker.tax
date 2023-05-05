@@ -668,6 +668,20 @@ from providers.beacon_node import SlotProposerData
             42,
             id="fee recipient is beacon deposit contract, during same block a deposit was made",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=6364511,
+                proposer_index=27745,
+                fee_recipient="0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990",
+                block_number=17186880,
+                block_hash="0xe95a33fb5f54e4cece77cc6a8db2bdc1bf8536a4107bc25a31c7b692f42e8e40",
+            ),
+            54227362614983699,
+            True,
+            "0x3aebb186370d77d305437dbc02af8b89cec27b8b",
+            54677735662095469,
+            id="MEV block without relay",
+        ),
     ],
 )
 @pytest.mark.asyncio
