@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Boolean, LargeBinary, Numeric, Integer, Float, String
+from sqlalchemy import Column, Boolean, LargeBinary, Numeric, Integer, Float, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 
 Base = declarative_base()
@@ -34,3 +35,17 @@ class Withdrawal(Base):
     slot = Column(Integer, nullable=False, primary_key=True)
     validator_index = Column(Integer, nullable=False, primary_key=True)
     amount_gwei = Column(Numeric(precision=18), nullable=True)
+
+    # Relationships
+    withdrawal_address_id = Column(ForeignKey("withdrawal_address.id"))
+    withdrawal_address = relationship("WithdrawalAddress", back_populates="withdrawals")
+
+
+class WithdrawalAddress(Base):
+    __tablename__ = "withdrawal_address"
+
+    id = Column(Integer, primary_key=True)
+    address = Column(String(length=42), nullable=False)
+
+    # Relationships
+    withdrawals = relationship("Withdrawal", back_populates="withdrawal_address")

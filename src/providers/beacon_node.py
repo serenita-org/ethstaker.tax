@@ -9,9 +9,11 @@ import starlette.requests
 from fastapi import FastAPI
 from httpx import BasicAuth
 from redis import Redis
+from sqlalchemy import select
 import pytz
 
-from db.tables import Balance, Withdrawal
+from db.tables import Balance, Withdrawal, WithdrawalAddress
+from db.db_helpers import session_scope
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 from prometheus_client.metrics import Counter
 
@@ -283,11 +285,29 @@ class BeaconNode:
 
         data = resp.json()["data"]
 
-        return [Withdrawal(
-            slot=slot,
-            validator_index=int(w["validator_index"]),
-            amount_gwei=int(w["amount"]),
-        ) for w in data["message"]["body"]["execution_payload"]["withdrawals"]]
+        withdrawals = []
+        with session_scope() as session:
+            for w in data["message"]["body"]["execution_payload"]["withdrawals"]:
+                address = w["address"]
+
+                # Check if the address is already in DB
+                address_in_db = session.execute(
+                    select(WithdrawalAddress).where(WithdrawalAddress.address == address)
+                ).scalar()
+                if address_in_db is None:
+                    address_in_db = WithdrawalAddress(address=address)
+                    session.add(address_in_db)
+                    session.commit()
+
+                w = Withdrawal(
+                    slot=slot,
+                    validator_index=int(w["validator_index"]),
+                    amount_gwei=int(w["amount"]),
+                    withdrawal_address_id=address_in_db.id,
+                )
+                withdrawals.append(w)
+
+        return withdrawals
 
     async def get_full_state(self, state_id: str) -> dict:
         # Use proxy - add extra 0 to change port to 50510

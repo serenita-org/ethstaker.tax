@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 
 from alembic import context
 
-from db.db_helpers import get_db_uri
+from db.db_helpers import _get_db_uri
 from db.tables import Base
 
 # this is the Alembic Config object, which provides
@@ -39,7 +39,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = get_db_uri()
+    url = _get_db_uri()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -58,7 +58,7 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    connectable = create_engine(get_db_uri())
+    connectable = create_engine(_get_db_uri())
 
     with connectable.connect() as connection:
         context.configure(
