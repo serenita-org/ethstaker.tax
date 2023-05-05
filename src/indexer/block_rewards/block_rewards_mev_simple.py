@@ -237,6 +237,7 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
                 "0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5",  # beaverbuild
                 "0x1f9090aae28b8a3dceadf281b0f12828e676c326",  # rsync-builder
                 "0x5F927395213ee6b95dE97bDdCb1b2B1C0F16844F",  # manta-builder
+                "0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990",  # @builder0x69
             )):
                 # MEV reward recipient = recipient of last tx in block
                 assert last_tx.from_.lower() == fee_recipient.lower(), \

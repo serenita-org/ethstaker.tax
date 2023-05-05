@@ -263,9 +263,11 @@ async def rewards(
     for proposer_index, missing_slots in missing_exec_data.items():
         if int(proposer_index) in validator_indexes:
             if any(start_slot < s < end_slot for s in missing_slots):
+                msg = f"Execution layer rewards not available - missing data for proposer {proposer_index} - {missing_slots}"
+                logger.error(msg)
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Execution layer rewards not available - missing data for proposer {proposer_index}"
+                    detail=msg
                 )
 
     aggregate_rewards = AggregateRewards(
