@@ -194,6 +194,8 @@ async def get_block_reward_value(
         MevRelay(api_url=api_url)
         for api_url in [
             # see https://ethstaker.cc/mev-relay-list/
+            "https://boost-relay.flashbots.net",
+            "https://relay.ultrasound.money",
             "https://aestus.live",
             "https://agnostic-relay.net",
             "https://builder-relay-mainnet.blocknative.com",
@@ -201,9 +203,7 @@ async def get_block_reward_value(
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
             "https://relay.edennetwork.io",
-            "https://boost-relay.flashbots.net",
             "https://mainnet-relay.securerpc.com",
-            "https://relay.ultrasound.money",
         ]
     ]
     for relay in relays:
@@ -268,6 +268,7 @@ async def get_block_reward_value(
 
                 logger.info(f"MEV found in {slot_proposer_data.slot} - last tx from {last_tx.from_}")
                 return await _mev_return_value(block_number=block_number,
+                                               slot=slot_proposer_data.slot,
                                                mev_recipient=last_tx.to,
                                                execution_node=execution_node,
                                                db_provider=db_provider,
@@ -281,6 +282,7 @@ async def get_block_reward_value(
                             f" MEV Bot contract call found in slot {slot_proposer_data.slot}")
                 return await _mev_return_value(
                     block_number=block_number,
+                    slot=slot_proposer_data.slot,
                     mev_recipient=fee_recipient,
                     execution_node=execution_node,
                     db_provider=db_provider,
