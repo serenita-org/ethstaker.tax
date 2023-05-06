@@ -3,13 +3,13 @@ import logging
 import asyncio
 import os
 
-import pytz
 from tqdm import tqdm
 from prometheus_client import start_http_server, Gauge
 
 import redis
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
+from providers.db_provider import DbProvider
 from providers.execution_node import ExecutionNode
 from providers.http_client_w_backoff import RateLimited
 from db.tables import BlockReward
@@ -67,6 +67,7 @@ async def index_block_rewards():
     global ALREADY_INDEXED_SLOTS
     beacon_node = BeaconNode()
     execution_node = ExecutionNode()
+    db_provider = DbProvider()
 
     slots_needed = {s for s in range(START_SLOT, (await beacon_node.head_slot()))}
 
@@ -108,7 +109,11 @@ async def index_block_rewards():
                 continue
 
             try:
-                block_reward_value = await get_block_reward_value(slot_proposer_data, execution_node=execution_node)
+                block_reward_value = await get_block_reward_value(
+                    slot_proposer_data=slot_proposer_data,
+                    execution_node=execution_node,
+                    db_provider=db_provider,
+                )
             except (ManualInspectionRequired, AssertionError, RateLimited) as e:
                 logger.error(f"Failed to process slot {slot} -> {str(e)}")
                 update_missing_data_cache(proposer_index=slot_proposer_data.proposer_index, slot_w_missing_data=slot)

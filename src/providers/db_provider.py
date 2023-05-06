@@ -9,7 +9,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from db.tables import Balance, BlockReward, Withdrawal
-from db.db_helpers import get_db_uri
+from db.db_helpers import _get_db_uri
 from prometheus_client.metrics import Histogram
 
 DB_REQUESTS_SECONDS = Histogram("db_requests_seconds",
@@ -39,9 +39,12 @@ class DbProvider:
         return self
 
     async def init_app(self, app: FastAPI) -> None:
-        self.engine = create_engine(get_db_uri(), pool_pre_ping=True)
+        self.engine = create_engine(_get_db_uri(), pool_pre_ping=True)
 
         app.state.DB_PROVIDER = self
+
+    def __init__(self) -> None:
+        self.engine = create_engine(_get_db_uri(), pool_pre_ping=True)
 
     @DB_REQUESTS_SECONDS.time()
     def balances(self,
@@ -70,6 +73,13 @@ class DbProvider:
             session.expunge_all()
 
         return block_rewards
+
+    @DB_REQUESTS_SECONDS.time()
+    def withdrawals_to_address(self, address: str) -> List[Withdrawal]:
+        with session_scope(self.engine) as session:
+            withdrawals = session.query(Withdrawal).filter(Withdrawal.withdrawal_address.has(address=address)).all()
+            session.expunge_all()
+        return withdrawals
 
     @DB_REQUESTS_SECONDS.time()
     def withdrawals(self, min_slot: int, max_slot: int, validator_indexes: Iterable[int]) -> List[Withdrawal]:

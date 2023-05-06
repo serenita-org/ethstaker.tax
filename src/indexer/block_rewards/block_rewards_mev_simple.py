@@ -4,6 +4,7 @@ from collections import namedtuple
 from typing import Optional
 
 from providers.beacon_node import SlotProposerData
+from providers.db_provider import DbProvider
 from providers.execution_node import ExecutionNode
 from providers.mev_builders import BUILDER_FEE_RECIPIENTS
 from providers.mev_relay import MevRelay
@@ -77,7 +78,10 @@ async def _contains_tx_from_builder_to_fee_recipient(block_number: int, fee_reci
     return False
 
 
-async def _get_balance_change_adjusted(address: str, block_number: int, block_priority_tx_fees: int, execution_node: ExecutionNode) -> int:
+async def _get_balance_change_adjusted(
+        address: str, block_number: int, slot: int,
+        block_priority_tx_fees: int, execution_node: ExecutionNode, db_provider: DbProvider
+) -> int:
     balance_change = (
         await execution_node.get_balance(
             address=address,
@@ -107,11 +111,19 @@ async def _get_balance_change_adjusted(address: str, block_number: int, block_pr
                 # Regular tx from fee recipient
                 balance_change += (tx_value + await execution_node.get_tx_fee(tx["hash"]))
 
+    # Account for withdrawal state change
+    # (the address may receive withdrawals from the beacon chain)
+    balance_change -= sum(1_000_000_000 * w.amount_gwei for w in db_provider.withdrawals_to_address(address) if w.slot == slot)
+
     return balance_change
 
 
 async def _mev_return_value(
-        block_number: int, mev_recipient: str, execution_node: ExecutionNode,
+        block_number: int,
+        slot: int,
+        mev_recipient: str,
+        execution_node: ExecutionNode,
+        db_provider: DbProvider,
         expected_value: Optional[int],
 ) -> BlockRewardValue:
     miner_data = await execution_node.get_miner_data(block_number=block_number)
@@ -121,8 +133,10 @@ async def _mev_return_value(
     mev_recipient_balance_change = await _get_balance_change_adjusted(
         address=mev_recipient,
         block_number=block_number,
+        slot=slot,
         block_priority_tx_fees=block_priority_tx_fees,
-        execution_node=execution_node
+        execution_node=execution_node,
+        db_provider=db_provider,
     )
 
     if mev_recipient.lower() in SMART_CONTRACT_FORWARDER_RECIPIENTS:
@@ -163,7 +177,11 @@ async def _get_fee_recipient_distribution_balance_change(fee_recipient: str, blo
         return 0
 
 
-async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution_node: ExecutionNode) -> BlockRewardValue:
+async def get_block_reward_value(
+        slot_proposer_data: SlotProposerData,
+        execution_node: ExecutionNode,
+        db_provider: DbProvider,
+) -> BlockRewardValue:
     """
     Returns the block's priority tx fees, a bool indicating whether the block contains MEV, the MEV reward recipient
     and the MEV reward value.
@@ -176,6 +194,8 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
         MevRelay(api_url=api_url)
         for api_url in [
             # see https://ethstaker.cc/mev-relay-list/
+            "https://boost-relay.flashbots.net",
+            "https://relay.ultrasound.money",
             "https://aestus.live",
             "https://agnostic-relay.net",
             "https://builder-relay-mainnet.blocknative.com",
@@ -183,9 +203,7 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
             "https://relay.edennetwork.io",
-            "https://boost-relay.flashbots.net",
             "https://mainnet-relay.securerpc.com",
-            "https://relay.ultrasound.money",
         ]
     ]
     for relay in relays:
@@ -195,8 +213,10 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
             logger.info(f"MEV found in {slot_proposer_data.slot} - {relay.api_url}")
             return await _mev_return_value(
                 block_number=block_number,
+                slot=slot_proposer_data.slot,
                 mev_recipient=payload.proposer_fee_recipient,
                 execution_node=execution_node,
+                db_provider=db_provider,
                 expected_value=payload.value,
             )
 
@@ -213,17 +233,20 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
     if block_extra_data_decoded in ("Viva relayooor.wtf",) or slot_proposer_data.slot in RELAYOOOR_SLOTS:
         return await _mev_return_value(
             block_number=block_number,
+            slot=slot_proposer_data.slot,
             mev_recipient=fee_recipient,
             execution_node=execution_node,
+            db_provider=db_provider,
             expected_value=None,
         )
 
     # Check if fee recipient's balance change is equal to tx fees
     # -> should be the case when there is no MEV transferred in a tx
     fee_rec_bal_change = await _get_balance_change_adjusted(
-        address=fee_recipient, block_number=block_number,
+        address=fee_recipient, block_number=block_number, slot=slot_proposer_data.slot,
         block_priority_tx_fees=block_priority_tx_fees,
-        execution_node=execution_node
+        execution_node=execution_node,
+        db_provider=db_provider,
     )
     if fee_rec_bal_change != block_priority_tx_fees:
         # Check for MEV transfer tx in last tx in block (from fee recipient)
@@ -243,9 +266,12 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
                 assert last_tx.from_.lower() == fee_recipient.lower(), \
                     f"Expected MEV distribution in last tx, but not found in slot {slot_proposer_data.slot}"
 
+                logger.info(f"MEV found in {slot_proposer_data.slot} - last tx from {last_tx.from_}")
                 return await _mev_return_value(block_number=block_number,
+                                               slot=slot_proposer_data.slot,
                                                mev_recipient=last_tx.to,
                                                execution_node=execution_node,
+                                               db_provider=db_provider,
                                                expected_value=last_tx.value)
 
             full_block = await execution_node.get_block(block_number, verbose=True)
@@ -256,8 +282,10 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
                             f" MEV Bot contract call found in slot {slot_proposer_data.slot}")
                 return await _mev_return_value(
                     block_number=block_number,
+                    slot=slot_proposer_data.slot,
                     mev_recipient=fee_recipient,
                     execution_node=execution_node,
+                    db_provider=db_provider,
                     expected_value=fee_rec_bal_change,
                 )
 
@@ -273,6 +301,9 @@ async def get_block_reward_value(slot_proposer_data: SlotProposerData, execution
         mev_recipient=None,
         mev_recipient_balance_change=None,
     )
+
+    # TODO remove below
+    #  (the old, too expensive and complicated, way of calculation below this line)
 
     # Check for MEV distribution in last tx
     last_tx = None

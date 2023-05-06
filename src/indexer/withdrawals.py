@@ -51,19 +51,21 @@ async def index_withdrawals():
 
             session.execute(
                 text(
-                    "INSERT INTO withdrawal(slot, validator_index, amount_gwei) VALUES(:slot, :validator_index, :amount_gwei)"
+                    "INSERT INTO withdrawal(slot, validator_index, amount_gwei, withdrawal_address_id)"
+                    " VALUES(:slot, :validator_index, :amount_gwei, :withdrawal_address_id)"
                 ),
                 [
                     {
                         "slot": withdrawal.slot,
                         "validator_index": withdrawal.validator_index,
                         "amount_gwei": withdrawal.amount_gwei,
+                        "withdrawal_address_id": withdrawal.withdrawal_address_id,
                     }
                     for withdrawal in withdrawals
                 ]
             )
             SLOTS_WITH_MISSING_WITHDRAWAL_DATA.dec(1)
-            if current_tx == commit_every:
+            if current_tx >= commit_every:
                 logger.debug(f"Committing @ {slot}")
                 current_tx = 0
                 session.commit()

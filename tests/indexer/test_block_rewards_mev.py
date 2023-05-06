@@ -2,6 +2,121 @@ import pytest
 
 from indexer.block_rewards.block_rewards_mev_simple import get_block_reward_value, ManualInspectionRequired
 from providers.beacon_node import SlotProposerData
+from db.db_helpers import session_scope
+from db.tables import Withdrawal, WithdrawalAddress
+
+
+@pytest.fixture(scope="session")
+def _withdrawals_in_db():
+    # Withdrawals in the DB to make the block reward calculation correct for the
+    # test case for slot 6351700 - the validator receives withdrawals during a block
+    # they propose.
+    with session_scope() as session:
+        w_addr = WithdrawalAddress(
+            address="0xde12c3d2257fc9bb1c1a00d409f292eecd55ffaf",
+        )
+        session.add(w_addr)
+        session.commit()
+
+        for obj in (
+            Withdrawal(
+                slot=6351700,
+                validator_index=560492,
+                amount_gwei=12349752,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560493,
+                amount_gwei=12399308,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560494,
+                amount_gwei=12440436,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560495,
+                amount_gwei=12430291,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560496,
+                amount_gwei=45765335,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560497,
+                amount_gwei=12429872,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560498,
+                amount_gwei=12402116,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560499,
+                amount_gwei=12430277,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560500,
+                amount_gwei=12401852,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560501,
+                amount_gwei=12430194,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560502,
+                amount_gwei=12407985,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560503,
+                amount_gwei=12370678,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560504,
+                amount_gwei=12427523,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560505,
+                amount_gwei=12452624,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560506,
+                amount_gwei=12405165,
+                withdrawal_address_id=w_addr.id,
+            ),
+            Withdrawal(
+                slot=6351700,
+                validator_index=560507,
+                amount_gwei=12387543,
+                withdrawal_address_id=w_addr.id,
+            ),
+        ):
+            session.add(obj)
 
 
 @pytest.mark.parametrize(
@@ -682,16 +797,32 @@ from providers.beacon_node import SlotProposerData
             54677735662095469,
             id="MEV block without relay",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=6351700,
+                proposer_index=560924,
+                fee_recipient="0xfeebabe6b0418ec13b30aadf129f5dcdd4f70cea",
+                block_number=17174234,
+                block_hash="0xcb2190a1d086b96bcdf9f2afcc97a5a6e9cc6b17f273f6105937710f99448b0b",
+            ),
+            30375880058298728,
+            True,
+            "0xde12c3d2257fc9bb1c1a00d409f292eecd55ffaf",
+            29127481592378074,
+            id="MEV reward recipient receives withdrawals during a block they propose",
+        ),
     ],
 )
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("_withdrawals_in_db")
 async def test_get_block_reward_value(
         slot_proposer_data, expected_priority_tx_fees, expected_contains_mev, expected_mev_reward_recipient, expected_mev_reward,
-        execution_node
+        execution_node, db_provider,
 ):
     block_reward_value = await get_block_reward_value(
         slot_proposer_data=slot_proposer_data,
         execution_node=execution_node,
+        db_provider=db_provider,
     )
     assert block_reward_value.block_priority_tx_fees == expected_priority_tx_fees
     assert block_reward_value.contains_mev == expected_contains_mev
