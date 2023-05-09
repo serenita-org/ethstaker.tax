@@ -12,7 +12,3 @@ ethstaker.tax http://localhost:80 {
 
     reverse_proxy frontend:8000
 }
-
-eth2.tax {
-    redir https://ethstaker.tax{uri} permanent
-}
