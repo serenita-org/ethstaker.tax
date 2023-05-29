@@ -214,7 +214,7 @@ async def get_block_reward_value(
             return await _mev_return_value(
                 block_number=block_number,
                 slot=slot_proposer_data.slot,
-                mev_recipient=payload.proposer_fee_recipient,
+                mev_recipient=payload.proposer_fee_recipient.lower(),
                 execution_node=execution_node,
                 db_provider=db_provider,
                 expected_value=payload.value,
