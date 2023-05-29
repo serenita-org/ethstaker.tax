@@ -811,6 +811,20 @@ def _withdrawals_in_db():
             29127481592378074,
             id="MEV reward recipient receives withdrawals during a block they propose",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=6545476,
+                proposer_index=486166,
+                fee_recipient="0xDAFEA492D9c6733ae3d56b7Ed1ADB60692c98Bc5".lower(),
+                block_number=17365172,
+                block_hash="0xef12146fc38518dc71b21caf3b96d1900bae7d628abc514eb1c205a37ef7eb62",
+            ),
+            64990113403884084,
+            True,
+            "0x4675C7e5BaAFBFFbca748158bEcBA61ef3b0a263".lower(),
+            63905165461596084,
+            id="MEV reward recipient receives withdrawals during a block they propose",
+        ),
     ],
 )
 @pytest.mark.asyncio
