@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+    <title>ethstaker.tax</title>
+    <meta
+            name="description"
+            content="Easily determine your Ethereum staking income!"
+    >
+
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,9 +20,6 @@
     <!-- Custom CSS/JS for this webapp -->
     <link rel="stylesheet" href="/dist/main.css">
     <script src="/dist/main.js"></script>
-
-    <title>{% block title %}{{ title }}{% endblock title %}</title>
-    <title>Ethereum Staking Rewards Calculator</title>
 </head>
 
 <body>
@@ -28,7 +31,6 @@
       </div>
       -->
       {% block content %}
-        <h1>Welcome to {{ title }}!</h1>
       {% endblock content %}
   </div>
 
