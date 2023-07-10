@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+    <title>ethstaker.tax</title>
+    <meta
+            name="description"
+            content="Easily determine your Ethereum staking income!"
+    >
+
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,13 +20,17 @@
     <!-- Custom CSS/JS for this webapp -->
     <link rel="stylesheet" href="/dist/main.css">
     <script src="/dist/main.js"></script>
-
-    <title>{% block title %}{{ title }}{% endblock title %}</title>
-    <title>Ethereum Staking Rewards Calculator</title>
 </head>
 
 <body>
-  <div class="container-fluid mt-3 mb-5">
+  <nav class="navbar">
+    <div class="container-fluid">
+      <a class="navbar-brand ms-auto" href="https://serenita.io" target="_blank">
+        <img class="logo" src="/static/images/logo-serenita.png" />
+      </a>
+    </div>
+  </nav>
+  <div class="container-fluid mb-5">
       <!--
       <div class="alert alert-info text-center alert-dismissible fade show" role="alert">
         <strong>ethstaker.tax is part of an ongoing Gitcoin matching round, please consider donating <a href="https://gitcoin.co/grants/2148/ethstakertax-tax-information-for-stakers" target="_blank">here</a> to help keep the site up!</strong>
@@ -28,7 +38,6 @@
       </div>
       -->
       {% block content %}
-        <h1>Welcome to {{ title }}!</h1>
       {% endblock content %}
   </div>
 
