@@ -257,16 +257,6 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
             btn.innerHTML = "<i class=\"bi-table\"></i> Show validator-specific details";
             actionButtonsDiv.appendChild(btn);
 
-            // Add a Donate button
-            btn = document.createElement("button");
-            btn.classList.add("btn");
-            btn.classList.add("btn-success");
-            btn.classList.add("m-3");
-            btn.innerHTML = "<i class=\"bi-currency-exchange\"></i> Support this website";
-            btn.setAttribute("data-bs-toggle", "modal");
-            btn.setAttribute("data-bs-target", "#donationModal");
-            actionButtonsDiv.appendChild(btn);
-
             currency = data.currency;
             let rewardTableColumnNames = [
                 "Date",

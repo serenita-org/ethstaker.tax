@@ -1,7 +1,7 @@
 {% extends "base.j2" %}
 
 {% block content %}
-<div class="p-3">
+<div class="px-3">
     <form id="inputForm" onsubmit="return false;">
         <div class="row p-3">
             <h2>For which validators would you like to calculate rewards?</h2>
@@ -105,7 +105,7 @@
 
             </div>
         </div>
-        <div class="row p-3">
+        <div class="row p-3 pb-5">
             <button class="btn btn-primary" type="submit" id="calculateButton">
                 <i class="bi-calculator"></i>
                 Calculate
@@ -125,7 +125,7 @@
     <div class="alert alert-danger d-none m-3" role="alert" id="calculateErrorMessage">
     </div>
 </div>
-<div id="allRewardsDataContainer" class="container-fluid d-none">
+<div id="allRewardsDataContainer" class="container-fluid d-none pb-3">
   <div class="row align-items-center">
     <canvas id="rewardsChartCanvas"></canvas>
   </div>
