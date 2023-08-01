@@ -226,6 +226,14 @@ async def rewards(
 
     logger.debug(f"Slots: {slots_needed}")
 
+    if len(slots_needed) == 0:
+        logger.warning(f"Returning early - slots_needed is empty")
+        return AggregateRewards(
+            validator_rewards=[],
+            currency=currency,
+            eth_prices={},
+        )
+
     # Retrieve the balances for the needed slots from the database
     logger.debug("Retrieving balances from DB")
     balances = db_provider.balances(
