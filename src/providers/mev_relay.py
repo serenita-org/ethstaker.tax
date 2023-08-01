@@ -18,7 +18,7 @@ DeliveredPayloadsResponse = namedtuple("DeliveredPayloadsResponse",
 class MevRelay:
     def _get_http_client(self) -> AsyncClientWithBackoff:
         return AsyncClientWithBackoff(
-            timeout=5
+            timeout=30
         )
 
     def __init__(self, api_url: str):
