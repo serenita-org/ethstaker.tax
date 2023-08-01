@@ -104,6 +104,12 @@ async def rewards(
     today = datetime.date.today()
     end_date = min(end_date, today - datetime.timedelta(days=1))
 
+    if start_date >= end_date:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid date inputs:"
+                                    f" {start_date} - {end_date}"
+        )
+
     # See if rewards for a calendar year were requested
     cal_year_cond = (
         start_date.day == 1
