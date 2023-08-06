@@ -166,7 +166,7 @@ class BeaconNode:
         logger.debug(f"Getting proposer index and fee recipient for slot {slot}")
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url)
-        BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/headers/{block_id}", "get_slot_proposer_data").inc()
+        BEACON_NODE_REQUEST_COUNT.labels("/eth/v2/beacon/blocks/{block_id}", "get_slot_proposer_data").inc()
 
         data = resp.json()
         if "data" not in data.keys():
