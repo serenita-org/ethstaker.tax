@@ -177,8 +177,11 @@ services:
       - db
 
   grafana:
-    image: grafana/grafana:9.3.6
+    image: grafana/grafana:9.5.7
     restart: unless-stopped
+    environment:
+      # Hopefully fixes the false positive alerts on a locked DB...
+      GF_DATABASE_WAL: "true"
     ports:
       - "3000:3000"
     volumes:
