@@ -199,11 +199,11 @@ async def get_block_reward_value(
             "https://aestus.live",
             "https://agnostic-relay.net",
             "https://builder-relay-mainnet.blocknative.com",
-            "https://bloxroute.ethical.blxrbdn.com",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
             "https://relay.edennetwork.io",
             "https://mainnet-relay.securerpc.com",
+            "https://relay.wenmerge.com",
         ]
     ]
     for relay in relays:
