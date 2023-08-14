@@ -3,61 +3,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from db.db_helpers import session_scope
-from db.tables import Balance, Withdrawal
-
-
-@pytest.fixture
-def _populated_db():
-    with session_scope() as session:
-        for db_entry in [
-            Balance(
-                slot=6_202_798,  # Apr-11-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=34.247005602,
-            ),
-            Balance(
-                slot=6_209_998,  # Apr-12-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=34.249813825,
-            ),
-            Balance(
-                slot=6_217_198,  # Apr-13-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=32.002092287,
-            ),
-            Balance(
-                slot=6_224_398,  # Apr-14-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=32.004865082,
-            ),
-            Balance(
-                slot=6_231_598,  # Apr-15-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=32.00765765,
-            ),
-            Balance(
-                slot=6_238_798,  # Apr-16-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=32.00001272,
-            ),
-            Balance(
-                slot=6_245_998,  # Apr-17-2023 23:59:59 UTC
-                validator_index=226152,
-                balance=32.002792297,
-            ),
-            Withdrawal(
-                slot=6_211_586,  # Apr-13-2023 05:17:35 UTC
-                validator_index=226152,
-                amount_gwei=2_250_393_207,
-            ),
-            Withdrawal(
-                slot=6_238_774,  # Apr-16-2023 23:55:11 UTC
-                validator_index=226152,
-                amount_gwei=10_466_575,
-            ),
-        ]:
-            session.add(db_entry)
 
 
 @pytest.mark.usefixtures("_populated_db")
@@ -69,7 +14,7 @@ def test_rewards():
         response = client.get(
             "api/v1/rewards",
             params={
-                "validator_indexes": [226152, ],
+                "validator_indexes": [123, ],
                 "start_date": "2023-04-12",
                 "end_date": "2023-04-17",
                 "timezone": "UTC",
@@ -84,7 +29,7 @@ def test_rewards():
         rewards = data["validator_rewards"]
         assert len(rewards) == 1
         for reward_data in rewards:
-            assert reward_data["validator_index"] == 226152
+            assert reward_data["validator_index"] == 123
             assert reward_data["initial_balance"]["balance"] == 34.247005602
             assert reward_data["initial_balance"]["slot"] == 6202798
             assert reward_data["initial_balance"]["date"] == "2023-04-11"

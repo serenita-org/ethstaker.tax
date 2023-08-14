@@ -165,7 +165,7 @@ async def rewards(
     # We will need to get the initial balance for the requested time period
     # This "initial" slot could be different for each validator, which is why
     # we don't just add the activation_slots to slots_needed
-    first_slot_in_requested_period = await BeaconNode.slot_for_datetime(start_dt_utc)
+    first_slot_in_requested_period = BeaconNode.slot_for_datetime(start_dt_utc)
     activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes)
     initial_balances = {}
     for activation_slot in set(activation_slots.values()):
@@ -191,13 +191,13 @@ async def rewards(
             ]
             #initial_balances_tmp = await beacon_node.balances_for_slot(initial_balance_slot, vi_with_this_as)
         else:
-            initial_balance_slot = await BeaconNode.slot_for_datetime(start_dt_utc)
+            initial_balance_slot = BeaconNode.slot_for_datetime(start_dt_utc)
             initial_balances_tmp = db_provider.balances(slots=[initial_balance_slot], validator_indexes=vi_with_this_as)
 
         for vi in vi_with_this_as:
             balance = next(ib for ib in initial_balances_tmp if ib.validator_index == vi)
             initial_balances[vi] = InitialBalance(
-                date=(await BeaconNode.datetime_for_slot(initial_balance_slot, timezone)).date(),
+                date=BeaconNode.datetime_for_slot(initial_balance_slot, timezone).date(),
                 slot=initial_balance_slot,
                 balance=balance.balance,
             )
@@ -219,14 +219,14 @@ async def rewards(
         # Localize it
         current_dt = timezone.localize(current_dt)
         # Retrieve the midnight slot number
-        eod_slots.add(await BeaconNode.slot_for_datetime(current_dt))
+        eod_slots.add(BeaconNode.slot_for_datetime(current_dt))
         current_date += datetime.timedelta(days=1)
     slots_needed.update(eod_slots)
 
     # Keep only slots that are <= head slot
     # since we cannot retrieve balances for future
     # slots
-    head_slot = await BeaconNode.head_slot()
+    head_slot = BeaconNode.head_slot()
     slots_needed = [s for s in slots_needed if s <= head_slot]
     slots_needed = sorted(slots_needed)
 
@@ -257,7 +257,7 @@ async def rewards(
     sem = asyncio.Semaphore(5)
     date_eth_price: dict[datetime.date, float] = {}
     for slot in slots_needed:
-        date = (await BeaconNode.datetime_for_slot(slot, timezone)).date()
+        date = BeaconNode.datetime_for_slot(slot, timezone).date()
 
         async with sem:
             date_eth_price[date] = await coin_gecko.price_for_date(
@@ -302,8 +302,8 @@ async def rewards(
 
         # Retrieve the withdrawals
         withdrawals = db_provider.withdrawals(
-            min_slot=await beacon_node.slot_for_datetime(start_dt_utc),
-            max_slot=await beacon_node.slot_for_datetime(datetime.datetime.combine(
+            min_slot=beacon_node.slot_for_datetime(start_dt_utc),
+            max_slot=beacon_node.slot_for_datetime(datetime.datetime.combine(
                 end_date,
                 datetime.time(hour=23, minute=59, second=59, tzinfo=timezone)
             )),
@@ -324,7 +324,7 @@ async def rewards(
                 # This ignores all balance entries in the DB before the validator's activation = "real" initial balance.
                 continue
 
-            slot_date = (await BeaconNode.datetime_for_slot(vb.slot, timezone)).date()
+            slot_date = BeaconNode.datetime_for_slot(vb.slot, timezone).date()
 
             eod_balances.append(
                 EndOfDayBalance(
@@ -352,8 +352,8 @@ async def rewards(
 
         # Retrieve the execution layer rewards
         block_rewards = db_provider.block_rewards(
-            min_slot=await beacon_node.slot_for_datetime(start_dt_utc),
-            max_slot=await beacon_node.slot_for_datetime(datetime.datetime.combine(
+            min_slot=beacon_node.slot_for_datetime(start_dt_utc),
+            max_slot=beacon_node.slot_for_datetime(datetime.datetime.combine(
                 end_date,
                 datetime.time(hour=23, minute=59, second=59, tzinfo=timezone)
             )),
@@ -369,9 +369,16 @@ async def rewards(
             else:
                 br_reward_eth = int(br.priority_fees_wei) / 1e18
             total_execution_layer_eth += br_reward_eth
-            slot_date = (await BeaconNode.datetime_for_slot(br.slot, timezone)).date()
+            slot_date = BeaconNode.datetime_for_slot(br.slot, timezone).date()
             total_execution_layer_currency += br_reward_eth * date_eth_price[slot_date]
-            exec_layer_block_rewards.append(ExecLayerBlockReward(date=slot_date, reward=br_reward_eth))
+            exec_layer_block_rewards.append(
+                ExecLayerBlockReward(
+                    date=slot_date,
+                    reward=br_reward_eth,
+                    slot=br.slot,
+                    mev=br.mev,
+                )
+            )
 
         aggregate_rewards.validator_rewards.append(
             ValidatorRewards(
@@ -380,7 +387,7 @@ async def rewards(
                 eod_balances=eod_balances,
                 exec_layer_block_rewards=exec_layer_block_rewards,
                 withdrawals=[Withdrawal(
-                    date=(await BeaconNode.datetime_for_slot(w.slot, timezone)).date(),
+                    date=BeaconNode.datetime_for_slot(w.slot, timezone).date(),
                     amount=int(w.amount_gwei) / 1e9,
                 ) for w in withdrawals],
                 total_consensus_layer_eth=total_consensus_layer_eth,

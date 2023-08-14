@@ -68,7 +68,7 @@ class BeaconNode:
         app.state.BEACON_NODE = self
 
     @staticmethod
-    async def slot_for_datetime(dt: datetime.datetime) -> int:
+    def slot_for_datetime(dt: datetime.datetime) -> int:
         # Datetime must be localized
         if dt.tzinfo is None:
             raise ValueError("Datetime must be localized")
@@ -85,7 +85,7 @@ class BeaconNode:
         return slot
 
     @staticmethod
-    async def datetime_for_slot(slot: int, timezone: pytz.timezone) -> datetime.datetime:
+    def datetime_for_slot(slot: int, timezone: pytz.timezone) -> datetime.datetime:
         utc_dt = GENESIS_DATETIME + datetime.timedelta(seconds=slot * SLOT_TIME)
         localized_dt = utc_dt.astimezone(timezone)
 
@@ -94,7 +94,7 @@ class BeaconNode:
         return localized_dt
 
     @staticmethod
-    async def head_slot() -> int:
+    def head_slot() -> int:
         now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
         head_slot = int((now - GENESIS_DATETIME).total_seconds() // SLOT_TIME)
         return head_slot

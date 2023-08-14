@@ -56,7 +56,7 @@ async def index_balances():
         )
         end_dt = end_dt.astimezone(timezone)
 
-        initial_slot = await BeaconNode.slot_for_datetime(start_dt)
+        initial_slot = BeaconNode.slot_for_datetime(start_dt)
         slots = [initial_slot]
 
         current_dt = start_dt.replace(hour=23, minute=59, second=59)
@@ -65,12 +65,9 @@ async def index_balances():
             datetimes.append(current_dt)
             current_dt += datetime.timedelta(days=1)
 
-        head_slot = await beacon_node.head_slot()
-        slots.extend(
-            await asyncio.gather(
-                *(beacon_node.slot_for_datetime(dt) for dt in datetimes)
-            )
-        )
+        head_slot = beacon_node.head_slot()
+        slots.extend(beacon_node.slot_for_datetime(dt) for dt in datetimes)
+
 
         # Cap slots at head slot
         slots = [s for s in slots if s < head_slot]

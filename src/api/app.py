@@ -2,6 +2,7 @@ import os
 import logging
 
 from fastapi import FastAPI, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_plugins import redis_plugin, RedisSettings
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
@@ -26,6 +27,15 @@ app = FastAPI(
     openapi_tags=openapi_tags_v1,
 )
 logger = logging.getLogger(__name__)
+app.add_middleware(
+    CORSMiddleware,
+    allow_methods=["GET"], # Allows all methods
+    allow_headers=["*"], # Allows all headers
+    allow_origins=[
+        "https://ethstaker.tax",
+        "https://serenita.io",
+    ]
+)
 app.add_middleware(
     PrometheusMiddleware,
     buckets=[
