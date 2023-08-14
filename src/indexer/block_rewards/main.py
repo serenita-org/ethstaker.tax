@@ -120,8 +120,8 @@ async def index_block_rewards():
                 SLOTS_INDEXING_FAILURES.inc(1)
                 continue
 
-            block_extra_data = (
-                await execution_node.get_miner_data(block_number=slot_proposer_data.block_number)).extra_data
+            block = await execution_node.get_block(block_number=slot_proposer_data.block_number)
+            block_extra_data = block["extraData"]
             session.merge(
                 BlockReward(
                     slot=slot,

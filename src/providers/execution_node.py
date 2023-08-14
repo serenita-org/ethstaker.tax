@@ -106,16 +106,30 @@ class ExecutionNode:
 
     async def get_tx_receipts(self, tx_ids: list[str]) -> list[dict]:
         url = f"{self.BASE_URL}"
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json=[{
-                "jsonrpc": "2.0",
-                "method": "eth_getTransactionReceipt",
-                "params": [tx_id],
-                "id": 1
-            } for tx_id in tx_ids], headers=self.HEADERS)
-        EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionReceipt", "get_tx_receipt").inc()
+        receipts: list[dict] = []
 
-        return [data["result"] for data in resp.json()]
+        # There can be a lot of transactions in a block -> divide them into batches
+        def batch(iterable, n=1):
+            l = len(iterable)
+            for idx in range(0, l, n):
+                yield iterable[idx:min(idx + n, l)]
+
+        async with self._get_http_client() as client:
+            for tx_id_batch in batch(tx_ids, n=50):
+                resp = await client.post_w_backoff(url=url, json=[{
+                    "jsonrpc": "2.0",
+                    "method": "eth_getTransactionReceipt",
+                    "params": [tx_id],
+                    "id": 1
+                } for tx_id in tx_id_batch], headers=self.HEADERS)
+
+                if resp.status_code != 200:
+                    raise ValueError(f"Non-200 status code - {resp.text}"
+                                     f" for tx_id_batch: {tx_id_batch}")
+                receipts.extend([data["result"] for data in resp.json()])
+                EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionReceipt", "get_tx_receipt").inc()
+
+        return receipts
 
     async def get_tx_fee(self, tx_hash: str) -> int:
         tx_receipt = (await self.get_tx_receipts([tx_hash]))[0]
