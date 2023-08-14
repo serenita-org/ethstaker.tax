@@ -104,6 +104,12 @@ async def rewards(
     today = datetime.date.today()
     end_date = min(end_date, today - datetime.timedelta(days=1))
 
+    if start_date >= end_date:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid date inputs:"
+                                    f" {start_date} - {end_date}"
+        )
+
     # See if rewards for a calendar year were requested
     cal_year_cond = (
         start_date.day == 1
@@ -225,6 +231,14 @@ async def rewards(
     slots_needed = sorted(slots_needed)
 
     logger.debug(f"Slots: {slots_needed}")
+
+    if len(slots_needed) == 0:
+        logger.warning(f"Returning early - slots_needed is empty")
+        return AggregateRewards(
+            validator_rewards=[],
+            currency=currency,
+            eth_prices={},
+        )
 
     # Retrieve the balances for the needed slots from the database
     logger.debug("Retrieving balances from DB")
