@@ -63,13 +63,18 @@ class DbProvider:
         return balances
 
     @DB_REQUESTS_SECONDS.time()
-    def block_rewards(self, min_slot: int, max_slot: int, proposer_indexes: Iterable[int]) -> List[BlockReward]:
+    def block_rewards(self, min_slot: int, max_slot: int, proposer_indexes: Iterable[int], limit: int | None = None) -> List[BlockReward]:
         with session_scope(self.engine) as session:
-            block_rewards = session\
+            query = session\
                 .query(BlockReward) \
                 .filter(BlockReward.slot.between(min_slot, max_slot))\
-                .filter(BlockReward.proposer_index.in_(proposer_indexes))\
-                .all()
+                .order_by(BlockReward.slot.desc())\
+                .limit(limit)
+
+            if proposer_indexes:
+                query = query.filter(BlockReward.proposer_index.in_(proposer_indexes))
+
+            block_rewards = query.all()
             session.expunge_all()
 
         return block_rewards

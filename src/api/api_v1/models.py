@@ -25,6 +25,11 @@ class InitialBalance(BalanceAtSlot):
 class ExecLayerBlockReward(BaseModel):
     date: datetime.date = Field(..., example=datetime.date.fromisoformat("2022-09-15"))
     reward: float = Field(..., example=0.013)
+    slot: int = Field(..., example=78391)
+    mev: bool = Field(..., example=False)
+
+    def __str__(self):
+        return f"ExecLayerBlockReward for {self.slot}"
 
 
 class Withdrawal(BaseModel):

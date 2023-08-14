@@ -69,7 +69,7 @@ async def index_block_rewards():
     execution_node = ExecutionNode()
     db_provider = DbProvider()
 
-    slots_needed = {s for s in range(START_SLOT, (await beacon_node.head_slot()))}
+    slots_needed = {s for s in range(START_SLOT, beacon_node.head_slot())}
 
     # Remove slots that have already been indexed previously
     if not os.getenv("INDEX_ALL") == "true":
