@@ -1,3 +1,4 @@
+from collections import Counter
 import json
 import logging
 import asyncio
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 START_SLOT = 4700013  # First PoS slot
 
 ALREADY_INDEXED_SLOTS = set()
+SLOT_INDEXING_FAILURE_COUNTER = Counter()
 CACHE_KEY_MISSING_DATA = "INDEXER_BLOCK_REWARDS_MISSING_DATA"
 
 SLOTS_WITH_MISSING_BLOCK_REWARDS = Gauge(
@@ -83,7 +85,11 @@ async def index_block_rewards():
     SLOTS_WITH_MISSING_BLOCK_REWARDS.set(len(slots_needed))
 
     with session_scope() as session:
-        for slot in tqdm(sorted(slots_needed, reverse=True)):
+        for slot in tqdm(sorted(slots_needed, reverse=False)):
+            if SLOT_INDEXING_FAILURE_COUNTER[slot] > 3:
+                # Already failed to process this slot 3 times -> skip it
+                continue
+
             # Wait for slot to be finalized
             if not await beacon_node.is_slot_finalized(slot):
                 SLOTS_WITH_MISSING_BLOCK_REWARDS.dec(1)
@@ -116,6 +122,7 @@ async def index_block_rewards():
                 )
             except (ManualInspectionRequired, AssertionError, RateLimited) as e:
                 logger.error(f"Failed to process slot {slot} -> {str(e)}")
+                SLOT_INDEXING_FAILURE_COUNTER[slot] += 1
                 update_missing_data_cache(proposer_index=slot_proposer_data.proposer_index, slot_w_missing_data=slot)
                 SLOTS_INDEXING_FAILURES.inc(1)
                 continue
@@ -156,4 +163,4 @@ if __name__ == "__main__":
             logger.error(f"Error occurred while indexing block rewards: {e}")
             logger.exception(e)
         logger.info("Sleeping for a while now")
-        sleep(300)
+        sleep(60)
