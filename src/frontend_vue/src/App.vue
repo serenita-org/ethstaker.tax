@@ -1,0 +1,44 @@
+<script setup lang="ts">
+import "bootstrap";
+import TheMainView from './views/TheMainView.vue'
+
+import { ref } from 'vue'
+
+const gitcoinRoundActive = ref(false);
+const gitcoinGrantLink = ref("https://explorer.gitcoin.co/#/round/10/0x8de918f0163b2021839a8d84954dd7e8e151326d/0x8de918f0163b2021839a8d84954dd7e8e151326d-37");
+
+</script>
+
+<template>
+  <div class="container-fluid d-flex align-items-center justify-content-end">
+      <h6 class="fw-light mx-3">ETHSTAKER.TAX</h6>
+      <h6 class="fw-light mx-3">BY</h6>
+      <a href="https://serenita.io/" target="_blank">
+        <img src="./assets/logo-serenita.svg" class="logo serenita" alt="Vue logo" />
+      </a>
+  </div>
+  <div v-if="gitcoinRoundActive" class="text-center bg-secondary-subtle py-3">
+    <p>ethstaker.tax is part of an ongoing Gitcoin matching round, please consider donating <a :href=gitcoinGrantLink target="_blank">here</a> to support this website!</p>
+    <p>During a Gitcoin matching round, even donating 1$ can have a big impact. Thank you!</p>
+  </div>
+  <TheMainView></TheMainView>
+</template>
+
+<style scoped>
+
+h6 {
+  font-family: "Josefin Sans", sans-serif;
+  margin: 0;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo.serenita:hover {
+  filter: drop-shadow(0 0 2em rgba(9, 134, 134, 0.75));
+}
+</style>

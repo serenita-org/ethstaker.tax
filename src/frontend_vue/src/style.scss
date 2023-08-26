@@ -1,0 +1,119 @@
+// Josefin Sans is used as the font in the logo but doesn't look nice enough
+// in paragraphs -> combining with Raleway.
+@font-face {
+  font-family: "Josefin Sans";
+  src: url("./assets/fonts/josefin_sans.ttf");
+}
+@font-face {
+  font-family: "Raleway Sans";
+  src: url("./assets/fonts/Raleway-VariableFont_wght.ttf");
+}
+@import "node_modules/bootstrap/scss/bootstrap.scss";
+@import 'bootstrap-vue-next/dist/bootstrap-vue-next.css';
+
+[data-bs-theme="serenita"] {
+  --bs-body-font-family: "Raleway Sans", sans-serif;
+  --bs-body-text-align: "justify";
+}
+
+:root {
+  --serenita-blue-dark: 17, 73, 126;
+  --serenita-blue-light: 75, 156, 231;
+  --serenita-green-dark: 9, 134, 134;
+  --serenita-green-light: 12, 186, 186;
+  --serenita-cyan: 9, 134, 134;
+  --gradient-background-transparency: 1;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgba(var(--serenita-blue-light), 0.1);
+}
+.accordion-button {
+  background-color: rgba(var(--serenita-blue-light), 0.1);
+}
+.dropdown-item.hover,
+.dropdown-item:active {
+  background-color: rgb(var(--serenita-blue-dark));
+}
+.card,
+.accordion-item,
+select option,
+.form-select,
+.input-group {
+  background-color: rgba(white, 0.5);
+}
+
+.accordion-item {
+  border: solid rgba(var(--serenita-blue-dark), 0.5);
+}
+
+.btn-primary {
+  background-color: rgba(var(--serenita-blue-dark), 0.7);
+  --bs-btn-border-color: rgba(var(--serenita-blue-dark), 0.7);
+  --bs-btn-active-border-color: rgba(var(--serenita-blue-dark), 0.7);
+  --bs-btn-hover-border-color: rgba(var(--serenita-blue-dark), 0.7);
+}
+.btn-primary:hover {
+  background-color: rgb(var(--serenita-blue-dark));
+}
+
+// Account for navbar
+main > .container-fluid {
+  padding: 90px 15px 0;
+}
+
+$gradient-background-transparency: 0.1;
+.gradient-background-subtle {
+  background: linear-gradient(
+    -45deg,
+    rgba(var(--serenita-green-dark), $gradient-background-transparency),
+    rgba(var(--serenita-green-light), $gradient-background-transparency)
+  );
+  background-size: 1000% 1000%;
+  animation: gradient 20s ease infinite;
+}
+
+.bg-light {
+  --bs-bg-opacity: 0.8;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+body {
+  animation: fadeInAnimation 2s ease;
+}
+
+@keyframes fadeInAnimation {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+// Account for navbar in anchor links - add anchor class to invisible <a> elements to correct the position
+a.anchor {
+  display: block;
+  position: relative;
+  top: -100px;
+  visibility: hidden;
+}
