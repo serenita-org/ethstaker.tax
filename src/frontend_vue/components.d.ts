@@ -14,8 +14,10 @@ declare module 'vue' {
     BNavItem: typeof import('bootstrap-vue-next')['BNavItem']
     BTab: typeof import('bootstrap-vue-next')['BTab']
     BTabs: typeof import('bootstrap-vue-next')['BTabs']
-    CurrencyPicker: typeof import('./src/components/calculator/CurrencyPicker.vue')['default']
-    DateRangePicker: typeof import('./src/components/calculator/DateRangePicker.vue')['default']
-    ValidatorAdder: typeof import('./src/components/calculator/ValidatorAdder.vue')['default']
+    CurrencyPicker: typeof import('./src/components/inputs/CurrencyPicker.vue')['default']
+    DateRangePicker: typeof import('./src/components/inputs/DateRangePicker.vue')['default']
+    IncomeChart: typeof import('./src/components/outputs/IncomeChart.vue')['default']
+    SummaryTable: typeof import('./src/components/outputs/SummaryTable.vue')['default']
+    ValidatorAdder: typeof import('./src/components/inputs/ValidatorAdder.vue')['default']
   }
 }

@@ -2,21 +2,20 @@
 
 import {onMounted, ref, watch} from "vue";
 
-const startDateString = ref("2023-01-01");
+const startDateString = ref("2023-08-10");
 const endDateString = ref("2023-12-31");
 
+
+const emit = defineEmits(['date-range-changed']);
 onMounted(() => {
-  emit('dateRangeChanged', startDateString.value, endDateString.value);
+  emit('date-range-changed', startDateString.value, endDateString.value);
 })
-
-
-const emit = defineEmits(['dateRangeChanged']);
 
 watch(startDateString, async () => {
-  emit('dateRangeChanged', startDateString.value, endDateString.value);
+  emit('date-range-changed', startDateString.value, endDateString.value);
 })
 watch(endDateString, async () => {
-  emit('dateRangeChanged', startDateString.value, endDateString.value);
+  emit('date-range-changed', startDateString.value, endDateString.value);
 })
 
 

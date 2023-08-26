@@ -10,11 +10,8 @@
 }
 @import "node_modules/bootstrap/scss/bootstrap.scss";
 @import 'bootstrap-vue-next/dist/bootstrap-vue-next.css';
+@import "bootstrap-icons/font/bootstrap-icons.css";
 
-[data-bs-theme="serenita"] {
-  --bs-body-font-family: "Raleway Sans", sans-serif;
-  --bs-body-text-align: "justify";
-}
 
 :root {
   --serenita-blue-dark: 17, 73, 126;
@@ -23,6 +20,12 @@
   --serenita-green-light: 12, 186, 186;
   --serenita-cyan: 9, 134, 134;
   --gradient-background-transparency: 1;
+}
+
+[data-bs-theme="serenita"] {
+  --bs-body-font-family: "Raleway Sans", sans-serif;
+  --bs-body-text-align: "justify";
+  --bs-primary-rgb: rgb(var(--serenita-blue-dark));
 }
 
 .accordion-button:not(.collapsed) {
@@ -48,13 +51,29 @@ select option,
 }
 
 .btn-primary {
-  background-color: rgba(var(--serenita-blue-dark), 0.7);
-  --bs-btn-border-color: rgba(var(--serenita-blue-dark), 0.7);
-  --bs-btn-active-border-color: rgba(var(--serenita-blue-dark), 0.7);
-  --bs-btn-hover-border-color: rgba(var(--serenita-blue-dark), 0.7);
+  --bs-btn-bg: rgba(var(--serenita-blue-dark), 0.9);
+  --bs-btn-border-color: rgba(var(--serenita-blue-dark), 0.9);
+  --bs-btn-active-border-color: rgba(var(--serenita-blue-dark), 0.9);
+  --bs-btn-hover-border-color: rgba(var(--serenita-blue-dark), 0.9);
 }
 .btn-primary:hover {
   background-color: rgb(var(--serenita-blue-dark));
+}
+.btn-primary:disabled {
+  background-color: rgba(var(--serenita-blue-dark), 0.4);
+}
+
+.btn-secondary {
+  --bs-btn-bg: rgba(var(--serenita-green-dark), 0.9);
+  --bs-btn-border-color: rgba(var(--serenita-green-dark), 0.9);
+  --bs-btn-active-border-color: rgba(var(--serenita-green-dark), 0.9);
+  --bs-btn-hover-border-color: rgba(var(--serenita-green-dark), 0.9);
+}
+.btn-secondary:hover {
+  background-color: rgb(var(--serenita-green-dark));
+}
+.btn-secondary:disabled {
+  background-color: rgba(var(--serenita-green-dark), 0.4);
 }
 
 // Account for navbar

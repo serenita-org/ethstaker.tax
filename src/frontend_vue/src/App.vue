@@ -10,11 +10,11 @@ const gitcoinGrantLink = ref("https://explorer.gitcoin.co/#/round/10/0x8de918f01
 </script>
 
 <template>
-  <div class="container-fluid d-flex align-items-center justify-content-end">
-      <h6 class="fw-light mx-3">ETHSTAKER.TAX</h6>
-      <h6 class="fw-light mx-3">BY</h6>
+  <div class="container-fluid d-flex align-items-center justify-content-end mb-1">
+      <h6 class="fw-light mx-2">ETHSTAKER.TAX</h6>
+      <h6 class="fw-light mx-2">BY</h6>
       <a href="https://serenita.io/" target="_blank">
-        <img src="./assets/logo-serenita.svg" class="logo serenita" alt="Vue logo" />
+        <img src="./assets/logo-serenita.svg" class="logo serenita" alt="Logo Serenita" />
       </a>
   </div>
   <div v-if="gitcoinRoundActive" class="text-center bg-secondary-subtle py-3">
@@ -27,14 +27,12 @@ const gitcoinGrantLink = ref("https://explorer.gitcoin.co/#/round/10/0x8de918f01
 <style scoped>
 
 h6 {
-  font-family: "Josefin Sans", sans-serif;
   margin: 0;
   text-align: center;
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  height:4em;
   will-change: filter;
   transition: filter 300ms;
 }

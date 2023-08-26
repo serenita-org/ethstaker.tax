@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import {Ref, ref, watch} from 'vue'
 import axios from "axios";
 
 
@@ -8,18 +8,20 @@ const depositAddrUrl = new URL("https://ethstaker.tax/api/v1/indexes_for_eth1_ad
 
 
 //const indexesInput = ref("1, 2, 3");
-const indexesInput = ref("12, 13, 32");
+const indexesInput = ref("12, 13, 32, 584907");
 const pubkeysInput = ref("0xa9df2cfd79a8b569e7abc286047ade81dbc2e5b89bfd8c00b0913ba3c539b80ff469e77465c6d1815b29e151ab8efd38, 0x94c918316fb3db0e10feb4ee9d526d8bf991658bd5f68303ecef17e41482fec4362595f322408925b74719cd57c011c6");
 //const pubkeysInput = ref("");
 const depositAddressesInput = ref("0x16ab90Dd40DEE049F5afdC40A0B1FD083EA8e534");
 //const depositAddressesInput = ref("");
 
-const validatorIndexes = ref(new Set());
+const validatorIndexes: Ref<Set<number>> = ref(new Set([]));
 
-const emit = defineEmits(['validatorsChanged']);
+const emit = defineEmits<{
+  (e: 'validator-indexes-changed', id: Set<number>): void
+}>()
 
 watch(validatorIndexes.value, async (newValidatorIndexes) => {
-  emit('validatorsChanged', newValidatorIndexes);
+  emit('validator-indexes-changed', newValidatorIndexes);
 })
 
 
@@ -44,7 +46,7 @@ async function getIndexesForPubkeys(event) {
     }});
 
     if (resp.status !== 200) {
-      const errorMessage = `Unable to get indexes for pubkey ${pubkey}!`;
+      const errorMessage = `Failed to get indexes for pubkey ${pubkey}!`;
       alert(errorMessage);
       throw errorMessage;
     }
@@ -63,7 +65,7 @@ async function getIndexesForDepositAddresses(event) {
     }});
 
     if (resp.status !== 200) {
-      const errorMessage = `Unable to get indexes for deposit address ${depositAddress}!`;
+      const errorMessage = `Failed to get indexes for deposit address ${depositAddress}!`;
       alert(errorMessage);
       throw errorMessage;
     }
@@ -125,8 +127,11 @@ async function getIndexesForDepositAddresses(event) {
       </BTabs>
     </BCard>
   </div>
-  <div v-if="validatorIndexes.size > 0">
-    <p class="my-1">Total validators: {{ validatorIndexes.size }} ( {{ Array.from(validatorIndexes).sort((a, b) => a - b).toString() }} )</p>
+  <div v-if="validatorIndexes.size > 0" class="my-2">
+    <div class="d-flex flex-row align-items-center">
+        <p class="my-1">Validators Added: {{ validatorIndexes.size }} {{ validatorIndexes.size <= 10 ? `( ${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")})` : "" }}</p>
+        <BButton @click="validatorIndexes = new Set()" class="mx-3">Reset</BButton>
+    </div>
   </div>
 </template>
 
