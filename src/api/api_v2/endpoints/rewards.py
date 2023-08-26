@@ -5,14 +5,12 @@ from collections import defaultdict
 from decimal import Decimal
 
 import pytz
-from pydantic import parse_raw_as
-from pydantic.json import pydantic_encoder
 from redis import Redis
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
-from api.api_v2.models import RewardsRequest, RewardsResponse, RewardForDate
+from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate
 from db.tables import Balance
 from indexer.block_rewards.main import CACHE_KEY_MISSING_DATA
 from providers.beacon_node import BeaconNode, depends_beacon_node
@@ -24,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @router.post(  # POST method to support bigger requests
     "/rewards",
-    response_model=list[RewardsResponse],
+    response_model=list[ValidatorRewards],
 )
 async def rewards(
     rewards_request: RewardsRequest,
@@ -171,7 +169,7 @@ async def rewards(
             )
 
     return [
-        RewardsResponse(
+        ValidatorRewards(
             validator_index=validator_index,
             consensus_layer_rewards=consensus_layer_rewards[validator_index],
             execution_layer_rewards=execution_layer_rewards[validator_index],
