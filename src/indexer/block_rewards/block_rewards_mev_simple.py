@@ -113,7 +113,7 @@ async def _get_balance_change_adjusted(
 
     # Account for withdrawal state change
     # (the address may receive withdrawals from the beacon chain)
-    balance_change -= sum(1_000_000_000 * w.amount_gwei for w in db_provider.withdrawals_to_address(address) if w.slot == slot)
+    balance_change -= sum(1_000_000_000 * w.amount_gwei for w in db_provider.withdrawals_to_address(address, slot=slot) if w.slot == slot)
 
     return balance_change
 
@@ -199,11 +199,11 @@ async def get_block_reward_value(
             "https://aestus.live",
             "https://agnostic-relay.net",
             "https://builder-relay-mainnet.blocknative.com",
-            "https://bloxroute.ethical.blxrbdn.com",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
             "https://relay.edennetwork.io",
             "https://mainnet-relay.securerpc.com",
+            "https://relay.wenmerge.com",
         ]
     ]
     for relay in relays:

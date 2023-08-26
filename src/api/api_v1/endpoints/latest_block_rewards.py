@@ -27,7 +27,7 @@ async def latest_block_rewards(
     cache: Redis = Depends(depends_redis),
     db_provider: DbProvider = Depends(depends_db),
     beacon_node: BeaconNode = Depends(depends_beacon_node),
-    rate_limiter: RateLimiter = Depends(RateLimiter(times=10000, minutes=1)),
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=100, minutes=1)),
 ):
     cache_key = "latest_block_rewards"
 

@@ -80,9 +80,12 @@ class DbProvider:
         return block_rewards
 
     @DB_REQUESTS_SECONDS.time()
-    def withdrawals_to_address(self, address: str) -> List[Withdrawal]:
+    def withdrawals_to_address(self, address: str, slot: int = None) -> List[Withdrawal]:
         with session_scope(self.engine) as session:
-            withdrawals = session.query(Withdrawal).filter(Withdrawal.withdrawal_address.has(address=address)).all()
+            query = session.query(Withdrawal).filter(Withdrawal.withdrawal_address.has(address=address))
+            if slot:
+                query = query.filter(Withdrawal.slot==slot)
+            withdrawals = query.all()
             session.expunge_all()
         return withdrawals
 

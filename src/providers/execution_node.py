@@ -90,7 +90,7 @@ class ExecutionNode:
         EXEC_NODE_REQUEST_COUNT.labels("eth_getBlockByNumber", "get_block").inc()
 
         if resp.json()["result"] is None:
-            logger.warning(f"Received null block for {block_number}")
+            raise ValueError(f"Received null block for {block_number}")
 
         return resp.json()["result"]
 
