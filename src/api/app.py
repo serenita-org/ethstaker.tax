@@ -30,8 +30,8 @@ app = FastAPI(
 logger = logging.getLogger(__name__)
 app.add_middleware(
     CORSMiddleware,
-    allow_methods=["GET"], # Allows all methods
-    allow_headers=["*"], # Allows all headers
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],  # Allows all headers
     allow_origins=[
         "https://ethstaker.tax",
         "https://serenita.io",
