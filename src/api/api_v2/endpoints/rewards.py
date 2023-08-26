@@ -115,6 +115,8 @@ async def rewards(
     for validator_index in validator_indexes:
         prev_balance = initial_balances[validator_index]
         for eod_balance in eod_balances:
+            if eod_balance.validator_index != validator_index:
+                continue
             amount_earned_wei = Decimal(1e18) * (eod_balance.balance - prev_balance.balance)
 
             # Account for withdrawals
@@ -137,12 +139,13 @@ async def rewards(
                     amount_wei=amount_earned_wei,
                 )
             )
-            withdrawals[validator_index].append(
-                RewardForDate(
-                    date=date,
-                    amount_wei=amount_withdrawn_this_day_wei
+            if amount_withdrawn_this_day_wei > 0:
+                withdrawals[validator_index].append(
+                    RewardForDate(
+                        date=date,
+                        amount_wei=amount_withdrawn_this_day_wei
+                    )
                 )
-            )
             prev_balance = eod_balance
 
         block_rewards = db_provider.block_rewards(
