@@ -58,6 +58,26 @@ def _populated_db():
                 validator_index=123,
                 amount_gwei=10_466_575,
             ),
+            BlockReward(
+                slot=6_226_574,  # Apr-15-2023 07:15:11 UTC
+                proposer_index=123,
+                fee_recipient="0xdeadbeef",
+                priority_fees_wei=29608930218000001,
+                block_extra_data=None,
+                mev=False,
+                mev_reward_recipient=None,
+                mev_reward_value_wei=None,
+            ),
+            BlockReward(
+                slot=6_238_574,  # Apr-16-2023 23:15:11 UTC
+                proposer_index=123,
+                fee_recipient="0xdeadbeef",
+                priority_fees_wei=29608930218000001,
+                block_extra_data=None,
+                mev=True,
+                mev_reward_recipient="0xdeadbeef",
+                mev_reward_value_wei=42002960893000000000,
+            ),
             *[
                 BlockReward(
                     slot=slot,

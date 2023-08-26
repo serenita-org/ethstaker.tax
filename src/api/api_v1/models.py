@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Dict, List, Optional
 import datetime
 
@@ -7,7 +8,7 @@ from pydantic import BaseModel, Field
 class BalanceAtSlot(BaseModel):
     date: datetime.date = Field(..., example=datetime.date.fromisoformat("2020-01-31"))
     slot: int = Field(..., example=78391)
-    balance: float = Field(..., example=32.42)
+    balance: Decimal = Field(..., example=32.42)
 
 
 class EndOfDayBalance(BalanceAtSlot):

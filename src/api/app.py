@@ -14,6 +14,7 @@ from providers.coin_gecko import coin_gecko_plugin
 from providers.db_provider import db_plugin
 from api.rate_limiting import rate_limit_per_path_identifier
 from api.api_v1 import api_v1_router, openapi_tags_v1
+from api.api_v2 import api_v2_router
 
 
 app = FastAPI(
@@ -62,6 +63,7 @@ app.add_middleware(
 app.add_route("/metrics", handle_metrics)
 
 app.include_router(api_v1_router)
+app.include_router(api_v2_router)
 
 
 @app.get("/api/echo", include_in_schema=False)

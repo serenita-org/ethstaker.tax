@@ -11,7 +11,7 @@ class Balance(Base):
 
     slot = Column(Integer, nullable=False, primary_key=True)
     validator_index = Column(Integer, nullable=False, primary_key=True)
-    balance = Column(Float, nullable=False)
+    balance = Column(Float(asdecimal=True), nullable=False)
 
 
 class BlockReward(Base):
