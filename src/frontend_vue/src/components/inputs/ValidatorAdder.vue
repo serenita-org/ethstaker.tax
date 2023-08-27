@@ -7,12 +7,9 @@ const pubKeyUrl = new URL("https://ethstaker.tax/api/v1/index_for_publickey", wi
 const depositAddrUrl = new URL("https://ethstaker.tax/api/v1/indexes_for_eth1_address", window.location.href);
 
 
-//const indexesInput = ref("1, 2, 3");
-const indexesInput = ref("12, 13, 32, 584907");
-const pubkeysInput = ref("0xa9df2cfd79a8b569e7abc286047ade81dbc2e5b89bfd8c00b0913ba3c539b80ff469e77465c6d1815b29e151ab8efd38, 0x94c918316fb3db0e10feb4ee9d526d8bf991658bd5f68303ecef17e41482fec4362595f322408925b74719cd57c011c6");
-//const pubkeysInput = ref("");
-const depositAddressesInput = ref("0x16ab90Dd40DEE049F5afdC40A0B1FD083EA8e534");
-//const depositAddressesInput = ref("");
+const indexesInput = ref("");
+const pubkeysInput = ref("");
+const depositAddressesInput = ref("");
 
 const validatorIndexes: Ref<Set<number>> = ref(new Set([]));
 
@@ -25,7 +22,7 @@ watch(validatorIndexes.value, async (newValidatorIndexes) => {
 })
 
 
-function parseValidatorIndexes(event) {
+function parseValidatorIndexes() {
   const inputIndexes = indexesInput.value.split(",").filter(Number).map(function(item) {
     return parseInt(item.trim());
   });
@@ -35,7 +32,7 @@ function parseValidatorIndexes(event) {
 }
 
 
-async function getIndexesForPubkeys(event) {
+async function getIndexesForPubkeys() {
   const inputPubkeys = pubkeysInput.value.split(",").map(function(item) {
     return item.trim();
   });
@@ -54,7 +51,7 @@ async function getIndexesForPubkeys(event) {
   }
 }
 
-async function getIndexesForDepositAddresses(event) {
+async function getIndexesForDepositAddresses() {
   const inputDepositAddresses = depositAddressesInput.value.split(",").map(function(item) {
     return item.trim();
   });
@@ -69,7 +66,7 @@ async function getIndexesForDepositAddresses(event) {
       alert(errorMessage);
       throw errorMessage;
     }
-    resp.data.forEach(idx => validatorIndexes.value.add(idx))
+    resp.data.forEach((idx: number) => validatorIndexes.value.add(idx))
   }
 }
 
@@ -91,7 +88,13 @@ async function getIndexesForDepositAddresses(event) {
                 class="form-control"
                 placeholder="Type your validator index(es) here, separated by commas"
             >
-            <BButton variant="primary" class="mt-2" type="submit">Add</BButton>
+            <div class="d-flex align-items-center m-2">
+              <BButton variant="primary" class="m-2" type="submit">Add</BButton>
+              <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
+                <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+              </div>
+            </div>
           </form>
         </BTab>
         <BTab title="By Public Key">
@@ -106,7 +109,13 @@ async function getIndexesForDepositAddresses(event) {
                 class="form-control"
                 placeholder="Type your validator public key(s) here, separated by commas"
             >
-            <BButton variant="primary" class="mt-2" type="submit">Add</BButton>
+            <div class="d-flex align-items-center m-2">
+              <BButton variant="primary" class="m-2" type="submit">Add</BButton>
+              <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
+                <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+              </div>
+            </div>
           </form>
         </BTab>
         <BTab title="By Deposit Address">
@@ -121,17 +130,19 @@ async function getIndexesForDepositAddresses(event) {
                 class="form-control"
                 placeholder="Type your deposit address(es) here, separated by commas"
             >
-            <BButton variant="primary" class="mt-2" type="submit">Add</BButton>
+            <div class="d-flex align-items-center m-2">
+              <BButton variant="primary" class="m-2" type="submit">Add</BButton>
+              <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
+                <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+              </div>
+            </div>
           </form>
         </BTab>
       </BTabs>
     </BCard>
   </div>
-  <div v-if="validatorIndexes.size > 0" class="my-2">
-    <div class="d-flex flex-row align-items-center">
-        <p class="my-1">Validators Added: {{ validatorIndexes.size }} {{ validatorIndexes.size <= 10 ? `( ${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")})` : "" }}</p>
-        <BButton @click="validatorIndexes = new Set()" class="mx-3">Reset</BButton>
-    </div>
+  <div v-if="validatorIndexes.size > 0" class="d-flex flex-row align-items-center">
   </div>
 </template>
 

@@ -1,6 +1,8 @@
 import {PriceForDate, PricesResponse, RewardForDate, ValidatorRewards} from "../../types/rewards.ts";
 import { gweiToEthMultiplier, WeiToGweiMultiplier } from "../../constants.ts";
 
+const SEPARATOR = ";";
+
 
 function createLinkAndDownload(csvContent: string): void {
     // Create a Blob with the CSV content
@@ -20,9 +22,23 @@ function createLinkAndDownload(csvContent: string): void {
 }
 
 export function downloadAsCsv(rewardsData: ValidatorRewards[], priceData: PricesResponse, groupByDate: boolean): void {
-    let csvContent = groupByDate ?
-        `Date,Price [${priceData.currency}/ETH],Consensus,Execution,Withdrawals\n`
-        : `Date,Validator Index,Price [${priceData.currency}/ETH],Consensus,Execution,Withdrawals\n`;
+    let columns = groupByDate ? [
+        "Date",
+        `Price [${priceData.currency}/ETH]`,
+        "Consensus Layer Income",
+        "Execution Layer Income",
+        "Withdrawals",
+    ] : [
+        "Date",
+        "Validator Index",
+        `Price [${priceData.currency}/ETH]`,
+        "Consensus Layer Income",
+        "Execution Layer Income",
+        "Withdrawals",
+    ]
+
+    let csvContent = columns.join(SEPARATOR);
+    csvContent += "\n";
 
     const allDates = new Set<string>();
 
@@ -69,15 +85,15 @@ export function downloadAsCsv(rewardsData: ValidatorRewards[], priceData: Prices
                 }
             }
 
-            csvContent += `${date},${
-                getPriceForDate(priceData.prices, date)
-            },${
-                Number(consensusTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)
-            },${
-                Number(executionTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)
-            },${
-                Number(withdrawalTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)
-            }\n`;
+            const columnValues = [
+                `${date}`,
+                `${getPriceForDate(priceData.prices, date)}`,
+                `${Number(consensusTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                `${Number(executionTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                `${Number(withdrawalTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+            ]
+            csvContent += columnValues.join(SEPARATOR);
+            csvContent += "\n";
         } else {
             for (const rewards of rewardsData) {
                 const validatorIndex = rewards.validator_index;
@@ -86,15 +102,16 @@ export function downloadAsCsv(rewardsData: ValidatorRewards[], priceData: Prices
                 const executionReward = getRewardForDate(rewards.execution_layer_rewards, date);
                 const withdrawalReward = getRewardForDate(rewards.withdrawals, date);
 
-                csvContent += `${date},${validatorIndex},${
-                    getPriceForDate(priceData.prices, date)
-                },${
-                    Number(consensusReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)
-                },${
-                    Number(executionReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)
-                },${
-                    Number(withdrawalReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)
-                }\n`;
+                const columnValues = [
+                    `${date}`,
+                    `${validatorIndex}`,
+                    `${getPriceForDate(priceData.prices, date)}`,
+                    `${Number(consensusReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                    `${Number(executionReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                    `${Number(withdrawalReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                ]
+                csvContent += columnValues.join(SEPARATOR);
+                csvContent += "\n";
             }
         }
     }

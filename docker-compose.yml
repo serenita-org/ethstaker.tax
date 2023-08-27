@@ -145,6 +145,8 @@ services:
       - ${ABSOLUTE_ROOT_PATH}/etc/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config_data:/config
+# Temporary preview version
+      - ${ABSOLUTE_ROOT_PATH}/src/frontend_vue/dist:/tmp/preview
 
   prometheus:
     image: prom/prometheus:v2.41.0

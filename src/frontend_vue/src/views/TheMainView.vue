@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Ref, ref} from 'vue'
+import {Ref, ref, watch} from 'vue'
 import ValidatorAdder from "../components/inputs/ValidatorAdder.vue";
 import CurrencyPicker from "../components/inputs/CurrencyPicker.vue";
 import DateRangePicker from "../components/inputs/DateRangePicker.vue";
@@ -27,7 +27,45 @@ let rewardsDataLoading = ref(false);
 let priceData: Ref<PricesResponse | undefined> = ref();
 let priceDataLoading = ref(false);
 
-async function getData() {
+
+watch(selectedCurrency, async () => {
+  if (rewardsData.value.length == 0) return;
+  await getPriceData();
+})
+watch(rewardsData, async () => {
+  if (rewardsData.value.length == 0) return;
+  await getPriceData();
+})
+
+
+async function getPriceData() {
+  const pricesRequestParams: PricesRequestParams = {
+    start_date: startDateString.value,
+    end_date: endDateString.value,
+    currency: selectedCurrency.value,
+  }
+
+  priceData.value = undefined;
+  priceDataLoading.value = true;
+
+  try {
+    const resp = await axios.get("https://ethstaker.tax/api/v2/prices", { params: pricesRequestParams });
+    priceData.value = resp.data;
+  } catch (err: unknown) {
+    let errorMessage: string
+    if (axios.isAxiosError(err)) {
+      errorMessage = `Failed to get prices - ${err.message}`;
+    } else {
+      errorMessage = `Unknown error occurred - ${err}`;
+    }
+    alert(errorMessage);
+    throw err;
+  } finally {
+    priceDataLoading.value = false;
+  }
+}
+
+async function getRewardsData() {
   const data: RewardsRequest = {
     validator_indexes: Array.from(validatorIndexes.value),
     start_date: startDateString.value,
@@ -55,7 +93,7 @@ async function getData() {
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
-      errorMessage = `Failed to get prices - ${err.message}`;
+      errorMessage = `Failed to get rewards - ${err.message}`;
     } else {
       errorMessage = `Unknown error occurred - ${err}`;
     }
@@ -64,48 +102,23 @@ async function getData() {
   } finally {
     rewardsDataLoading.value = false;
   }
-
-  const pricesRequestParams: PricesRequestParams = {
-    start_date: startDateString.value,
-    end_date: endDateString.value,
-    currency: selectedCurrency.value,
-  }
-
-  priceData.value = undefined;
-  priceDataLoading.value = true;
-
-  try {
-    const resp = await axios.get("https://ethstaker.tax/api/v2/prices", { params: pricesRequestParams });
-    priceData.value = resp.data;
-  } catch (err: unknown) {
-    let errorMessage: string
-    if (axios.isAxiosError(err)) {
-      errorMessage = `Failed to get prices - ${err.message}`;
-    } else {
-      errorMessage = `Unknown error occurred - ${err}`;
-    }
-    alert(errorMessage);
-    throw err;
-  } finally {
-    priceDataLoading.value = false;
-  }
 }
 
 </script>
 
 <template>
   <div class="container my-3">
-    <h2>Add your validators</h2>
+    <h2>Add your validators here</h2>
     <ValidatorAdder @validator-indexes-changed="(newValidatorIndexes: Set<number>) => validatorIndexes = newValidatorIndexes"></ValidatorAdder>
   </div>
   <div class="container my-3">
     <div class="row">
       <div class="col">
-        <h3>Date range</h3>
+        <h3>Pick a date range</h3>
         <DateRangePicker @date-range-changed="(newStartDate: string, newEndDate: string) => { startDateString = newStartDate; endDateString = newEndDate }"></DateRangePicker>
       </div>
       <div class="col">
-        <h3>Currency</h3>
+        <h3>Select your currency</h3>
         <CurrencyPicker @selected-currency-changed="(newCurrency: string) => {selectedCurrency = newCurrency}"></CurrencyPicker>
       </div>
     </div>
@@ -113,15 +126,13 @@ async function getData() {
   <div class="container my-3 text-center">
     <BButton
         variant="primary"
-        @click.prevent="getData"
+        @click.prevent="getRewardsData"
         :disabled="validatorIndexes.size == 0 || rewardsDataLoading"
         class="mx-1"
     >
-      <span v-if="rewardsDataLoading">
-        <div class="spinner-border spinner-border-sm" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </span>
+      <div v-if="rewardsDataLoading" class="spinner-border spinner-border-sm" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
       <span v-else>
         <i class="bi-calculator"></i>
         Calculate
@@ -129,7 +140,7 @@ async function getData() {
     </BButton>
     <BButton
         class="mx-1"
-        @click="downloadAsCsv(rewardsData, priceData as PricesResponse, $refs['groupByDateCheckbox'].checked)"
+        @click="downloadAsCsv(rewardsData, priceData as PricesResponse, ($refs['groupByDateCheckbox'] as HTMLInputElement).checked)"
         :disabled="rewardsData.length == 0 || !priceData"
         variant="secondary"
     >
@@ -138,18 +149,28 @@ async function getData() {
         Download CSV for all validators
       </span>
     </BButton>
-    <div class="form-check form-check-inline">
+    <div class="form-check form-check-inline mx-1">
       <input ref="groupByDateCheckbox" class="form-check-input" id="groupByDateCheckbox" type="checkbox">
       <label class="form-check-label" for="groupByDateCheckbox">Group By Date</label>
     </div>
   </div>
-  <div v-if="rewardsData.length > 0 && priceData?.prices.length > 0" class="container my-3">
+  <div class="container mt-3 mb-5">
     <div class="row text-center">
       <div class="col-md-6">
-        <IncomeChart :rewards-data="rewardsData" chart-container-width="100%"></IncomeChart>
+        <IncomeChart
+            v-if="rewardsData.length > 0"
+            :rewards-data="rewardsData"
+            chart-container-width="100%">
+        </IncomeChart>
       </div>
       <div class="col-md-6">
-        <SummaryTable :rewards-data="rewardsData" :price-data="priceData" :currency="selectedCurrency"></SummaryTable>
+        <SummaryTable
+            v-if="rewardsData.length > 0 && priceData && priceData.prices.length > 0"
+            :rewards-data="rewardsData"
+            :price-data="priceData"
+            :currency="selectedCurrency"
+        >
+        </SummaryTable>
       </div>
     </div>
   </div>

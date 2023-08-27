@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
     "/prices",
     response_model=PricesResponse,
 )
-async def rewards(
+async def prices(
     start_date: datetime.date,
     end_date: datetime.date,
     currency: str = Query(

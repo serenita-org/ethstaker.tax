@@ -1,8 +1,8 @@
 <template>
-  <table class="table table-bordered border-primary p-3" style="background-color: transparent">
+  <table class="table border-primary">
     <thead>
       <tr>
-        <th scope="col" style="background-color: transparent"></th>
+        <th scope="col"></th>
         <th scope="col">ETH</th>
         <th scope="col">{{ currency }}</th>
       </tr>
@@ -31,35 +31,49 @@
 <script setup lang="ts">
 
 import {computed, PropType} from "vue";
-import {PricesResponse, ValidatorRewards} from "../../types/rewards.ts";
+import {PricesResponse, RewardForDate, ValidatorRewards} from "../../types/rewards.ts";
 import {gweiToEthMultiplier, WeiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
 
 const props = defineProps({
-  rewardsData: Object as PropType<ValidatorRewards[]>,
-  priceData: Object as PropType<PricesResponse>,
-  currency: String,
+  rewardsData: {
+    type: Object as PropType<ValidatorRewards[]>,
+    required: true,
+  },
+  priceData: {
+    type: Object as PropType<PricesResponse>,
+    required: true,
+  },
+  currency: {
+    type: String,
+    required: true
+  },
 });
 
-function aggregateRewardsData(key: string): [number, number] {
-  const sumRewardsEthWei = props.rewardsData?.reduce((total, validatorData) => {
-      const keyRewardsTotal = validatorData[key].reduce((totalForValidator, reward) => {
+function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
+  const aggregateValidatorRewardsSumWei = props.rewardsData?.reduce((total, validatorData: ValidatorRewards) => {
+      const validatorRewardsSumWei = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
         return totalForValidator + reward.amount_wei;
       }, BigInt(0));
-      return total + keyRewardsTotal;
+      return total + validatorRewardsSumWei;
   }, BigInt(0));
-  const sumConsensusRewardsCurr = props.rewardsData?.reduce((total, validatorData) => {
-      const keyRewardsTotal = validatorData[key].reduce((totalForValidator, reward) => {
-          return totalForValidator + reward.amount_wei * BigInt(100 * props.priceData?.prices.find(price => price.date == reward.date).price);
+  const aggregateValidatorRewardsSumCurr = props.rewardsData?.reduce((total, validatorData) => {
+      const validatorRewardsSumCurr = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
+        const priceData = props.priceData.prices.find(price => price.date == reward.date);
+        if (!priceData) throw `Price data not found for ${reward.date}`;
+          return totalForValidator + reward.amount_wei * BigInt((100 * priceData.price).toFixed(0));
       }, BigInt(0));
-      return total + keyRewardsTotal;
+      return total + validatorRewardsSumCurr;
   }, BigInt(0));
 
-  // sumRewardsEthWei is in wei - a BigInt
+  if (aggregateValidatorRewardsSumWei == undefined) throw "aggregateValidatorRewardsSumWei is undefined"
+  if (aggregateValidatorRewardsSumCurr == undefined) throw "aggregateValidatorRewardsSumCurr is undefined"
+
+  // aggregateValidatorRewardsSumWei is in wei - a BigInt
   // -> Get to Gwei precision (this will round off smaller units).
   // At that point we can use JS numbers
-  const sumRewardsEth_Gwei = sumRewardsEthWei / BigInt(WeiToGweiMultiplier);
+  const sumRewardsEth_Gwei = aggregateValidatorRewardsSumWei / BigInt(WeiToGweiMultiplier);
   if (sumRewardsEth_Gwei > Number.MAX_SAFE_INTEGER) throw `sumRewardsEth_Gwei (${sumRewardsEth_Gwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
-  const sumRewardsCurrCents = sumConsensusRewardsCurr / (BigInt(1e18))
+  const sumRewardsCurrCents = aggregateValidatorRewardsSumCurr / (BigInt(WeiToEthMultiplier))
   if (sumRewardsCurrCents > Number.MAX_SAFE_INTEGER) throw `sumRewardsCurrCents (${sumRewardsCurrCents}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
 
   return [
@@ -81,7 +95,22 @@ const totalExecutionLayerIncome = computed<[number, number]>(() => {
 <style scoped>
 
 th, td {
-  background-color: rgba(var(--serenita-green-dark), 0.25);
+  background-color: transparent;
+  border-style: none;
+}
+thead th:first-child {
+ border-top-left-radius: 9px;
 }
 
+thead th:last-child {
+ border-top-right-radius: 9px;
+}
+
+tfoot tr:last-child :first-child {
+ border-bottom-left-radius: 9px;
+}
+
+tfoot tr:last-child :last-child {
+ border-bottom-right-radius: 9px;
+}
 </style>

@@ -17,9 +17,9 @@ const gitcoinGrantLink = ref("https://explorer.gitcoin.co/#/round/10/0x8de918f01
         <img src="./assets/logo-serenita.svg" class="logo serenita" alt="Logo Serenita" />
       </a>
   </div>
-  <div v-if="gitcoinRoundActive" class="text-center bg-secondary-subtle py-3">
-    <p>ethstaker.tax is part of an ongoing Gitcoin matching round, please consider donating <a :href=gitcoinGrantLink target="_blank">here</a> to support this website!</p>
-    <p>During a Gitcoin matching round, even donating 1$ can have a big impact. Thank you!</p>
+  <div v-if="gitcoinRoundActive" class="text-center bg-secondary py-1">
+    <p class="text-muted my-2">ethstaker.tax is part of an ongoing Gitcoin matching round, please consider donating <a :href=gitcoinGrantLink target="_blank">here</a> to support this website!</p>
+    <p class="text-muted my-2">During a Gitcoin matching round, even donating 1$ can have a big impact. Thank you!</p>
   </div>
   <TheMainView></TheMainView>
 </template>
@@ -39,4 +39,9 @@ h6 {
 .logo.serenita:hover {
   filter: drop-shadow(0 0 2em rgba(9, 134, 134, 0.75));
 }
+
+.bg-secondary {
+  --bs-bg-opacity: 0.25;
+}
+
 </style>

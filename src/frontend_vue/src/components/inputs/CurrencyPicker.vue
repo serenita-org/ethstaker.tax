@@ -15,7 +15,7 @@ onMounted(async () => {
   try {
    const resp = await axios.get(supportedCurrenciesUrl.toString());
    supportedCurrencies.value = resp.data;
-   emit('selected-currency-changed', selectedCurrency);
+   emit('selected-currency-changed', selectedCurrency.value);
   } catch (e) {
     const errorMessage = `Failed to retrieve supported currencies!`;
     alert(errorMessage);

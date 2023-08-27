@@ -16,9 +16,9 @@
 
 <script lang="ts">
 import { PropType } from "vue";
-import Chart from "chart.js/auto";
+import Chart, {TooltipItem} from "chart.js/auto";
 import { ChartConfiguration } from "chart.js";
-import {CHART_COLORS, gweiToEthMultiplier, WeiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
+import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
 import {ValidatorRewards} from "../../types/rewards.ts";
 
 // Each canvas needs to have a unique ID
@@ -72,7 +72,7 @@ export default {
           validatorRewards.consensus_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
           validatorRewards.execution_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
       });
-      const allDates = Array.from(allDatesSet).sort((a, b) => a - b);
+      const allDates = Array.from(allDatesSet).sort();
 
       // Prepare data for the chart
       const consensusLayerData = allDates.map(date => {
@@ -115,7 +115,10 @@ export default {
     setUpChart() {
       const config: ChartConfiguration = {
         type: "bar",
-        data: null,
+        data: {
+          labels: [],
+          datasets: []
+        },
         options: {
           maintainAspectRatio: false,
           scales: {
@@ -124,14 +127,34 @@ export default {
             },
             y: {
               stacked: true,
+              type: "logarithmic"
             },
           },
           plugins: {
             legend: {
-              display: false,
+              display: true,
             },
             tooltip: {
               displayColors: false,
+              callbacks: {
+                  label: function(tooltipItem: TooltipItem<"bar">) {
+                    let labels = [];
+                    for (const dataset of tooltipItem.chart.data.datasets) {
+                        const datasetValue = dataset.data[tooltipItem.dataIndex];
+                        labels.push(dataset.label + ": " + (datasetValue as number).toFixed(5));
+                    }
+                    return labels;
+                  },
+                  footer: (context) => {
+                      let total = 0;
+                      for (let ctx of context) {
+                        for (const dataset of ctx.chart.data.datasets) {
+                          total += dataset.data[ctx.dataIndex] as number;
+                        }
+                      }
+                      return 'Total: ' + total.toFixed(5) + " Ether";
+                  }
+                }
             },
           },
         },

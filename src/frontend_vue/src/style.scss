@@ -25,7 +25,8 @@
 [data-bs-theme="serenita"] {
   --bs-body-font-family: "Raleway Sans", sans-serif;
   --bs-body-text-align: "justify";
-  --bs-primary-rgb: rgb(var(--serenita-blue-dark));
+  --bs-primary-rgb: var(--serenita-blue-dark);
+  --bs-secondary-rgb: var(--serenita-green-dark);
 }
 
 .accordion-button:not(.collapsed) {

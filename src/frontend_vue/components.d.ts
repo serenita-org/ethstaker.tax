@@ -9,9 +9,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     BButton: typeof import('bootstrap-vue-next')['BButton']
     BCard: typeof import('bootstrap-vue-next')['BCard']
-    BCardText: typeof import('bootstrap-vue-next')['BCardText']
-    BNav: typeof import('bootstrap-vue-next')['BNav']
-    BNavItem: typeof import('bootstrap-vue-next')['BNavItem']
     BTab: typeof import('bootstrap-vue-next')['BTab']
     BTabs: typeof import('bootstrap-vue-next')['BTabs']
     CurrencyPicker: typeof import('./src/components/inputs/CurrencyPicker.vue')['default']
