@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev-expose": "vite --host 0.0.0.0",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
@@ -16,6 +17,7 @@
     "bootstrap-vue-next": "^0.10.10",
     "chart.js": "^4.4.0",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "chartjs-plugin-zoom": "^2.0.1",
     "date-fns": "^2.30.0",
     "lossless-json": "^2.0.11",
     "vue": "^3.3.4"

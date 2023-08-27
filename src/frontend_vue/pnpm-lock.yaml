@@ -9,6 +9,7 @@ specifiers:
   bootstrap-vue-next: ^0.10.10
   chart.js: ^4.4.0
   chartjs-adapter-date-fns: ^3.0.0
+  chartjs-plugin-zoom: ^2.0.1
   date-fns: ^2.30.0
   lossless-json: ^2.0.11
   sass: ^1.66.1
@@ -26,6 +27,7 @@ dependencies:
   bootstrap-vue-next: 0.10.10_vue@3.3.4
   chart.js: 4.4.0
   chartjs-adapter-date-fns: 3.0.0_b6wob47gtljgjnunxbe3kyr2xu
+  chartjs-plugin-zoom: 2.0.1_chart.js@4.4.0
   date-fns: 2.30.0
   lossless-json: 2.0.11
   vue: 3.3.4
@@ -599,6 +601,15 @@ packages:
       date-fns: 2.30.0
     dev: false
 
+  /chartjs-plugin-zoom/2.0.1_chart.js@4.4.0:
+    resolution: {integrity: sha512-ogOmLu6e+Q7E1XWOCOz9YwybMslz9qNfGV2a+qjfmqJYpsw5ZMoRHZBUyW+NGhkpQ5PwwPA/+rikHpBZb7PZuA==}
+    peerDependencies:
+      chart.js: '>=3.2.0'
+    dependencies:
+      chart.js: 4.4.0
+      hammerjs: 2.0.8
+    dev: false
+
   /chokidar/3.5.3:
     resolution: {integrity: sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==}
     engines: {node: '>= 8.10.0'}
@@ -746,6 +757,11 @@ packages:
     dependencies:
       is-glob: 4.0.3
     dev: true
+
+  /hammerjs/2.0.8:
+    resolution: {integrity: sha512-tSQXBXS/MWQOn/RKckawJ61vvsDpCom87JgxiYdGwHdOa0ht0vzUWDlfioofFCRU0L+6NGDt6XzbgoJvZkMeRQ==}
+    engines: {node: '>=0.8.0'}
+    dev: false
 
   /has/1.0.3:
     resolution: {integrity: sha512-f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==}

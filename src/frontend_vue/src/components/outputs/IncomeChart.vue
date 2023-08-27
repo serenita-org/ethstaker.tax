@@ -1,14 +1,17 @@
 <template>
-  <div
-    ref="chartContainer"
-    class="chart-container"
-    :style="{
-      margin: 'auto',
-      height: chartContainerHeight,
-      width: chartContainerWidth,
-    }"
-  >
-    <canvas :id="chartCanvasId"></canvas>
+  <div class="d-flex flex-column align-items-center">
+    <div
+      ref="chartContainer"
+      class="chart-container"
+      :style="{
+        margin: 'auto',
+        height: chartContainerHeight,
+        width: chartContainerWidth,
+      }"
+    >
+      <canvas :id="chartCanvasId"></canvas>
+    </div>
+    <BButton class="w-25" @click="Chart.getChart(chartCanvasId)?.resetZoom()">Reset zoom</BButton>
   </div>
 </template>
 
@@ -18,9 +21,12 @@
 import { PropType } from "vue";
 import Chart, {TooltipItem} from "chart.js/auto";
 import { ChartConfiguration } from "chart.js";
+import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
 import {ValidatorRewards} from "../../types/rewards.ts";
+
+Chart.register(zoomPlugin);
 
 // Each canvas needs to have a unique ID
 let uid = 0;
@@ -47,6 +53,7 @@ export default {
     return {
       chartCanvasId: `simpleBarChartCanvas-${uid}`,
       backgroundColor: CHART_COLORS,
+      Chart,
     };
   },
   watch: {
@@ -135,6 +142,17 @@ export default {
             },
           },
           plugins: {
+            zoom: {
+              zoom: {
+                drag: {
+                  enabled: true
+                },
+                pinch: {
+                  enabled: true
+                },
+                mode: 'x',
+              }
+            },
             legend: {
               display: true,
             },
