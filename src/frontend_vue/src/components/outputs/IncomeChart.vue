@@ -18,6 +18,7 @@
 import { PropType } from "vue";
 import Chart, {TooltipItem} from "chart.js/auto";
 import { ChartConfiguration } from "chart.js";
+import 'chartjs-adapter-date-fns';
 import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
 import {ValidatorRewards} from "../../types/rewards.ts";
 
@@ -124,10 +125,13 @@ export default {
           scales: {
             x: {
               stacked: true,
+              type: 'time',
+              time: {
+                tooltipFormat: 'PP'
+              }
             },
             y: {
               stacked: true,
-              type: "logarithmic"
             },
           },
           plugins: {

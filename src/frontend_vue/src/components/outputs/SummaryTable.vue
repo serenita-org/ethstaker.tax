@@ -1,5 +1,5 @@
 <template>
-  <table class="table border-primary">
+  <table class="table border-primary text-center">
     <thead>
       <tr>
         <th scope="col"></th>
@@ -7,7 +7,7 @@
         <th scope="col">{{ currency }}</th>
       </tr>
     </thead>
-    <tbody class="text-center">
+    <tbody>
       <tr>
         <th scope="row">Consensus Layer Income</th>
         <td>{{ totalConsensusLayerIncome[0].toFixed(6) }}</td>
