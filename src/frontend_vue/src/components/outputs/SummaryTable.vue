@@ -31,8 +31,8 @@
 <script setup lang="ts">
 
 import {computed, PropType} from "vue";
-import {PricesResponse, ValidatorRewards} from "../../../types/rewards.ts";
-import {gweiToEthMultiplier, WeiToEthMultiplier} from "../../constants.ts";
+import {PricesResponse, ValidatorRewards} from "../../types/rewards.ts";
+import {gweiToEthMultiplier, WeiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
 
 const props = defineProps({
   rewardsData: Object as PropType<ValidatorRewards[]>,
@@ -57,7 +57,7 @@ function aggregateRewardsData(key: string): [number, number] {
   // sumRewardsEthWei is in wei - a BigInt
   // -> Get to Gwei precision (this will round off smaller units).
   // At that point we can use JS numbers
-  const sumRewardsEth_Gwei = sumRewardsEthWei / BigInt(1e9);
+  const sumRewardsEth_Gwei = sumRewardsEthWei / BigInt(WeiToGweiMultiplier);
   if (sumRewardsEth_Gwei > Number.MAX_SAFE_INTEGER) throw `sumRewardsEth_Gwei (${sumRewardsEth_Gwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
   const sumRewardsCurrCents = sumConsensusRewardsCurr / (BigInt(1e18))
   if (sumRewardsCurrCents > Number.MAX_SAFE_INTEGER) throw `sumRewardsCurrCents (${sumRewardsCurrCents}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`

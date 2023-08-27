@@ -18,8 +18,8 @@
 import { PropType } from "vue";
 import Chart from "chart.js/auto";
 import { ChartConfiguration } from "chart.js";
-import {CHART_COLORS, gweiToEthMultiplier, WeiToEthMultiplier} from "../../constants.ts";
-import {ValidatorRewards} from "../../../types/rewards.ts";
+import {CHART_COLORS, gweiToEthMultiplier, WeiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
+import {ValidatorRewards} from "../../types/rewards.ts";
 
 // Each canvas needs to have a unique ID
 let uid = 0;
@@ -80,7 +80,7 @@ export default {
               const matchingReward = response.consensus_layer_rewards.find(reward => reward.date === date);
               return total + (matchingReward ? matchingReward.amount_wei : BigInt(0));
           }, BigInt(0));
-          const totalGwei = rewardsTotal / gweiToEthMultiplier;
+          const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           return Number(totalGwei) / Number(gweiToEthMultiplier);
       });
@@ -90,7 +90,7 @@ export default {
               const matchingReward = response.execution_layer_rewards.find(reward => reward.date === date);
               return total + (matchingReward ? matchingReward.amount_wei : BigInt(0));
           }, BigInt(0));
-          const totalGwei = rewardsTotal / gweiToEthMultiplier;
+          const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           return Number(totalGwei) / Number(gweiToEthMultiplier);
       });
@@ -100,11 +100,13 @@ export default {
         datasets: [
           {
             label: 'Consensus Layer Income',
-            data: consensusLayerData
+            data: consensusLayerData,
+            backgroundColor: CHART_COLORS[0],
           },
           {
             label: 'Execution Layer Income',
-            data: executionLayerData
+            data: executionLayerData,
+            backgroundColor: CHART_COLORS[6],
           }
         ]
       };

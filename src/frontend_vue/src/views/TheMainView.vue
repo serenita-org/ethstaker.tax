@@ -8,8 +8,9 @@ import {
   PricesResponse,
   RewardsRequest,
   ValidatorRewards,
-} from "../../types/rewards.ts";
+} from "../types/rewards.ts";
 import { parse, isInteger } from 'lossless-json'
+import { downloadAsCsv } from '../components/outputs/csvDownload.ts'
 
 import axios from "axios";
 import IncomeChart from "../components/outputs/IncomeChart.vue";
@@ -33,6 +34,7 @@ async function getData() {
     end_date: endDateString.value,
   }
 
+  rewardsData.value = [];
   rewardsDataLoading.value = true;
 
   // parse integer values into a bigint, and use a regular number otherwise
@@ -69,6 +71,7 @@ async function getData() {
     currency: selectedCurrency.value,
   }
 
+  priceData.value = undefined;
   priceDataLoading.value = true;
 
   try {
@@ -115,7 +118,7 @@ async function getData() {
         class="mx-1"
     >
       <span v-if="rewardsDataLoading">
-        <div class="spinner-border" role="status">
+        <div class="spinner-border spinner-border-sm" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
       </span>
@@ -126,7 +129,8 @@ async function getData() {
     </BButton>
     <BButton
         class="mx-1"
-        :disabled="rewardsData.length == 0"
+        @click="downloadAsCsv(rewardsData, priceData as PricesResponse, $refs['groupByDateCheckbox'].checked)"
+        :disabled="rewardsData.length == 0 || !priceData"
         variant="secondary"
     >
       <span>
@@ -134,6 +138,10 @@ async function getData() {
         Download CSV for all validators
       </span>
     </BButton>
+    <div class="form-check form-check-inline">
+      <input ref="groupByDateCheckbox" class="form-check-input" id="groupByDateCheckbox" type="checkbox">
+      <label class="form-check-label" for="groupByDateCheckbox">Group By Date</label>
+    </div>
   </div>
   <div v-if="rewardsData.length > 0 && priceData?.prices.length > 0" class="container my-3">
     <div class="row text-center">

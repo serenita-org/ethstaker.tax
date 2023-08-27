@@ -12,4 +12,5 @@ export const CHART_COLORS = [
 ];
 
 export const gweiToEthMultiplier = BigInt(1e9);
+export const WeiToGweiMultiplier = BigInt(1e9);
 export const WeiToEthMultiplier = BigInt(1e18);

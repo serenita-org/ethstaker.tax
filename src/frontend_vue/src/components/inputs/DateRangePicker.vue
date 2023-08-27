@@ -3,7 +3,7 @@
 import {onMounted, ref, watch} from "vue";
 
 const startDateString = ref("2023-08-10");
-const endDateString = ref("2023-12-31");
+const endDateString = ref("2023-08-25");
 
 
 const emit = defineEmits(['date-range-changed']);

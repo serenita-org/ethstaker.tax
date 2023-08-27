@@ -76,6 +76,11 @@ select option,
   background-color: rgba(var(--serenita-green-dark), 0.4);
 }
 
+.form-check-input:checked {
+    background-color: rgb(var(--serenita-blue-dark));
+    border-color: rgb(var(--serenita-blue-dark));
+}
+
 // Account for navbar
 main > .container-fluid {
   padding: 90px 15px 0;
