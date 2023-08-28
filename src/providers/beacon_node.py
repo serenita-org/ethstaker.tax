@@ -80,17 +80,12 @@ class BeaconNode:
 
         slot = int((utc_dt - GENESIS_DATETIME).total_seconds() // SLOT_TIME)
 
-        logger.debug(f"Returning slot {slot} for datetime {dt}")
-
         return slot
 
     @staticmethod
     def datetime_for_slot(slot: int, timezone: pytz.timezone) -> datetime.datetime:
         utc_dt = GENESIS_DATETIME + datetime.timedelta(seconds=slot * SLOT_TIME)
         localized_dt = utc_dt.astimezone(timezone)
-
-        logger.debug(f"Returning {localized_dt} for slot {slot}")
-
         return localized_dt
 
     @staticmethod
