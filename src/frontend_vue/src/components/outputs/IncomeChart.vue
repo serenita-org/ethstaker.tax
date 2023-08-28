@@ -11,7 +11,7 @@
     >
       <canvas :id="chartCanvasId"></canvas>
     </div>
-    <BButton class="w-25" @click="Chart.getChart(chartCanvasId)?.resetZoom()">Reset zoom</BButton>
+    <BButton @click="Chart.getChart(chartCanvasId)?.resetZoom()">Reset zoom</BButton>
   </div>
 </template>
 
