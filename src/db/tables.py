@@ -33,7 +33,7 @@ class Withdrawal(Base):
     __tablename__ = "withdrawal"
 
     slot = Column(Integer, nullable=False, primary_key=True)
-    validator_index = Column(Integer, nullable=False, primary_key=True)
+    validator_index = Column(Integer, nullable=False, primary_key=True, index=True)
     amount_gwei = Column(Numeric(precision=18), nullable=True)
 
     # Relationships
