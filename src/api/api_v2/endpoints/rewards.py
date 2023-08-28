@@ -80,6 +80,7 @@ async def rewards(
     withdrawals: dict[int, list[RewardForDate]] = defaultdict(list)
 
     # - Get initial balances
+    logger.debug(f"Getting initial balances")
     initial_balances = {}
     for validator_index in validator_indexes:
         act_slot = activation_slots[validator_index]
@@ -102,6 +103,7 @@ async def rewards(
         initial_balances[validator_index] = initial_balance
 
     # - Get all end-of-day balances
+    logger.debug(f"Getting EOD balances")
     range_day_count = (end_datetime - start_datetime).days + 1
     eod_slots = [
         beacon_node.slot_for_datetime(
@@ -116,6 +118,7 @@ async def rewards(
     eod_balances = db_provider.balances(slots=eod_slots, validator_indexes=validator_indexes)
 
     # Get all withdrawals
+    logger.debug(f"Getting withdrawals")
     all_withdrawals = db_provider.withdrawals(
         min_slot=min_slot,
         max_slot=max_slot,
@@ -123,24 +126,26 @@ async def rewards(
     )
 
     # Get all block rewards
+    logger.debug(f"Getting block rewards")
     all_block_rewards = db_provider.block_rewards(
         min_slot=min_slot,
         max_slot=max_slot,
         proposer_indexes=validator_indexes
     )
 
-    for validator_index in validator_indexes:
+    total_validators = len(validator_indexes)
+    for idx, validator_index in enumerate(validator_indexes):
+        logger.debug(f"Processing {validator_index} - {100 * idx / total_validators:.2f}%")
         prev_balance = initial_balances[validator_index]
-        for eod_balance in eod_balances:
-            if eod_balance.validator_index != validator_index:
-                continue
+
+        validator_withdrawals = [w for w in all_withdrawals if w.validator_index == validator_index]
+        for eod_balance in [eodb for eodb in eod_balances if eodb.validator_index == validator_index]:
             amount_earned_wei = Decimal(1e18) * (eod_balance.balance - prev_balance.balance)
 
             # Account for withdrawals
             amount_withdrawn_this_day_wei = Decimal(1e9) * sum(
-                w.amount_gwei for w in all_withdrawals
-                if w.validator_index == validator_index
-                and eod_balance.slot >= w.slot > prev_balance.slot
+                w.amount_gwei for w in validator_withdrawals
+                if eod_balance.slot >= w.slot > prev_balance.slot
             )
             amount_earned_wei += amount_withdrawn_this_day_wei
 
@@ -149,14 +154,14 @@ async def rewards(
                 timezone=pytz.UTC,
             )
             consensus_layer_rewards[validator_index].append(
-                RewardForDate(
+                RewardForDate.construct(
                     date=date,
                     amount_wei=amount_earned_wei,
                 )
             )
             if amount_withdrawn_this_day_wei > 0:
                 withdrawals[validator_index].append(
-                    RewardForDate(
+                    RewardForDate.construct(
                         date=date,
                         amount_wei=amount_withdrawn_this_day_wei
                     )
@@ -171,14 +176,14 @@ async def rewards(
             ] += br.mev_reward_value_wei if br.mev else br.priority_fees_wei
         for date, rewards_sum in sorted(exec_layer_rewards_for_date.items()):
             execution_layer_rewards[validator_index].append(
-                RewardForDate(
+                RewardForDate.construct(
                     date=date,
                     amount_wei=rewards_sum
                 )
             )
 
     return [
-        ValidatorRewards(
+        ValidatorRewards.construct(
             validator_index=validator_index,
             consensus_layer_rewards=consensus_layer_rewards[validator_index],
             execution_layer_rewards=execution_layer_rewards[validator_index],
