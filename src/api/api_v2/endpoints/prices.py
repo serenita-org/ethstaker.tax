@@ -8,6 +8,7 @@ from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
 from api.api_v2.models import PricesResponse, PriceForDate
+from providers.beacon_node import GENESIS_DATETIME
 from providers.coin_gecko import CoinGecko, depends_coin_gecko
 
 router = APIRouter()
@@ -33,6 +34,9 @@ async def prices(
     cache: Redis = Depends(depends_redis),
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
 ):
+    # Cap start_date - no sense to have dates before genesis
+    start_date = max(start_date, GENESIS_DATETIME.date())
+
     # Cap end_date - close prices only available until "yesterday"
     today = datetime.datetime.now(tz=pytz.UTC).date()
     end_date = min(end_date, today - datetime.timedelta(days=1))
