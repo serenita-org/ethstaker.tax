@@ -155,11 +155,15 @@ async function getRewardsData() {
     </div>
   </div>
   <div class="container mt-3 mb-5">
-    <div class="row d-flex align-items-center">
+    <div
+      v-if="rewardsData.length > 0 && priceData && priceData.prices.length > 0"
+      class="row d-flex align-items-center"
+    >
       <div class="col-lg-6">
         <IncomeChart
-            v-if="rewardsData.length > 0"
             :rewards-data="rewardsData"
+            :price-data="priceData"
+            :currency="selectedCurrency"
             chart-container-height="300px"
             chart-container-width="100%"
         >
@@ -167,7 +171,6 @@ async function getRewardsData() {
       </div>
       <div class="col-lg-6">
         <SummaryTable
-            v-if="rewardsData.length > 0 && priceData && priceData.prices.length > 0"
             :rewards-data="rewardsData"
             :price-data="priceData"
             :currency="selectedCurrency"

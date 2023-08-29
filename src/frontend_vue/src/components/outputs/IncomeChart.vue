@@ -24,7 +24,7 @@ import { ChartConfiguration } from "chart.js";
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
-import {ValidatorRewards} from "../../types/rewards.ts";
+import {PricesResponse, ValidatorRewards} from "../../types/rewards.ts";
 
 Chart.register(zoomPlugin);
 
@@ -36,6 +36,14 @@ export default {
     rewardsData: {
       type: Object as PropType<ValidatorRewards[]>,
       required: true,
+    },
+    priceData: {
+      type: Object as PropType<PricesResponse>,
+      required: true,
+    },
+    currency: {
+      type: String,
+      required: true
     },
     chartContainerHeight: {
       type: String,
@@ -90,7 +98,10 @@ export default {
           }, BigInt(0));
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
-          return Number(totalGwei) / Number(gweiToEthMultiplier);
+          const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
+          const priceDataForDate = this.priceData.prices.find(data => data.date == date);
+          if (!priceDataForDate) throw `No price data for ${date}!`
+          return [totalEth, priceDataForDate.price * totalEth];
       });
 
       const executionLayerData = allDates.map(date => {
@@ -100,22 +111,45 @@ export default {
           }, BigInt(0));
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
-          return Number(totalGwei) / Number(gweiToEthMultiplier);
+          const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
+          const priceDataForDate = this.priceData.prices.find(data => data.date == date);
+          if (!priceDataForDate) throw `No price data for ${date}!`
+          return [totalEth, priceDataForDate.price * totalEth];
       });
 
       chart.data = {
         labels: allDates,
         datasets: [
           {
-            label: 'Consensus Layer Income',
-            data: consensusLayerData,
+            label: 'Consensus Layer Income [ETH]',
+            data: consensusLayerData.map(d => d[0] as number),
             backgroundColor: CHART_COLORS[0],
+            type: 'bar',
+            yAxisID: "y-axis-eth",
           },
           {
-            label: 'Execution Layer Income',
-            data: executionLayerData,
+            label: 'Execution Layer Income [ETH]',
+            data: executionLayerData.map(d => d[0] as number),
             backgroundColor: CHART_COLORS[6],
-          }
+            type: 'bar',
+            yAxisID: "y-axis-eth",
+          },
+          {
+            label: `Consensus Layer Income [${this.currency}]`,
+            data: consensusLayerData.map(d => d[1]),
+            backgroundColor: CHART_COLORS[3],
+            type: 'bar',
+            yAxisID: "y-axis-currency",
+            hidden: true,
+          },
+          {
+            label: `Execution Layer Income [${this.currency}]`,
+            data: executionLayerData.map(d => d[1]),
+            backgroundColor: CHART_COLORS[2],
+            type: 'bar',
+            yAxisID: "y-axis-currency",
+            hidden: true,
+          },
         ]
       };
       chart.update();
@@ -137,8 +171,27 @@ export default {
                 tooltipFormat: 'PP'
               }
             },
-            y: {
+            "y-axis-eth": {
+              title: {
+                display: true,
+                text: "Income [ETH]"
+              },
               stacked: true,
+            },
+            "y-axis-currency": {
+              type: 'linear',
+              display: true,
+              stacked: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: `Income [${this.currency}]`,
+              },
+
+              // grid line settings
+              grid: {
+                drawOnChartArea: false, // only want the grid lines for one axis to show up
+              },
             },
           },
           plugins: {
@@ -168,13 +221,17 @@ export default {
                     return labels;
                   },
                   footer: (context) => {
-                      let total = 0;
+                      let totalEth = 0;
+                      let totalCurrency = 0;
                       for (let ctx of context) {
-                        for (const dataset of ctx.chart.data.datasets) {
-                          total += dataset.data[ctx.dataIndex] as number;
+                        for (const dataset of ctx.chart.data.datasets.filter(d => d.label?.includes("[ETH]"))) {
+                          totalEth += dataset.data[ctx.dataIndex] as number;
+                        }
+                        for (const dataset of ctx.chart.data.datasets.filter(d => d.label?.includes(`[${this.currency}]`))) {
+                          totalCurrency += dataset.data[ctx.dataIndex] as number;
                         }
                       }
-                      return 'Total: ' + total.toFixed(5) + " Ether";
+                      return `Total: ${totalEth.toFixed(5)} Ether / ${totalCurrency.toFixed(2)} ${this.currency}`;
                   }
                 }
             },
