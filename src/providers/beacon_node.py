@@ -80,17 +80,12 @@ class BeaconNode:
 
         slot = int((utc_dt - GENESIS_DATETIME).total_seconds() // SLOT_TIME)
 
-        logger.debug(f"Returning slot {slot} for datetime {dt}")
-
         return slot
 
     @staticmethod
     def datetime_for_slot(slot: int, timezone: pytz.timezone) -> datetime.datetime:
         utc_dt = GENESIS_DATETIME + datetime.timedelta(seconds=slot * SLOT_TIME)
         localized_dt = utc_dt.astimezone(timezone)
-
-        logger.debug(f"Returning {localized_dt} for slot {slot}")
-
         return localized_dt
 
     @staticmethod
@@ -195,7 +190,15 @@ class BeaconNode:
             block_hash=block_hash,
         )
 
-    async def activation_slots_for_validators(self, validator_indexes: List[int]) -> Dict[int, Optional[int]]:
+    async def activation_slots_for_validators(self, validator_indexes: List[int], cache: Redis) -> Dict[int, Optional[int]]:
+        cache_key = f"activation_slots_{validator_indexes}"
+
+        # Try to get activation slots from cache first
+        slots_from_cache = await cache.get(cache_key)
+        if slots_from_cache:
+            logger.debug(f"Got activation slots from cache")
+            return {int(k): v for k, v in json.loads(slots_from_cache).items()}
+
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
         params = {"id": ",".join([str(vi) for vi in validator_indexes])}
         logger.debug(f"Getting activation slots for {len(validator_indexes)} indexes")
@@ -218,6 +221,10 @@ class BeaconNode:
                 activation_slots[int(validator_data["index"])] = int(validator_data["validator"]["activation_epoch"]) * SLOTS_PER_EPOCH
 
         logger.debug(f"Got activation slots {activation_slots}")
+
+        # Cache slots for a limited amount of time
+        # (validator may become active)
+        await cache.set(cache_key, json.dumps(activation_slots), ex=600)
 
         return activation_slots
 

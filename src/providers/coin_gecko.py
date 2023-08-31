@@ -107,7 +107,7 @@ class CoinGecko:
             if c != currency:
                 continue
             return p
-        raise Exception(f"Unable to fetch price for {date} in {currency}")
+        raise Exception(f"Failed to fetch price for {date} in {currency}")
 
 
 coin_gecko_plugin = CoinGecko()

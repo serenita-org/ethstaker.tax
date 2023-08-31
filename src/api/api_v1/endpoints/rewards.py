@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from typing import List
 import datetime
 from enum import Enum
@@ -166,7 +167,9 @@ async def rewards(
     # This "initial" slot could be different for each validator, which is why
     # we don't just add the activation_slots to slots_needed
     first_slot_in_requested_period = BeaconNode.slot_for_datetime(start_dt_utc)
-    activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes)
+    activation_slots = await beacon_node.activation_slots_for_validators(
+        validator_indexes=list(validator_indexes), cache=cache
+    )
     initial_balances = {}
     for activation_slot in set(activation_slots.values()):
         if activation_slot is None:
@@ -342,10 +345,10 @@ async def rewards(
                     validator_indexes=[validator_index]
                 )
             )
-            day_rewards_eth = vb.balance - prev_balance.balance + int(amount_withdrawn_this_day) / 1e9
+            day_rewards_eth = vb.balance - prev_balance.balance + amount_withdrawn_this_day / Decimal(1e9)
 
             total_consensus_layer_eth += day_rewards_eth
-            total_consensus_layer_currency += day_rewards_eth * date_eth_price[slot_date]
+            total_consensus_layer_currency += day_rewards_eth * Decimal(date_eth_price[slot_date])
 
             # Set prev_balance to current balance for next loop iteration
             prev_balance = vb
