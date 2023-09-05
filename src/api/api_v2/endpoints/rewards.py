@@ -82,10 +82,12 @@ async def rewards(
     # - Get initial balances
     logger.debug(f"Getting initial balances")
     initial_balances = {}
+    pending_validator_indexes = set()
     for validator_index in validator_indexes:
         act_slot = activation_slots[validator_index]
         if act_slot is None:
             # Pending validator without an activation slot
+            pending_validator_indexes.add(validator_index)
             continue
 
         if act_slot > first_slot_in_requested_period:
@@ -136,6 +138,8 @@ async def rewards(
     total_validators = len(validator_indexes)
     for idx, validator_index in enumerate(validator_indexes):
         logger.debug(f"Processing {validator_index} - {100 * idx / total_validators:.2f}%")
+        if validator_index in pending_validator_indexes:
+            continue
         prev_balance = initial_balances[validator_index]
 
         validator_withdrawals = [w for w in all_withdrawals if w.validator_index == validator_index]
@@ -188,5 +192,5 @@ async def rewards(
             consensus_layer_rewards=consensus_layer_rewards[validator_index],
             execution_layer_rewards=execution_layer_rewards[validator_index],
             withdrawals=withdrawals[validator_index],
-        ) for validator_index in validator_indexes
+        ) for validator_index in validator_indexes if validator_index not in pending_validator_indexes
     ]
