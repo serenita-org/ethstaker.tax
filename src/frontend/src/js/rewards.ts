@@ -2,6 +2,8 @@ import { clearChart, populateChart, RewardsDailyChartData } from "./rewards_char
 import Pikaday from "pikaday";
 import _ from "lodash";
 
+import { Toast } from 'bootstrap';
+
 import { AggregateRewards } from "./schema";
 
 let AGGREGATE_REWARDS_DATA: AggregateRewards;
@@ -533,6 +535,12 @@ function getRewardsForValidatorIndexes(validatorIndexes: number[]) {
 
             // Scroll to bottom to show resulting table
             window.scrollTo(0, document.body.scrollHeight);
+
+            // Show Staking Summit toast message
+            const toast = new Toast(document.getElementById('stakingSummitToast'), {
+                autohide: false,
+            });
+            toast.show()
         })
 }
 

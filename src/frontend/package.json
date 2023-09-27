@@ -7,6 +7,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
+    "@types/bootstrap": "^5.2.7",
     "@types/lodash": "^4.14.191",
     "@types/pikaday": "^1.7.6",
     "autoprefixer": "^10.4.13",

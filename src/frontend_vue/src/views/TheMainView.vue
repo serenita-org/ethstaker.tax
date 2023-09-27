@@ -12,7 +12,8 @@ import {
 import { parse, isInteger } from 'lossless-json'
 import { downloadAsCsv } from '../components/outputs/csvDownload.ts'
 
-import axios from "axios";
+import axios, {AxiosError} from "axios";
+import {Toast} from "bootstrap";
 import IncomeChart from "../components/outputs/IncomeChart.vue";
 import SummaryTable from "../components/outputs/SummaryTable.vue";
 
@@ -51,6 +52,16 @@ async function getPriceData() {
   try {
     const resp = await axios.get("https://ethstaker.tax/api/v2/prices", { params: pricesRequestParams });
     priceData.value = resp.data;
+
+    // Show Staking Summit toast message
+    await new Promise(r => setTimeout(r, 2000));
+    const toastElement = document.getElementById('stakingSummitToast');
+    if (!toastElement) { throw new Error("Unable to find toastElement") }
+
+    const toast = new Toast(toastElement, {
+        autohide: false,
+    });
+    toast.show();
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
@@ -93,7 +104,7 @@ async function getRewardsData() {
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
-      errorMessage = `Failed to get rewards - ${err.message}`;
+      errorMessage = `Failed to get rewards - ${(err as AxiosError).message}`;
     } else {
       errorMessage = `Unknown error occurred - ${err}`;
     }
@@ -159,6 +170,21 @@ async function getRewardsData() {
       v-if="rewardsData.length > 0 && priceData && priceData.prices.length > 0"
       class="row d-flex align-items-center"
     >
+      <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3 w-50">
+        <div id="stakingSummitToast" class="toast w-100" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="toast-header text-bg-primary">
+            <strong class="me-auto">Are you a staking enthusiast?</strong>
+            <small>Just now</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body bg-white">
+            Hey there! Would you like to learn more about staking? We're happy to be able to offer users of ethstaker.tax
+            a 35% discount to the
+            <a href="https://www.stakingrewards.com/summit" target="_blank">Staking&nbsp;Summit</a>
+            in Istanbul! Use the <b>Dare2Validate_35</b> discount code to get your tickets!
+          </div>
+        </div>
+      </div>
       <div class="col-lg-6">
         <IncomeChart
             :rewards-data="rewardsData"
