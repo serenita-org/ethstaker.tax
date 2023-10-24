@@ -1,5 +1,3 @@
-from collections import Counter
-import json
 import logging
 import asyncio
 import os
@@ -7,7 +5,6 @@ import os
 from tqdm import tqdm
 from prometheus_client import start_http_server, Gauge
 
-import redis
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
 from providers.db_provider import DbProvider
@@ -22,8 +19,6 @@ logger = logging.getLogger(__name__)
 START_SLOT = 4700013  # First PoS slot
 
 ALREADY_INDEXED_SLOTS = set()
-SLOT_INDEXING_FAILURE_COUNTER = Counter()
-CACHE_KEY_MISSING_DATA = "INDEXER_BLOCK_REWARDS_MISSING_DATA"
 
 SLOTS_WITH_MISSING_BLOCK_REWARDS = Gauge(
     "slots_with_missing_block_rewards",
@@ -37,32 +32,6 @@ SLOT_BEING_INDEXED = Gauge(
     "slot_being_indexed",
     "The slot that is currently being indexed",
 )
-
-
-def _get_redis() -> redis.Redis:
-    return redis.Redis(host=os.getenv("REDIS_HOST"), port=int(os.getenv("REDIS_PORT")))
-
-
-def reset_missing_data_cache() -> None:
-    _redis = _get_redis()
-    _redis.set(CACHE_KEY_MISSING_DATA, json.dumps({}))
-
-
-def update_missing_data_cache(proposer_index: int, slot_w_missing_data: int) -> None:
-    _redis = _get_redis()
-
-    cache_data = _redis.get(CACHE_KEY_MISSING_DATA)
-    if cache_data is not None:
-        cache_data = json.loads(cache_data)
-
-    proposer_missing_data = cache_data.get(proposer_index, [])
-    if slot_w_missing_data not in proposer_missing_data:
-        proposer_missing_data.append(slot_w_missing_data)
-
-    cache_data[proposer_index] = proposer_missing_data
-
-    logger.info(f"Updating missing execution layer rewards data -> {cache_data}")
-    _redis.set(CACHE_KEY_MISSING_DATA, json.dumps(cache_data))
 
 
 async def index_block_rewards():
@@ -81,15 +50,14 @@ async def index_block_rewards():
                 ALREADY_INDEXED_SLOTS = {s for s, in session.query(BlockReward.slot).all()}
         slots_needed = slots_needed.difference(ALREADY_INDEXED_SLOTS)
 
+    with session_scope() as session:
+        SLOTS_INDEXING_FAILURES.set(session.query(BlockReward.slot).filter(BlockReward.reward_processed_ok.is_(False)).count())
+
     logger.info(f"Indexing block rewards for {len(slots_needed)} slots")
     SLOTS_WITH_MISSING_BLOCK_REWARDS.set(len(slots_needed))
 
     with session_scope() as session:
         for slot in tqdm(sorted(slots_needed, reverse=False)):
-            if SLOT_INDEXING_FAILURE_COUNTER[slot] > 3:
-                # Already failed to process this slot 3 times -> skip it
-                continue
-
             # Wait for slot to be finalized
             if not await beacon_node.is_slot_finalized(slot):
                 SLOTS_WITH_MISSING_BLOCK_REWARDS.dec(1)
@@ -107,6 +75,7 @@ async def index_block_rewards():
                 session.merge(
                     BlockReward(
                         slot=slot,
+                        reward_processed_ok=True,
                     ),
                 )
                 ALREADY_INDEXED_SLOTS.add(slot)
@@ -122,9 +91,17 @@ async def index_block_rewards():
                 )
             except (ManualInspectionRequired, AssertionError, RateLimited) as e:
                 logger.error(f"Failed to process slot {slot} -> {str(e)}")
-                SLOT_INDEXING_FAILURE_COUNTER[slot] += 1
-                update_missing_data_cache(proposer_index=slot_proposer_data.proposer_index, slot_w_missing_data=slot)
-                SLOTS_INDEXING_FAILURES.inc(1)
+                session.merge(
+                    BlockReward(
+                        slot=slot,
+                        proposer_index=slot_proposer_data.proposer_index,
+                        fee_recipient=slot_proposer_data.fee_recipient,
+                        reward_processed_ok=False,
+                    ),
+                )
+                session.commit()
+                ALREADY_INDEXED_SLOTS.add(slot)
+                SLOTS_WITH_MISSING_BLOCK_REWARDS.dec(1)
                 continue
 
             block = await execution_node.get_block(block_number=slot_proposer_data.block_number)
@@ -139,6 +116,7 @@ async def index_block_rewards():
                     mev=block_reward_value.contains_mev,
                     mev_reward_recipient=block_reward_value.mev_recipient,
                     mev_reward_value_wei=block_reward_value.mev_recipient_balance_change,
+                    reward_processed_ok=True,
                 ),
             )
             ALREADY_INDEXED_SLOTS.add(slot)
@@ -152,7 +130,6 @@ if __name__ == "__main__":
     start_http_server(8000)
 
     setup_logging()
-    reset_missing_data_cache()
 
     from time import sleep
 

@@ -12,7 +12,6 @@ from fastapi_limiter.depends import RateLimiter
 
 from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate
 from db.tables import Balance
-from indexer.block_rewards.main import CACHE_KEY_MISSING_DATA
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
 
@@ -60,17 +59,6 @@ async def rewards(
         end_datetime,
         datetime.time(hour=23, minute=59, second=59, tzinfo=pytz.UTC)
     ))
-
-    # Check if we have execution layer rewards data for the requested validator indexes
-    missing_exec_data = json.loads(await cache.get(CACHE_KEY_MISSING_DATA))
-    for proposer_index, missing_slots in missing_exec_data.items():
-        if int(proposer_index) in validator_indexes:
-            msg = f"Execution layer rewards not available - missing data for proposer {proposer_index} - slots {missing_slots}"
-            logger.error(msg)
-            raise HTTPException(
-                status_code=500,
-                detail=msg
-            )
 
     # Let's get the rewards
     first_slot_in_requested_period = min_slot
@@ -134,6 +122,16 @@ async def rewards(
         max_slot=max_slot,
         proposer_indexes=validator_indexes
     )
+    # Check if all execution layer rewards were processed correctly
+    for br in all_block_rewards:
+        if not br.reward_processed_ok:
+            msg = (f"Execution layer rewards not available"
+                   f" - missing data for proposer {br.proposer_index} - {br.slot}")
+            logger.error(msg)
+            raise HTTPException(
+                status_code=500,
+                detail=msg
+            )
 
     total_validators = len(validator_indexes)
     for idx, validator_index in enumerate(validator_indexes):

@@ -196,14 +196,13 @@ async def get_block_reward_value(
             # see https://ethstaker.cc/mev-relay-list/
             "https://boost-relay.flashbots.net",
             "https://relay.ultrasound.money",
-            "https://aestus.live",
             "https://agnostic-relay.net",
-            "https://builder-relay-mainnet.blocknative.com",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
             "https://relay.edennetwork.io",
             "https://mainnet-relay.securerpc.com",
             "https://relay.wenmerge.com",
+            "https://aestus.live",
         ]
     ]
     for relay in relays:

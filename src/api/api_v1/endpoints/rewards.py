@@ -4,7 +4,6 @@ from typing import List
 import datetime
 from enum import Enum
 import asyncio
-import json
 
 from redis import Redis
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -25,7 +24,6 @@ from db.tables import Balance
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
 from providers.coin_gecko import depends_coin_gecko, CoinGecko
 from providers.db_provider import depends_db, DbProvider
-from indexer.block_rewards.main import CACHE_KEY_MISSING_DATA
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -274,19 +272,6 @@ async def rewards(
     # Populate the object to return
     logger.debug("Populating object to return")
 
-    # Check if we have execution layer rewards data for the requested validator indexes
-    missing_exec_data = json.loads(await cache.get(CACHE_KEY_MISSING_DATA))
-    start_slot, end_slot = min(slots_needed), max(slots_needed)
-    for proposer_index, missing_slots in missing_exec_data.items():
-        if int(proposer_index) in validator_indexes:
-            if any(start_slot < s < end_slot for s in missing_slots):
-                msg = f"Execution layer rewards not available - missing data for proposer {proposer_index} - {missing_slots}"
-                logger.error(msg)
-                raise HTTPException(
-                    status_code=500,
-                    detail=msg
-                )
-
     aggregate_rewards = AggregateRewards(
         validator_rewards=[],
         currency=currency,
@@ -362,6 +347,17 @@ async def rewards(
             )),
             proposer_indexes=[validator_index]
         )
+
+        # Check if all execution layer rewards were processed correctly
+        for br in block_rewards:
+            if not br.reward_processed_ok:
+                msg = (f"Execution layer rewards not available"
+                       f" - missing data for proposer {br.proposer_index} - {br.slot}")
+                logger.error(msg)
+                raise HTTPException(
+                    status_code=500,
+                    detail=msg
+                )
 
         total_execution_layer_eth = 0
         total_execution_layer_currency = 0
