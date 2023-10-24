@@ -27,6 +27,7 @@ class BlockReward(Base):
     mev = Column(Boolean, nullable=True)
     mev_reward_recipient = Column(String(length=42), nullable=True)
     mev_reward_value_wei = Column(Numeric(precision=27), nullable=True)
+    reward_processed_ok = Column(Boolean, nullable=False)
 
 
 class Withdrawal(Base):
