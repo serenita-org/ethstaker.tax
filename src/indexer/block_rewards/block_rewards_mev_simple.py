@@ -198,7 +198,6 @@ async def get_block_reward_value(
             "https://relay.ultrasound.money",
             "https://aestus.live",
             "https://agnostic-relay.net",
-            "https://builder-relay-mainnet.blocknative.com",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
             "https://relay.edennetwork.io",
