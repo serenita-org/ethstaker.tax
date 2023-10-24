@@ -102,6 +102,7 @@ def _populated_db():
                 mev=False,
                 mev_reward_recipient=None,
                 mev_reward_value_wei=None,
+                reward_processed_ok=True,
             ),
             BlockReward(
                 slot=6_238_574,  # Apr-16-2023 23:15:11 UTC
@@ -112,6 +113,7 @@ def _populated_db():
                 mev=True,
                 mev_reward_recipient="0xdeadbeef",
                 mev_reward_value_wei=42002960893000000000,
+                reward_processed_ok=True,
             ),
             BlockReward(
                 slot=6_238_570,  # Apr-16-2023 23:14:23 UTC
@@ -122,6 +124,7 @@ def _populated_db():
                 mev=True,
                 mev_reward_recipient="0xdeadbeef",
                 mev_reward_value_wei=42002960893000000000,
+                reward_processed_ok=True,
             ),
             *[
                 BlockReward(
@@ -133,6 +136,7 @@ def _populated_db():
                     mev=random.choice([True, False]),
                     mev_reward_recipient="0xdeadbeef",
                     mev_reward_value_wei=random.randint(int(1e18 / 100), int(1e19)),
+                    reward_processed_ok=True,
                 ) for slot in range(
                     BeaconNode.slot_for_datetime(datetime.datetime.now(tz=pytz.UTC)) - 1_000,
                     BeaconNode.slot_for_datetime(datetime.datetime.now(tz=pytz.UTC))
@@ -140,3 +144,4 @@ def _populated_db():
             ]
         ]:
             session.add(db_entry)
+    yield

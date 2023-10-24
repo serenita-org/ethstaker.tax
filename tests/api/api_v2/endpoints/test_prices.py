@@ -7,9 +7,6 @@ from api.app import app
 
 @pytest.mark.usefixtures("_populated_db")
 def test_prices():
-    from indexer.block_rewards.main import reset_missing_data_cache
-    reset_missing_data_cache()
-
     with TestClient(app) as client:
         response = client.get(
             "api/v2/prices",
