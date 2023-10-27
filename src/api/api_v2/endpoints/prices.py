@@ -1,5 +1,6 @@
 import datetime
 import logging
+from enum import Enum
 
 import pytz
 from redis import Redis
@@ -15,11 +16,17 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+class SupportedToken(Enum):
+    ETH = "ethereum"
+    ROCKET_POOL = "rocket-pool"
+
+
 @router.get(
-    "/prices",
+    "/prices/{token}",
     response_model=PricesResponse,
 )
 async def prices(
+    token: SupportedToken,
     start_date: datetime.date,
     end_date: datetime.date,
     currency: str = Query(
@@ -51,7 +58,7 @@ async def prices(
         date = start_date + datetime.timedelta(days=day_idx)
         response.prices.append(PriceForDate(
             date=date,
-            price=round(await coin_gecko.price_for_date(date=date, currency=currency, cache=cache), 2)
+            price=round(await coin_gecko.price_for_date(date=date, token=token.value, currency_fiat=currency, cache=cache), 2)
         ))
 
     return response

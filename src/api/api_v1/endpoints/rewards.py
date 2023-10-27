@@ -262,7 +262,7 @@ async def rewards(
 
         async with sem:
             date_eth_price[date] = await coin_gecko.price_for_date(
-                date, currency, cache
+                date=date, token="ethereum", currency_fiat=currency, cache=cache
             )
 
     # Order the prices nicely
