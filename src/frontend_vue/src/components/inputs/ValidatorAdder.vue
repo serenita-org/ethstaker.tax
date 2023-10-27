@@ -3,8 +3,8 @@ import {Ref, ref, watch} from 'vue'
 import axios from "axios";
 
 
-const pubKeyUrl = new URL("https://ethstaker.tax/api/v1/index_for_publickey", window.location.href);
-const depositAddrUrl = new URL("https://ethstaker.tax/api/v1/indexes_for_eth1_address", window.location.href);
+const pubKeyUrl = new URL("/api/v1/index_for_publickey", window.location.href);
+const depositAddrUrl = new URL("/api/v1/indexes_for_eth1_address", window.location.href);
 
 
 const indexesInput = ref("");

@@ -49,7 +49,7 @@ async function getPriceData() {
   priceDataLoading.value = true;
 
   try {
-    const resp = await axios.get("https://ethstaker.tax/api/v2/prices", { params: pricesRequestParams });
+    const resp = await axios.get("/api/v2/prices/ethereum", { params: pricesRequestParams });
     priceData.value = resp.data;
   } catch (err: unknown) {
     let errorMessage: string
@@ -82,7 +82,7 @@ async function getRewardsData() {
   }
 
   try {
-    const resp = await axios.post("https://ethstaker.tax/api/v2/rewards", data, {
+    const resp = await axios.post("/api/v2/rewards", data, {
       transformResponse: function (response) {
         // Parse using lossless-json library - the amounts are in wei and could be larger
         // than JS
