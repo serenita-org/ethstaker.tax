@@ -97,6 +97,18 @@ services:
     depends_on:
       - db
 
+  indexer_rocketpool:
+    image: eth2-tax:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: [ "python", "./src/indexer/rocketpool/main.py" ]
+    environment:
+      DB_URI:
+    depends_on:
+      - db
+
   beacon_node:
     image: sigp/lighthouse:v2.3.1
     restart: unless-stopped
@@ -155,6 +167,8 @@ services:
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
 
   node_exporter:
     image: prom/node-exporter:v1.5.0

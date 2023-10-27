@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Boolean, LargeBinary, Numeric, Integer, Float, String, ForeignKey
+from sqlalchemy import Column, Boolean, LargeBinary, Numeric, Integer, Float, String, ForeignKey, TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -28,6 +28,22 @@ class BlockReward(Base):
     mev_reward_recipient = Column(String(length=42), nullable=True)
     mev_reward_value_wei = Column(Numeric(precision=27), nullable=True)
     reward_processed_ok = Column(Boolean, nullable=False)
+
+
+class RocketpoolReward(Base):
+    __tablename__ = "rocketpool_reward"
+
+    node_address = Column(String(length=42), nullable=False, primary_key=True)
+    reward_period_index = Column(Integer, nullable=False, primary_key=True)
+    reward_collateral_rpl = Column(Numeric(precision=27), nullable=False)
+    reward_smoothing_pool_wei = Column(Numeric(precision=27), nullable=False)
+
+
+class RocketpoolRewardPeriod(Base):
+    __tablename__ = "rocketpool_reward_period"
+
+    reward_period_index = Column(Integer, nullable=False, primary_key=True)
+    reward_period_end_time = Column(TIMESTAMP(timezone=True), nullable=False)
 
 
 class Withdrawal(Base):
