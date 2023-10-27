@@ -30,6 +30,20 @@ class BlockReward(Base):
     reward_processed_ok = Column(Boolean, nullable=False)
 
 
+class RocketpoolMinipool(Base):
+    __tablename__ = "rocketpool_minipool"
+
+    minipool_index = Column(Integer, nullable=False, primary_key=True)
+    validator_index = Column(Integer, nullable=False)
+    node_address = Column(String(length=42), nullable=False)
+    node_deposit_balance = Column(String(length=20), nullable=False)
+    fee = Column(Numeric(precision=19), nullable=False)
+
+    # Only filled for minipools for which the bond was reduced at some point
+    bond_reduced_timestamp = Column(TIMESTAMP(timezone=True), nullable=True)
+    bond_pre_reduction_value_wei = Column(Numeric(precision=27), nullable=True)
+
+
 class RocketpoolReward(Base):
     __tablename__ = "rocketpool_reward"
 
