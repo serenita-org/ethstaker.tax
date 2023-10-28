@@ -5,7 +5,7 @@ import pytz
 import requests
 
 from db.db_helpers import session_scope
-from db.tables import RocketpoolMinipool
+from db.tables import RocketPoolMinipool
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def index_minipools():
 
             bond_reduced = minipool_data.get("bondReduced") is not None
 
-            session.merge(RocketpoolMinipool(
+            session.merge(RocketPoolMinipool(
                 minipool_index=minipool_index,
                 validator_index=validator_data["index"],
                 node_address=minipool_data["nodeAddress"],

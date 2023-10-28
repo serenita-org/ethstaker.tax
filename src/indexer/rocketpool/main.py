@@ -10,8 +10,8 @@ from shared.setup_logging import setup_logging
 logger = logging.getLogger(__name__)
 
 ROCKETPOOL_INDEXING_ERRORS = Counter(
-    "rocketpool_reward_periods_indexing_errors",
-    "Errors during Rocketpool reward period indexing",
+    "rocket_pool_reward_periods_indexing_errors",
+    "Errors during Rocket Pool reward period indexing",
 )
 
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
         try:
             run()
         except Exception as e:
-            logger.error(f"Error occurred while indexing Rocketpool rewards: {e}")
+            logger.error(f"Error occurred while indexing Rocket Pool rewards: {e}")
             ROCKETPOOL_INDEXING_ERRORS.inc()
             logger.exception(e)
         logger.info("Sleeping for a while now")
