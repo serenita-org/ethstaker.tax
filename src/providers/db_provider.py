@@ -59,6 +59,7 @@ class DbProvider:
                 .query(Balance) \
                 .filter(Balance.slot.in_(slots))\
                 .filter(Balance.validator_index.in_(validator_indexes))\
+                .order_by(Balance.slot.asc())\
                 .all()
             session.expunge_all()
 
@@ -89,10 +90,10 @@ class DbProvider:
         return minipools
 
     @DB_REQUESTS_SECONDS.time()
-    def rocketpool_rewards_for_minipools(self, minipool_indexes: Iterable[int], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
+    def rocket_pool_node_rewards_for_minipools(self, minipool_indexes: Iterable[int], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
         with session_scope(self.engine) as session:
             node_addresses = [na for na, in session.query(func.lower(RocketPoolMinipool.node_address)).filter(RocketPoolMinipool.minipool_index.in_(minipool_indexes)).distinct().all()]
-            rocketpool_rewards = session \
+            node_rewards = session \
                 .query(RocketPoolReward) \
                 .filter(RocketPoolReward.node_address.in_(node_addresses)) \
                 .join(RocketPoolRewardPeriod) \
@@ -101,7 +102,7 @@ class DbProvider:
                 .all()
             session.expunge_all()
 
-        return rocketpool_rewards
+        return node_rewards
 
     @DB_REQUESTS_SECONDS.time()
     def withdrawals_to_address(self, address: str, slot: int = None) -> List[Withdrawal]:
