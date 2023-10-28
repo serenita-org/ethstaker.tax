@@ -6,7 +6,7 @@ import DateRangePicker from "../components/inputs/DateRangePicker.vue";
 import {
   PricesRequestParams,
   PricesResponse,
-  RewardsRequest, RewardsResponse, RocketPoolValidatorRewards,
+  RewardsRequest, RewardsResponse, RocketPoolNodeRewardForDate, RocketPoolValidatorRewards,
   ValidatorRewards,
 } from "../types/rewards.ts";
 import { parse, isInteger } from 'lossless-json'
@@ -21,19 +21,21 @@ let selectedCurrency = ref();
 let startDateString = ref();
 let endDateString = ref();
 
-let rewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]> = ref([]);
-let rewardsDataLoading = ref(false);
+let rocketPoolNodeRewards: Ref<(RocketPoolNodeRewardForDate)[]> = ref([]);
+let validatorRewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]> = ref([]);
+let rewardsLoading = ref(false);
 
-let priceData: Ref<PricesResponse | undefined> = ref();
+let priceDataEth: Ref<PricesResponse | undefined> = ref();
+let priceDataRpl: Ref<PricesResponse | undefined> = ref();
 let priceDataLoading = ref(false);
 
 
 watch(selectedCurrency, async () => {
-  if (rewardsData.value.length == 0) return;
+  if (validatorRewardsData.value.length == 0) return;
   await getPriceData();
 })
-watch(rewardsData, async () => {
-  if (rewardsData.value.length == 0) return;
+watch(validatorRewardsData, async () => {
+  if (validatorRewardsData.value.length == 0) return;
   await getPriceData();
 })
 
@@ -45,7 +47,8 @@ async function getPriceData() {
     currency: selectedCurrency.value,
   }
 
-  priceData.value = undefined;
+  priceDataEth.value = undefined;
+  priceDataRpl.value = undefined;
   priceDataLoading.value = true;
 
   try {
@@ -65,15 +68,16 @@ async function getPriceData() {
   }
 }
 
-async function getRewardsData() {
+async function getRewards() {
   const data: RewardsRequest = {
     validator_indexes: Array.from(validatorIndexes.value),
     start_date: startDateString.value,
     end_date: endDateString.value,
   }
 
-  rewardsData.value = [];
-  rewardsDataLoading.value = true;
+  rocketPoolNodeRewards.value = [];
+  validatorRewardsData.value = [];
+  rewardsLoading.value = true;
 
   // parse integer values into a bigint, and use a regular number otherwise
   function customNumberParser(value: string) {
@@ -89,7 +93,8 @@ async function getRewardsData() {
         return parse(response, undefined, customNumberParser);
       }
     })).data;
-    rewardsData.value = resp.validator_rewards;
+    rocketPoolNodeRewards.value = resp.rocket_pool_node_rewards;
+    validatorRewardsData.value = resp.validator_rewards;
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
@@ -100,7 +105,7 @@ async function getRewardsData() {
     alert(errorMessage);
     throw err;
   } finally {
-    rewardsDataLoading.value = false;
+    rewardsLoading.value = false;
   }
 }
 
@@ -126,11 +131,11 @@ async function getRewardsData() {
   <div class="container my-3 text-center">
     <BButton
         variant="primary"
-        @click.prevent="getRewardsData"
-        :disabled="validatorIndexes.size == 0 || rewardsDataLoading"
+        @click.prevent="getRewards"
+        :disabled="validatorIndexes.size == 0 || rewardsLoading"
         class="mx-1"
     >
-      <div v-if="rewardsDataLoading" class="spinner-border spinner-border-sm" role="status">
+      <div v-if="rewardsLoading" class="spinner-border spinner-border-sm" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
       <span v-else>
@@ -140,8 +145,8 @@ async function getRewardsData() {
     </BButton>
     <BButton
         class="mx-1"
-        @click="downloadAsCsv(rewardsData, priceData as PricesResponse, ($refs['groupByDateCheckbox'] as HTMLInputElement).checked)"
-        :disabled="rewardsData.length == 0 || !priceData"
+        @click="downloadAsCsv(validatorRewardsData, priceDataEth as PricesResponse, ($refs['groupByDateCheckbox'] as HTMLInputElement).checked)"
+        :disabled="validatorRewardsData.length == 0 || !priceDataEth"
         variant="secondary"
     >
       <span>
@@ -156,13 +161,13 @@ async function getRewardsData() {
   </div>
   <div class="container mt-3 mb-5">
     <div
-      v-if="rewardsData.length > 0 && priceData && priceData.prices.length > 0"
+      v-if="validatorRewardsData.length > 0 && priceDataEth && priceDataEth.prices.length > 0"
       class="row d-flex align-items-center"
     >
       <div class="col-lg-6">
         <IncomeChart
-            :rewards-data="rewardsData"
-            :price-data="priceData"
+            :rewards-data="validatorRewardsData"
+            :price-data="priceDataEth"
             :currency="selectedCurrency"
             chart-container-height="300px"
             chart-container-width="100%"
@@ -171,8 +176,8 @@ async function getRewardsData() {
       </div>
       <div class="col-lg-6">
         <SummaryTable
-            :rewards-data="rewardsData"
-            :price-data="priceData"
+            :rewards-data="validatorRewardsData"
+            :price-data="priceDataEth"
             :currency="selectedCurrency"
         >
         </SummaryTable>
