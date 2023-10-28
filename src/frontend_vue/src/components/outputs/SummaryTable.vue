@@ -12,28 +12,34 @@
       <tr>
         <th scope="row">Consensus Layer Income</th>
         <td>{{ totalConsensusLayerIncome[0].toFixed(6) }}</td>
-        <td v-if="showRocketPoolIncome"></td>
+        <td v-if="showRocketPoolIncome">0</td>
         <td>{{ totalConsensusLayerIncome[1].toFixed(3) }}</td>
       </tr>
       <tr>
         <th scope="row">Execution Layer Income</th>
         <td>{{ totalExecutionLayerIncome[0].toFixed(6) }}</td>
-        <td v-if="showRocketPoolIncome"></td>
+        <td v-if="showRocketPoolIncome">0</td>
         <td>{{ totalExecutionLayerIncome[1].toFixed(3) }}</td>
       </tr>
       <tr v-if="showRocketPoolIncome">
         <th scope="row">Smoothing Pool Income</th>
         <td>{{ totalSmoothingPoolIncome[0].toFixed(6) }}</td>
-        <td></td>
+        <td>0</td>
         <td>{{ totalSmoothingPoolIncome[1].toFixed(3) }}</td>
+      </tr>
+      <tr v-if="showRocketPoolIncome">
+        <th scope="row">RPL Income</th>
+        <td>0</td>
+        <td>{{ totalRplIncome[0].toFixed(6) }}</td>
+        <td>{{ totalRplIncome[1].toFixed(3) }}</td>
       </tr>
     </tbody>
     <tfoot>
       <tr class="fw-bold">
         <th scope="row">Total</th>
         <td>{{ (totalConsensusLayerIncome[0] + totalExecutionLayerIncome[0] + totalSmoothingPoolIncome[0] ).toFixed(6) }}</td>
-        <td v-if="showRocketPoolIncome"></td>
-        <td>{{ (totalConsensusLayerIncome[1] + totalExecutionLayerIncome[1] + totalSmoothingPoolIncome[1] ).toFixed(3) }}</td>
+        <td v-if="showRocketPoolIncome">{{ totalRplIncome[0] }}</td>
+        <td>{{ (totalConsensusLayerIncome[1] + totalExecutionLayerIncome[1] + totalSmoothingPoolIncome[1] + totalRplIncome[1] ).toFixed(3) }}</td>
       </tr>
     </tfoot>
   </table>
@@ -116,8 +122,8 @@ const totalExecutionLayerIncome = computed<[number, number]>(() => {
 
 const totalSmoothingPoolIncome = computed<[number, number]>(() => {
   const smoothingPoolSumWei = props.rocketPoolNodeRewards.reduce((total, reward) => {
-        return total + reward.amount_wei;
-      }, BigInt(0));
+    return total + reward.amount_wei;
+  }, BigInt(0));
 
   const smoothingPoolSumCurr = props.rocketPoolNodeRewards.reduce((total, reward) => {
       const priceData = props.priceDataEth.prices.find(price => price.date == reward.date);
@@ -133,6 +139,28 @@ const totalSmoothingPoolIncome = computed<[number, number]>(() => {
   return [
       Number(smoothingPoolSumGwei) / Number(gweiToEthMultiplier),
       Number(smoothingPoolSumCents) / 100,
+  ];
+})
+
+const totalRplIncome = computed<[number, number]>(() => {
+  const rplIncomeSumWei = props.rocketPoolNodeRewards.reduce((total, reward) => {
+        return total + reward.amount_rpl;
+  }, BigInt(0));
+
+  const rplIncomeSumCurr = props.rocketPoolNodeRewards.reduce((total, reward) => {
+      const priceData = props.priceDataRpl.prices.find(price => price.date == reward.date);
+      if (!priceData) throw `Price data not found for ${reward.date}`;
+      return total + reward.amount_rpl * BigInt((100 * priceData.price).toFixed(0));
+  }, BigInt(0));
+
+  const rplIncomeSumGwei = rplIncomeSumWei / BigInt(WeiToGweiMultiplier);
+  if (rplIncomeSumGwei > Number.MAX_SAFE_INTEGER) throw `rplIncomeSumGwei (${rplIncomeSumGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
+  const rplIncomeSumCents = rplIncomeSumCurr / (BigInt(WeiToEthMultiplier));
+  if (rplIncomeSumCents > Number.MAX_SAFE_INTEGER) throw `rplIncomeSumCents (${rplIncomeSumCents}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
+
+  return [
+      Number(rplIncomeSumGwei) / Number(gweiToEthMultiplier),
+      Number(rplIncomeSumCents) / 100,
   ];
 })
 
