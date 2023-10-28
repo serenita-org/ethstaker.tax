@@ -154,7 +154,13 @@ const showOutputs = computed<boolean>(() => {
     </BButton>
     <BButton
         class="mx-1"
-        @click="downloadAsCsv(validatorRewardsData, priceDataEth as PricesResponse, ($refs['groupByDateCheckbox'] as HTMLInputElement).checked)"
+        @click="downloadAsCsv(
+            validatorRewardsData,
+            rocketPoolNodeRewards,
+            priceDataEth as PricesResponse,
+            priceDataRpl as PricesResponse,
+            ($refs['groupByDateCheckbox'] as HTMLInputElement).checked
+            )"
         :disabled="validatorRewardsData.length == 0 || !priceDataEth"
         variant="secondary"
     >
