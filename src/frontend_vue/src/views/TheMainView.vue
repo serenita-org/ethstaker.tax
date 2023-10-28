@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Ref, ref, watch} from 'vue'
+import {computed, Ref, ref, watch} from 'vue'
 import ValidatorAdder from "../components/inputs/ValidatorAdder.vue";
 import CurrencyPicker from "../components/inputs/CurrencyPicker.vue";
 import DateRangePicker from "../components/inputs/DateRangePicker.vue";
@@ -109,6 +109,15 @@ async function getRewards() {
   }
 }
 
+const showOutputs = computed<boolean>(() => {
+  if (validatorRewardsData.value.length == 0) return false;
+  if (!priceDataEth.value) return false;
+  if (!priceDataRpl.value) return false;
+  if (priceDataEth.value?.prices.length == 0) return false;
+  if (priceDataRpl.value?.prices.length == 0) return false;
+  return true;
+})
+
 </script>
 
 <template>
@@ -161,7 +170,7 @@ async function getRewards() {
   </div>
   <div class="container mt-3 mb-5">
     <div
-      v-if="validatorRewardsData.length > 0 && priceDataEth && priceDataEth.prices.length > 0"
+      v-if="showOutputs"
       class="row d-flex align-items-center"
     >
       <div class="col-lg-6">
@@ -176,8 +185,10 @@ async function getRewards() {
       </div>
       <div class="col-lg-6">
         <SummaryTable
-            :rewards-data="validatorRewardsData"
-            :price-data="priceDataEth"
+            :validator-rewards-data="validatorRewardsData"
+            :rocket-pool-node-rewards="rocketPoolNodeRewards"
+            :price-data-eth="priceDataEth"
+            :price-data-rpl="priceDataRpl"
             :currency="selectedCurrency"
         >
         </SummaryTable>
