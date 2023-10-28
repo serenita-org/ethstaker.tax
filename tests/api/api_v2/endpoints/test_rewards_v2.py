@@ -61,10 +61,13 @@ def test_rewards_rocket_pool():
 
         # 2 minipools from the same Rocketpool node => 2 validator rewards, but only 1 Rocket Pool reward
         assert len(data["validator_rewards"]) == 2
-        assert len(data["rocket_pool_rewards"]) == 1
 
-        rocket_pool_rewards_datapoint = data["rocket_pool_rewards"][0]
-        assert rocket_pool_rewards_datapoint["date"] == "2023-04-13"
-        assert rocket_pool_rewards_datapoint["node_address"] == "0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2"
-        assert rocket_pool_rewards_datapoint["amount_wei"] == 34078389543558842
-        assert rocket_pool_rewards_datapoint["amount_rpl"] == 8660175360427081131
+        assert all("fee" in vr for vr in data["validator_rewards"])
+
+        assert len(data["rocket_pool_node_rewards"]) == 1
+
+        rocket_pool_node_rewards_datapoint = data["rocket_pool_node_rewards"][0]
+        assert rocket_pool_node_rewards_datapoint["date"] == "2023-04-13"
+        assert rocket_pool_node_rewards_datapoint["node_address"] == "0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2"
+        assert rocket_pool_node_rewards_datapoint["amount_wei"] == 34078389543558842
+        assert rocket_pool_node_rewards_datapoint["amount_rpl"] == 8660175360427081131

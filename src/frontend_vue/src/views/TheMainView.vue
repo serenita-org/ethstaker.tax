@@ -6,7 +6,7 @@ import DateRangePicker from "../components/inputs/DateRangePicker.vue";
 import {
   PricesRequestParams,
   PricesResponse,
-  RewardsRequest,
+  RewardsRequest, RewardsResponse, RocketPoolValidatorRewards,
   ValidatorRewards,
 } from "../types/rewards.ts";
 import { parse, isInteger } from 'lossless-json'
@@ -21,7 +21,7 @@ let selectedCurrency = ref();
 let startDateString = ref();
 let endDateString = ref();
 
-let rewardsData: Ref<ValidatorRewards[]> = ref([]);
+let rewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]> = ref([]);
 let rewardsDataLoading = ref(false);
 
 let priceData: Ref<PricesResponse | undefined> = ref();
@@ -88,8 +88,8 @@ async function getRewardsData() {
         // than JS
         return parse(response, undefined, customNumberParser);
       }
-    });
-    rewardsData.value = resp.data;
+    })).data;
+    rewardsData.value = resp.validator_rewards;
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {

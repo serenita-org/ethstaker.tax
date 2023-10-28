@@ -24,7 +24,7 @@ class RewardForDate(BaseModel):
     amount_wei: int
 
 
-class RocketPoolRewardForDate(RewardForDate):
+class RocketPoolNodeRewardForDate(RewardForDate):
     node_address: str
     amount_rpl: int
 
@@ -44,5 +44,5 @@ class RocketPoolValidatorRewards(ValidatorRewards):
 
 
 class RewardsResponse(BaseModel):
-    validator_rewards: list[ValidatorRewards | RocketPoolValidatorRewards]
-    rocket_pool_rewards: list[RocketPoolRewardForDate]
+    validator_rewards: list[RocketPoolValidatorRewards | ValidatorRewards]
+    rocket_pool_node_rewards: list[RocketPoolNodeRewardForDate]

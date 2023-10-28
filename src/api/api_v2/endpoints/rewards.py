@@ -10,7 +10,7 @@ from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
 from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate, \
-    RocketPoolValidatorRewards, RewardsResponse, RocketPoolRewardForDate
+    RocketPoolValidatorRewards, RewardsResponse, RocketPoolNodeRewardForDate
 from db.tables import Balance
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
@@ -29,7 +29,7 @@ async def rewards(
     db_provider: DbProvider = Depends(depends_db),
     cache: Redis = Depends(depends_redis),
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
-):
+) -> RewardsResponse:
     # Handle inputs
     if rewards_request.end_date <= rewards_request.start_date:
         raise HTTPException(
@@ -186,7 +186,7 @@ async def rewards(
 
     rocket_pool_minipools = db_provider.minipools_for_validators(validator_indexes=validator_indexes)
     rocket_pool_validator_indexes = [mp.validator_index for mp in rocket_pool_minipools]
-    rocket_pool_rewards = db_provider.rocketpool_rewards_for_minipools(
+    rocket_pool_node_rewards = db_provider.rocket_pool_node_rewards_for_minipools(
         minipool_indexes=[mp.minipool_index for mp in rocket_pool_minipools],
         from_datetime=start_datetime,
         to_datetime=end_datetime,
@@ -220,13 +220,13 @@ async def rewards(
 
     return RewardsResponse.construct(
         validator_rewards=return_data,
-        rocket_pool_rewards=[
-            RocketPoolRewardForDate(
+        rocket_pool_node_rewards=[
+            RocketPoolNodeRewardForDate(
                 date=reward.reward_period.reward_period_end_time,
                 node_address=reward.node_address,
                 amount_wei=reward.reward_smoothing_pool_wei,
                 amount_rpl=reward.reward_collateral_rpl,
             )
-            for reward in rocket_pool_rewards
+            for reward in rocket_pool_node_rewards
         ],
     )

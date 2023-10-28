@@ -9,6 +9,11 @@ export interface RewardForDate {
     amount_wei: bigint
 }
 
+export interface RocketPoolNodeRewardForDate extends RewardForDate {
+    node_address: string
+    amount_rpl: bigint
+}
+
 export interface ValidatorRewards {
     validator_index: number
 
@@ -18,6 +23,15 @@ export interface ValidatorRewards {
     withdrawals: RewardForDate[]
 }
 
+export interface RocketPoolValidatorRewards extends ValidatorRewards {
+    fee: bigint
+    bond_reduced: boolean
+}
+
+export interface RewardsResponse {
+    validator_rewards: ValidatorRewards[] | RocketPoolValidatorRewards[]
+    rocket_pool_node_rewards: RocketPoolNodeRewardForDate[]
+}
 
 export interface PriceForDate {
     date: string
