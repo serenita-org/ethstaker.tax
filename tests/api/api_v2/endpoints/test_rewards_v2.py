@@ -18,7 +18,7 @@ def test_rewards():
         )
         data = response.json()
 
-        for validator_data in data:
+        for validator_data in data["validator_rewards"]:
             assert len(validator_data["consensus_layer_rewards"]) == 6
 
             if validator_data["validator_index"] == 123:
@@ -44,3 +44,27 @@ def test_rewards():
                 assert validator_data["withdrawals"] == []
             else:
                 raise ValueError("Unknown validator index")
+
+
+@pytest.mark.usefixtures("_populated_db")
+def test_rewards_rocket_pool():
+    with TestClient(app) as client:
+        response = client.post(
+            "api/v2/rewards",
+            json={
+                "validator_indexes": [461308, 480528],
+                "start_date": "2023-04-12",
+                "end_date": "2023-04-17",
+            }
+        )
+        data = response.json()
+
+        # 2 minipools from the same Rocketpool node => 2 validator rewards, but only 1 Rocket Pool reward
+        assert len(data["validator_rewards"]) == 2
+        assert len(data["rocket_pool_rewards"]) == 1
+
+        rocket_pool_rewards_datapoint = data["rocket_pool_rewards"][0]
+        assert rocket_pool_rewards_datapoint["date"] == "2023-04-13"
+        assert rocket_pool_rewards_datapoint["node_address"] == "0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2"
+        assert rocket_pool_rewards_datapoint["amount_wei"] == 34078389543558842
+        assert rocket_pool_rewards_datapoint["amount_rpl"] == 8660175360427081131

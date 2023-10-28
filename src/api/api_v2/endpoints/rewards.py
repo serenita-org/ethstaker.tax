@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 from collections import defaultdict
 from decimal import Decimal
@@ -10,7 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
-from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate
+from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate, \
+    RocketPoolValidatorRewards, RewardsResponse, RocketPoolRewardForDate
 from db.tables import Balance
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @router.post(  # POST method to support bigger requests
     "/rewards",
-    response_model=list[ValidatorRewards],
+    response_model=RewardsResponse,
 )
 async def rewards(
     rewards_request: RewardsRequest,
@@ -184,11 +184,49 @@ async def rewards(
                 )
             )
 
-    return [
-        ValidatorRewards.construct(
-            validator_index=validator_index,
-            consensus_layer_rewards=consensus_layer_rewards[validator_index],
-            execution_layer_rewards=execution_layer_rewards[validator_index],
-            withdrawals=withdrawals[validator_index],
-        ) for validator_index in validator_indexes if validator_index not in pending_validator_indexes
-    ]
+    rocket_pool_minipools = db_provider.minipools_for_validators(validator_indexes=validator_indexes)
+    rocket_pool_validator_indexes = [mp.validator_index for mp in rocket_pool_minipools]
+    rocket_pool_rewards = db_provider.rocketpool_rewards_for_minipools(
+        minipool_indexes=[mp.minipool_index for mp in rocket_pool_minipools],
+        from_datetime=start_datetime,
+        to_datetime=end_datetime,
+    )
+
+    return_data = []
+    for validator_index in validator_indexes:
+        if validator_index in pending_validator_indexes:
+            continue
+
+        if validator_index in rocket_pool_validator_indexes:
+            minipool_data = [m for m in rocket_pool_minipools if m.validator_index == validator_index][0]
+
+            validator_rewards = RocketPoolValidatorRewards.construct(
+                validator_index=validator_index,
+                consensus_layer_rewards=consensus_layer_rewards[validator_index],
+                execution_layer_rewards=execution_layer_rewards[validator_index],
+                withdrawals=withdrawals[validator_index],
+                fee=minipool_data.fee,
+                bond_reduced=minipool_data.bond_reduced_timestamp is not None,
+            )
+        else:
+            validator_rewards = ValidatorRewards.construct(
+                validator_index=validator_index,
+                consensus_layer_rewards=consensus_layer_rewards[validator_index],
+                execution_layer_rewards=execution_layer_rewards[validator_index],
+                withdrawals=withdrawals[validator_index],
+            )
+
+        return_data.append(validator_rewards)
+
+    return RewardsResponse.construct(
+        validator_rewards=return_data,
+        rocket_pool_rewards=[
+            RocketPoolRewardForDate(
+                date=reward.reward_period.reward_period_end_time,
+                node_address=reward.node_address,
+                amount_wei=reward.reward_smoothing_pool_wei,
+                amount_rpl=reward.reward_collateral_rpl,
+            )
+            for reward in rocket_pool_rewards
+        ],
+    )

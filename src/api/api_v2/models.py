@@ -1,5 +1,4 @@
 import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel
 
@@ -25,6 +24,11 @@ class RewardForDate(BaseModel):
     amount_wei: int
 
 
+class RocketPoolRewardForDate(RewardForDate):
+    node_address: str
+    amount_rpl: int
+
+
 class ValidatorRewards(BaseModel):
     validator_index: int
 
@@ -32,3 +36,13 @@ class ValidatorRewards(BaseModel):
     execution_layer_rewards: list[RewardForDate]
 
     withdrawals: list[RewardForDate]
+
+
+class RocketPoolValidatorRewards(ValidatorRewards):
+    fee: int
+    bond_reduced: bool
+
+
+class RewardsResponse(BaseModel):
+    validator_rewards: list[ValidatorRewards | RocketPoolValidatorRewards]
+    rocket_pool_rewards: list[RocketPoolRewardForDate]
