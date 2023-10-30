@@ -38,9 +38,19 @@ class ValidatorRewards(BaseModel):
     withdrawals: list[RewardForDate]
 
 
+class RocketPoolBondForDate(BaseModel):
+    date: datetime.date
+    bond_value_wei: int
+
+
+class RocketPoolFeeForDate(BaseModel):
+    date: datetime.date
+    fee_value_wei: int
+
+
 class RocketPoolValidatorRewards(ValidatorRewards):
-    fee: int
-    bond_reduced: bool
+    fees: list[RocketPoolFeeForDate]
+    bonds: list[RocketPoolBondForDate]
 
 
 class RewardsResponse(BaseModel):

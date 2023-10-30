@@ -6,6 +6,7 @@ import {
     ValidatorRewards
 } from "../../types/rewards.ts";
 import { gweiToEthMultiplier, WeiToGweiMultiplier } from "../../constants.ts";
+import {isRocketPoolValidatorRewards} from "../../functions/rocketpool.ts";
 
 const SEPARATOR = ";";
 
@@ -50,7 +51,7 @@ export function downloadAsCsv(
     ]
 
     let includeRocketPoolData = false;
-    if (validatorRewardsData.some(vr => "fee" in vr)) {
+    if (validatorRewardsData.some(vr => isRocketPoolValidatorRewards(vr))) {
         includeRocketPoolData = true;
 
         if (!groupByDate) {

@@ -23,9 +23,18 @@ export interface ValidatorRewards {
     withdrawals: RewardForDate[]
 }
 
+export interface RocketPoolBondForDate {
+    date: string
+    bond_value_wei: bigint
+}
+export interface RocketPoolFeeForDate {
+    date: string
+    fee_value_wei: bigint
+}
+
 export interface RocketPoolValidatorRewards extends ValidatorRewards {
-    fee: bigint
-    bond_reduced: boolean
+    bonds: RocketPoolBondForDate[]
+    fees: RocketPoolFeeForDate[]
 }
 
 export interface RewardsResponse {

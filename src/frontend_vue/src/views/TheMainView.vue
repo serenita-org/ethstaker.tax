@@ -52,8 +52,10 @@ async function getPriceData() {
   priceDataLoading.value = true;
 
   try {
-    const resp = await axios.get("/api/v2/prices/ethereum", { params: pricesRequestParams });
-    priceData.value = resp.data;
+    const respEth = await axios.get("/api/v2/prices/ethereum", { params: pricesRequestParams });
+    priceDataEth.value = respEth.data;
+    const respRpl = await axios.get("/api/v2/prices/rocket-pool", { params: pricesRequestParams });
+    priceDataRpl.value = respRpl.data;
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
@@ -86,7 +88,7 @@ async function getRewards() {
   }
 
   try {
-    const resp = await axios.post("/api/v2/rewards", data, {
+    const resp: RewardsResponse = (await axios.post("/api/v2/rewards", data, {
       transformResponse: function (response) {
         // Parse using lossless-json library - the amounts are in wei and could be larger
         // than JS

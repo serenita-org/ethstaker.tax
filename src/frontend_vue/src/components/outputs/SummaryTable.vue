@@ -55,6 +55,10 @@ import {
   ValidatorRewards
 } from "../../types/rewards.ts";
 import {gweiToEthMultiplier, WeiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
+import {
+  getOperatorReward,
+  isRocketPoolValidatorRewards
+} from "../../functions/rocketpool.ts";
 
 const props = defineProps({
   validatorRewardsData: {
@@ -80,19 +84,32 @@ const props = defineProps({
 });
 
 function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
-  const aggregateValidatorRewardsSumWei = props.validatorRewardsData?.reduce((total, validatorData: ValidatorRewards) => {
-      const validatorRewardsSumWei = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
+  const aggregateValidatorRewardsSumWei = props.validatorRewardsData?.reduce((total, validatorData) => {
+    const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
+
+    const validatorRewardsSumWei = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
+      if (isRocketPoolValidator) {
+        return totalForValidator + getOperatorReward(validatorData as RocketPoolValidatorRewards, reward);
+      } else {
         return totalForValidator + reward.amount_wei;
-      }, BigInt(0));
-      return total + validatorRewardsSumWei;
+      }
+    }, BigInt(0));
+    return total + validatorRewardsSumWei;
   }, BigInt(0));
   const aggregateValidatorRewardsSumCurr = props.validatorRewardsData?.reduce((total, validatorData) => {
-      const validatorRewardsSumCurr = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
-        const priceData = props.priceDataEth.prices.find(price => price.date == reward.date);
-        if (!priceData) throw `Price data not found for ${reward.date}`;
-          return totalForValidator + reward.amount_wei * BigInt((100 * priceData.price).toFixed(0));
-      }, BigInt(0));
-      return total + validatorRewardsSumCurr;
+    const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
+
+    const validatorRewardsSumCurr = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
+      const priceData = props.priceDataEth.prices.find(price => price.date == reward.date);
+      if (!priceData) throw `Price data not found for ${reward.date}`;
+      if (isRocketPoolValidator) {
+        return totalForValidator + getOperatorReward(validatorData as RocketPoolValidatorRewards, reward) * BigInt((100 * priceData.price).toFixed(0));
+      }
+      else {
+        return totalForValidator + reward.amount_wei * BigInt((100 * priceData.price).toFixed(0));
+      }
+    }, BigInt(0));
+    return total + validatorRewardsSumCurr;
   }, BigInt(0));
 
   if (aggregateValidatorRewardsSumWei == undefined) throw "aggregateValidatorRewardsSumWei is undefined"
@@ -165,7 +182,7 @@ const totalRplIncome = computed<[number, number]>(() => {
 })
 
 const showRocketPoolIncome = computed<boolean>(() => {
-  return props.validatorRewardsData?.some(vr => "fee" in vr)
+  return props.validatorRewardsData?.some(vr => isRocketPoolValidatorRewards(vr));
 })
 
 </script>

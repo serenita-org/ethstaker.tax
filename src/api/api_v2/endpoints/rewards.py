@@ -10,7 +10,8 @@ from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
 from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate, \
-    RocketPoolValidatorRewards, RewardsResponse, RocketPoolNodeRewardForDate
+    RocketPoolValidatorRewards, RewardsResponse, RocketPoolNodeRewardForDate, \
+    RocketPoolFeeForDate, RocketPoolBondForDate
 from db.tables import Balance
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
@@ -205,8 +206,18 @@ async def rewards(
                 consensus_layer_rewards=consensus_layer_rewards[validator_index],
                 execution_layer_rewards=execution_layer_rewards[validator_index],
                 withdrawals=withdrawals[validator_index],
-                fee=minipool_data.fee,
-                bond_reduced=minipool_data.bond_reduced_timestamp is not None,
+                fees=[
+                    RocketPoolFeeForDate(
+                        date=datetime.date(2000, 1, 1),
+                        fee_value_wei=minipool_data.fee,
+                    )
+                ],
+                bonds=[
+                    RocketPoolBondForDate(
+                        date=datetime.date(2000, 1, 1),
+                        bond_value_wei=minipool_data.node_deposit_balance,
+                    )
+                ]
             )
         else:
             validator_rewards = ValidatorRewards.construct(
