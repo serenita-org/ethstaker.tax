@@ -89,7 +89,7 @@ async def index_block_rewards():
                     execution_node=execution_node,
                     db_provider=db_provider,
                 )
-            except (ManualInspectionRequired, AssertionError, RateLimited) as e:
+            except Exception as e:
                 logger.error(f"Failed to process slot {slot} -> {str(e)}")
                 session.merge(
                     BlockReward(

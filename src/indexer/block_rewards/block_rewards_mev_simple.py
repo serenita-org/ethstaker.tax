@@ -6,6 +6,7 @@ from typing import Optional
 from providers.beacon_node import SlotProposerData
 from providers.db_provider import DbProvider
 from providers.execution_node import ExecutionNode
+from providers.http_client_w_backoff import NonOkStatusCode
 from providers.mev_builders import BUILDER_FEE_RECIPIENTS
 from providers.mev_relay import MevRelay
 from indexer.block_rewards.mev_bots import SMART_CONTRACTS_MEV_BOTS
@@ -206,7 +207,11 @@ async def get_block_reward_value(
         ]
     ]
     for relay in relays:
-        payload = await relay.get_payload(slot_proposer_data.block_hash)
+        try:
+            payload = await relay.get_payload(slot_proposer_data.block_hash)
+        except NonOkStatusCode as e:
+            logger.exception(e)
+            continue
         if payload:
             # MEV! Block hash matches with payload delivered by MEV relay
             logger.info(f"MEV found in {slot_proposer_data.slot} - {relay.api_url}")
