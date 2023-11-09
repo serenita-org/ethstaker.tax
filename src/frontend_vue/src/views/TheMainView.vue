@@ -183,8 +183,9 @@ const showOutputs = computed<boolean>(() => {
     >
       <div class="col-lg-6">
         <IncomeChart
+            v-if="priceDataEth"
             :rewards-data="validatorRewardsData"
-            :price-data="priceDataEth"
+            :price-data-eth="priceDataEth"
             :currency="selectedCurrency"
             chart-container-height="300px"
             chart-container-width="100%"
@@ -193,6 +194,7 @@ const showOutputs = computed<boolean>(() => {
       </div>
       <div class="col-lg-6">
         <SummaryTable
+            v-if="priceDataEth && priceDataRpl"
             :validator-rewards-data="validatorRewardsData"
             :rocket-pool-node-rewards="rocketPoolNodeRewards"
             :price-data-eth="priceDataEth"
