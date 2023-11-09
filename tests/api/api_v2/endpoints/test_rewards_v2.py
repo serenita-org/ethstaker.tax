@@ -52,19 +52,32 @@ def test_rewards_rocket_pool():
         response = client.post(
             "api/v2/rewards",
             json={
-                "validator_indexes": [461308, 480528],
+                "validator_indexes": [461308, 584908],
                 "start_date": "2023-04-12",
                 "end_date": "2023-04-17",
             }
         )
         data = response.json()
 
-        # 2 minipools from the same Rocketpool node => 2 validator rewards, but only 1 Rocket Pool reward
+        # 2 minipools from the same Rocketpool node => 2 validator rewards, but only 1 Rocket Pool (node) reward
         assert len(data["validator_rewards"]) == 2
 
-        assert all("fee" in vr for vr in data["validator_rewards"])
+        assert all("bonds" in vr for vr in data["validator_rewards"])
+        assert all("fees" in vr for vr in data["validator_rewards"])
 
         assert len(data["rocket_pool_node_rewards"]) == 1
+
+        minipool_16eth_bond_reduced_rewards = data["validator_rewards"][0]
+
+        # Bond reduction event
+        assert len(minipool_16eth_bond_reduced_rewards["bonds"]) == 2
+        assert len(minipool_16eth_bond_reduced_rewards["fees"]) == 2
+
+        minipool_leb8_rewards = data["validator_rewards"][1]
+
+        # No bond reduction event
+        assert len(minipool_leb8_rewards["bonds"]) == 1
+        assert len(minipool_leb8_rewards["fees"]) == 1
 
         rocket_pool_node_rewards_datapoint = data["rocket_pool_node_rewards"][0]
         assert rocket_pool_node_rewards_datapoint["date"] == "2023-04-13"

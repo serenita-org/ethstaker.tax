@@ -194,30 +194,56 @@ async def rewards(
     )
 
     return_data = []
-    for validator_index in validator_indexes:
+    for validator_index in sorted(validator_indexes):
         if validator_index in pending_validator_indexes:
             continue
 
         if validator_index in rocket_pool_validator_indexes:
             minipool_data = [m for m in rocket_pool_minipools if m.validator_index == validator_index][0]
 
+            current_fee = minipool_data.fee
+            current_bond_value = minipool_data.node_deposit_balance
+
+            fees, bonds = [], []
+
+            prev_bond_reduction = None
+            for bond_reduction in minipool_data.bond_reductions:
+                prev_period_start = datetime.date(2000, 1,
+                                                  1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date()
+                fees.append(
+                    RocketPoolFeeForDate(
+                        date=prev_period_start,
+                        fee_value_wei=bond_reduction.prev_node_fee,
+                    )
+                )
+                bonds.append(
+                    RocketPoolBondForDate(
+                        date=prev_period_start,
+                        bond_value_wei=bond_reduction.prev_bond_value,
+                    )
+                )
+                prev_bond_reduction = bond_reduction
+
+            fees.append(
+                RocketPoolFeeForDate(
+                    date=datetime.date(2000, 1, 1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date(),
+                    fee_value_wei=current_fee,
+                )
+            )
+            bonds.append(
+                RocketPoolBondForDate(
+                    date=datetime.date(2000, 1, 1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date(),
+                    bond_value_wei=current_bond_value,
+                )
+            )
+
             validator_rewards = RocketPoolValidatorRewards.construct(
                 validator_index=validator_index,
                 consensus_layer_rewards=consensus_layer_rewards[validator_index],
                 execution_layer_rewards=execution_layer_rewards[validator_index],
                 withdrawals=withdrawals[validator_index],
-                fees=[
-                    RocketPoolFeeForDate(
-                        date=datetime.date(2000, 1, 1),
-                        fee_value_wei=minipool_data.fee,
-                    )
-                ],
-                bonds=[
-                    RocketPoolBondForDate(
-                        date=datetime.date(2000, 1, 1),
-                        bond_value_wei=minipool_data.node_deposit_balance,
-                    )
-                ]
+                fees=fees,
+                bonds=bonds,
             )
         else:
             validator_rewards = ValidatorRewards.construct(

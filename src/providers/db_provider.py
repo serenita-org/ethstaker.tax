@@ -85,14 +85,14 @@ class DbProvider:
     @DB_REQUESTS_SECONDS.time()
     def minipools_for_validators(self, validator_indexes: Iterable[int]) -> list[Type[RocketPoolMinipool]]:
         with session_scope(self.engine) as session:
-            minipools = session.query(RocketPoolMinipool).filter(RocketPoolMinipool.validator_index.in_(validator_indexes)).all()
+            minipools = session.query(RocketPoolMinipool).filter(RocketPoolMinipool.validator_index.in_(validator_indexes)).options(joinedload(RocketPoolMinipool.bond_reductions)).all()
             session.expunge_all()
         return minipools
 
     @DB_REQUESTS_SECONDS.time()
     def rocket_pool_node_rewards_for_minipools(self, minipool_indexes: Iterable[int], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
         with session_scope(self.engine) as session:
-            node_addresses = [na for na, in session.query(func.lower(RocketPoolMinipool.node_address)).filter(RocketPoolMinipool.minipool_index.in_(minipool_indexes)).distinct().all()]
+            node_addresses = [na for na, in session.query(RocketPoolMinipool.node_address).filter(RocketPoolMinipool.minipool_index.in_(minipool_indexes)).distinct().all()]
             node_rewards = session \
                 .query(RocketPoolReward) \
                 .filter(RocketPoolReward.node_address.in_(node_addresses)) \

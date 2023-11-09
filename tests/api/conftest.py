@@ -5,7 +5,8 @@ import pytest
 import pytz
 
 from db.db_helpers import session_scope
-from db.tables import Balance, Withdrawal, BlockReward, RocketPoolReward, RocketPoolRewardPeriod, RocketPoolMinipool
+from db.tables import Balance, Withdrawal, BlockReward, RocketPoolReward, \
+    RocketPoolRewardPeriod, RocketPoolMinipool, RocketPoolBondReduction
 from providers.beacon_node import BeaconNode
 
 
@@ -152,25 +153,30 @@ def _populated_db():
                     BeaconNode.slot_for_datetime(datetime.datetime.now(tz=pytz.UTC))
                 )
             ],
+            # LEB16 with bond reduction to LEB8
             RocketPoolMinipool(
                 minipool_index=9225,
+                minipool_address="0xb8d17ec656d5353d04d7f876e0ff6cc10f9d3b65",
                 validator_index=461308,
-                node_address="0x5A8b39Df6f1231B5d68036c090a2C5d126eb72D2",
+                node_address="0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2",
                 node_deposit_balance=8000000000000000000,
                 fee=140000000000000000,
-                # Only filled for minipools for which the bond was reduced at some point
-                bond_reduced_timestamp=datetime.datetime(2023, 4, 18, 19, 34, 59, tzinfo=pytz.UTC),
-                bond_pre_reduction_value_wei=16000000000000000000,
+                bond_reductions=[
+                    RocketPoolBondReduction(
+                        timestamp=datetime.datetime(2023, 4, 18, 7, 30, 35, tzinfo=pytz.UTC),
+                        prev_node_fee=150000000000000000,
+                        prev_bond_value=16000000000000000000,
+                    )
+                ]
             ),
+            # LEB8 from the start
             RocketPoolMinipool(
-                minipool_index=9735,
-                validator_index=480528,
-                node_address="0x5A8b39Df6f1231B5d68036c090a2C5d126eb72D2",
+                minipool_index=14942,
+                minipool_address="0xacc7bb997e1a835311289c8e973140c2f95e2d66",
+                validator_index=584908,
+                node_address="0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2",
                 node_deposit_balance=8000000000000000000,
                 fee=140000000000000000,
-                # Only filled for minipools for which the bond was reduced at some point
-                bond_reduced_timestamp=datetime.datetime(2023, 4, 18, 19, 35, 11, tzinfo=pytz.UTC),
-                bond_pre_reduction_value_wei=16000000000000000000,
             ),
             RocketPoolRewardPeriod(
                 reward_period_index=8,
