@@ -37,7 +37,7 @@ export default {
       type: Object as PropType<ValidatorRewards[]>,
       required: true,
     },
-    priceData: {
+    priceDataEth: {
       type: Object as PropType<PricesResponse>,
       required: true,
     },
@@ -99,7 +99,7 @@ export default {
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
-          const priceDataForDate = this.priceData.prices.find(data => data.date == date);
+          const priceDataForDate = this.priceDataEth.prices.find(data => data.date == date);
           if (!priceDataForDate) throw `No price data for ${date}!`
           return [totalEth, priceDataForDate.price * totalEth];
       });
@@ -112,7 +112,7 @@ export default {
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
-          const priceDataForDate = this.priceData.prices.find(data => data.date == date);
+          const priceDataForDate = this.priceDataEth.prices.find(data => data.date == date);
           if (!priceDataForDate) throw `No price data for ${date}!`
           return [totalEth, priceDataForDate.price * totalEth];
       });
