@@ -106,6 +106,16 @@ services:
     command: [ "python", "./src/indexer/rocketpool/main.py" ]
     environment:
       DB_URI:
+      BEACON_NODE_USE_INFURA:
+      INFURA_PROJECT_ID:
+      INFURA_SECRET:
+      BEACON_NODE_HOST:
+      BEACON_NODE_PORT:
+      BEACON_NODE_RESPONSE_TIMEOUT:
+      EXECUTION_NODE_HOST:
+      EXECUTION_NODE_PORT:
+      EXECUTION_NODE_RESPONSE_TIMEOUT:
+      EXECUTION_NODE_INFURA_ARCHIVE_URL:
     depends_on:
       - db
 
