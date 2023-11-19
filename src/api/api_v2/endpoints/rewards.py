@@ -80,11 +80,14 @@ async def rewards(
             continue
 
         if act_slot > first_slot_in_requested_period:
-            initial_balance = Balance(
-                slot=act_slot,
-                validator_index=validator_index,
-                balance=32,
+            initial_balance_maybe = db_provider.balances(
+                slots=[act_slot],
+                validator_indexes=[validator_index],
             )
+            if len(initial_balance_maybe) == 1:
+                initial_balance = initial_balance_maybe[0]
+            else:
+                raise HTTPException(status_code=500, detail=f"No initial balance found for {validator_index}")
         else:
             initial_balance_slot = BeaconNode.slot_for_datetime(dt=start_datetime)
             initial_balance = db_provider.balances(
@@ -143,6 +146,10 @@ async def rewards(
 
         validator_withdrawals = [w for w in all_withdrawals if w.validator_index == validator_index]
         for eod_balance in [eodb for eodb in eod_balances if eodb.validator_index == validator_index]:
+            if eod_balance.slot < activation_slots[validator_index]:
+                # End of day balance before validator was activated -> discard
+                continue
+
             amount_earned_wei = Decimal(1e18) * (eod_balance.balance - prev_balance.balance)
 
             # Account for withdrawals

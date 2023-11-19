@@ -1,4 +1,5 @@
 import logging
+import time
 
 from httpx import AsyncClient, Response, ConnectTimeout
 import backoff
@@ -25,6 +26,12 @@ class AsyncClientWithBackoff(AsyncClient):
             # Rate limited
             logger.warning(f"Rate limited while getting {kwargs}. "
                            f"Headers: {resp.headers}")
+
+            retry_after = resp.headers.get("retry-after")
+            if retry_after:
+                logger.warning(f"Rate limit retry-after {retry_after} -> sleeping")
+                time.sleep(float(retry_after) + 1)
+
             raise RateLimited()
         elif resp.status_code == 404:
             # Resource not found at URL

@@ -89,7 +89,11 @@ function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
 
     const validatorRewardsSumWei = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
       if (isRocketPoolValidator) {
-        return totalForValidator + getOperatorReward(validatorData as RocketPoolValidatorRewards, reward);
+        return totalForValidator + getOperatorReward(
+            (validatorData as RocketPoolValidatorRewards).bonds,
+            (validatorData as RocketPoolValidatorRewards).fees,
+            reward
+        ).amount_wei;
       } else {
         return totalForValidator + reward.amount_wei;
       }
@@ -103,7 +107,12 @@ function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
       const priceData = props.priceDataEth.prices.find(price => price.date == reward.date);
       if (!priceData) throw `Price data not found for ${reward.date}`;
       if (isRocketPoolValidator) {
-        return totalForValidator + getOperatorReward(validatorData as RocketPoolValidatorRewards, reward) * BigInt((100 * priceData.price).toFixed(0));
+        return totalForValidator + getOperatorReward(
+            (validatorData as RocketPoolValidatorRewards).bonds,
+            (validatorData as RocketPoolValidatorRewards).fees,
+            reward
+        ).amount_wei * BigInt((100 * priceData.price).toFixed(0)
+        );
       }
       else {
         return totalForValidator + reward.amount_wei * BigInt((100 * priceData.price).toFixed(0));

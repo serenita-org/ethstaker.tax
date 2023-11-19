@@ -10,7 +10,7 @@ from db.tables import RocketPoolMinipool
 logger = logging.getLogger(__name__)
 
 
-def index_minipools():
+async def index_minipools():
     logger.info(f"Indexing minipools")
 
     resp = requests.get("https://rocketscan.io/api/mainnet/minipools/all")
@@ -26,14 +26,11 @@ def index_minipools():
                 # Minipool not yet linked to a validator
                 continue
 
-            bond_reduced = minipool_data.get("bondReduced") is not None
-
             session.merge(RocketPoolMinipool(
                 minipool_index=minipool_index,
+                minipool_address=minipool_data["address"].lower(),
                 validator_index=validator_data["index"],
-                node_address=minipool_data["nodeAddress"],
+                node_address=minipool_data["nodeAddress"].lower(),
                 node_deposit_balance=minipool_data["nodeDepositBalance"],
                 fee=minipool_data["fee"],
-                bond_reduced_timestamp=datetime.datetime.fromtimestamp(minipool_data["bondReduced"]["timestamp"], tz=pytz.UTC) if bond_reduced else None,
-                bond_pre_reduction_value_wei=minipool_data["bondReduction"]["prevValue"] if bond_reduced else None,
             ))

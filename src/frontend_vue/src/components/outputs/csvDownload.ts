@@ -6,7 +6,7 @@ import {
     ValidatorRewards
 } from "../../types/rewards.ts";
 import { gweiToEthMultiplier, WeiToGweiMultiplier } from "../../constants.ts";
-import {isRocketPoolValidatorRewards} from "../../functions/rocketpool.ts";
+import {getOperatorReward, isRocketPoolValidatorRewards} from "../../functions/rocketpool.ts";
 
 const SEPARATOR = ";";
 
@@ -93,23 +93,49 @@ export function downloadAsCsv(
             let rplIncomeTotal = BigInt(0);
 
             for (const rewards of validatorRewardsData) {
+                const isRocketPoolValidator = isRocketPoolValidatorRewards(rewards);
+
                 for (const reward of rewards.consensus_layer_rewards) {
                     if (reward.date === date) {
-                        consensusTotal += reward.amount_wei;
+                        if (isRocketPoolValidator) {
+                            consensusTotal += getOperatorReward(
+                                (rewards as RocketPoolValidatorRewards).bonds,
+                                (rewards as RocketPoolValidatorRewards).fees,
+                                reward
+                            ).amount_wei;
+                        } else {
+                            consensusTotal += reward.amount_wei;
+                        }
                         break;
                     }
                 }
 
                 for (const reward of rewards.execution_layer_rewards) {
                     if (reward.date === date) {
-                        executionTotal += reward.amount_wei;
+                        if (isRocketPoolValidator) {
+                            executionTotal += getOperatorReward(
+                                (rewards as RocketPoolValidatorRewards).bonds,
+                                (rewards as RocketPoolValidatorRewards).fees,
+                                reward
+                            ).amount_wei;
+                        } else {
+                            executionTotal += reward.amount_wei;
+                        }
                         break;
                     }
                 }
 
                 for (const reward of rewards.withdrawals) {
                     if (reward.date === date) {
-                        withdrawalTotal += reward.amount_wei;
+                        if (isRocketPoolValidator) {
+                            withdrawalTotal += getOperatorReward(
+                                (rewards as RocketPoolValidatorRewards).bonds,
+                                (rewards as RocketPoolValidatorRewards).fees,
+                                reward
+                            ).amount_wei;
+                        } else {
+                            withdrawalTotal += reward.amount_wei;
+                        }
                         break;
                     }
                 }
@@ -143,18 +169,19 @@ export function downloadAsCsv(
         } else {
             for (const rewards of validatorRewardsData) {
                 const validatorIndex = rewards.validator_index;
+                const isRocketPoolValidator = isRocketPoolValidatorRewards(rewards);
 
-                const consensusReward = getRewardForDate(rewards.consensus_layer_rewards, date);
-                const executionReward = getRewardForDate(rewards.execution_layer_rewards, date);
-                const withdrawalReward = getRewardForDate(rewards.withdrawals, date);
+                let consensusReward = getRewardForDate(rewards.consensus_layer_rewards, date, isRocketPoolValidator, rewards);
+                let executionReward = getRewardForDate(rewards.execution_layer_rewards, date, isRocketPoolValidator, rewards);
+                let withdrawalReward = getRewardForDate(rewards.withdrawals, date, isRocketPoolValidator, rewards);
 
                 const columnValues = [
                     `${date}`,
                     `${validatorIndex}`,
                     `${getPriceForDate(priceDataEth.prices, date)}`,
-                    `${Number(consensusReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                    `${Number(executionReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                    `${Number(withdrawalReward / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                    `${Number(consensusReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                    `${Number(executionReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                    `${Number(withdrawalReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
                 ]
                 if (includeRocketPoolData) {
                     columnValues.push(...["", "", "", ""])
@@ -193,7 +220,15 @@ function getPriceForDate(prices: PriceForDate[], date: string): number {
     return matchingPrice.price;
 }
 
-function getRewardForDate(rewards: RewardForDate[], date: string): bigint {
-    const matchingReward = rewards.find(reward => reward.date === date);
-    return matchingReward ? matchingReward.amount_wei : BigInt(0);
+function getRewardForDate(rewards: RewardForDate[], date: string, isRocketPoolValidator: boolean, allRewardsData: ValidatorRewards | RocketPoolValidatorRewards): RewardForDate {
+    const fullRewardForDate = rewards.find(reward => reward.date === date)  ?? { amount_wei: 0n, date: date};
+    if (isRocketPoolValidator) {
+        return getOperatorReward(
+            (allRewardsData as RocketPoolValidatorRewards).bonds,
+            (allRewardsData as RocketPoolValidatorRewards).fees,
+            fullRewardForDate);
+    } else {
+        return fullRewardForDate;
+    }
+
 }

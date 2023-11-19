@@ -143,10 +143,10 @@ const showOutputs = computed<boolean>(() => {
     <BButton
         variant="primary"
         @click.prevent="getRewards"
-        :disabled="validatorIndexes.size == 0 || rewardsLoading"
+        :disabled="validatorIndexes.size == 0 || rewardsLoading || priceDataLoading"
         class="mx-1"
     >
-      <div v-if="rewardsLoading" class="spinner-border spinner-border-sm" role="status">
+      <div v-if="rewardsLoading || priceDataLoading" class="spinner-border spinner-border-sm" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
       <span v-else>
@@ -163,7 +163,7 @@ const showOutputs = computed<boolean>(() => {
             priceDataRpl as PricesResponse,
             ($refs['groupByDateCheckbox'] as HTMLInputElement).checked
             )"
-        :disabled="validatorRewardsData.length == 0 || !priceDataEth"
+        :disabled="validatorRewardsData.length == 0 || rewardsLoading || priceDataLoading"
         variant="secondary"
     >
       <span>
