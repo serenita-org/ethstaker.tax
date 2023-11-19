@@ -39,23 +39,19 @@ async def index_balances():
     beacon_node = BeaconNode()
     cache = redis.Redis(host=os.getenv("REDIS_HOST"), port=int(os.getenv("REDIS_PORT")))
 
-    logger.info(f"Indexing balances for {len(TIMEZONES_TO_INDEX)} timezones.")
     slots_to_index = set()
     logger.debug(f"Calculating the needed slot numbers...")
 
     # Slot numbers for balances at activation slot
     # We only want to store activation balances for validators during their activation epoch
-    # TODO uncomment when indexing act balances
-    # validator_index_to_activation_slot = await beacon_node.activation_slots_for_validators(validator_indexes=None, cache=cache)
-    validator_index_to_activation_slot = {}
+    validator_index_to_activation_slot = await beacon_node.activation_slots_for_validators(validator_indexes=None, cache=cache)
     activation_slot_to_validators = defaultdict(list)
     for vi, as_ in validator_index_to_activation_slot.items():
         if as_ is not None:
             activation_slot_to_validators[as_].append(vi)
-            # TODO uncomment once teku is historically synced again
-            #  also block rewards indexer is confused by the 404s, it thinks the block were skipped... we will need to reindex all slots where proposer_index is null...
+            # TODO block rewards indexer is confused by the 404s, it thinks the block were skipped... we will need to reindex all slots where proposer_index is null...
             #  ... think about adding a column to blocks table - boolean - processing_error insteat of using the cache - block rewards indexer
-            #slots_to_index.add(as_)
+            slots_to_index.add(as_)
 
     # Slot numbers for end-of-day balances
     eod_slots = set()
@@ -94,8 +90,6 @@ async def index_balances():
 
         for slot in slots:
             eod_slots.add(slot)
-            # TODO uncomment I temporarily have 2 services indexing - the regular one only indexing activation balances,
-            #  and the EOD one that independently only indexes EOD balances
             slots_to_index.add(slot)
 
     # Remove slots that have already been indexed previously
@@ -107,15 +101,13 @@ async def index_balances():
             ]
 
     for s in ALREADY_INDEXED_SLOTS:
+        slots_to_index.remove(s)
         try:
-            slots_to_index.remove(s)
             eod_slots.remove(s)
-        # TODO remove excepton handling
-        except KeyError as e:
+        except KeyError:
             pass
 
     # Order the slots - to retrieve the balances for the oldest slots first
-    # TODO undo reverse
     slots_to_index = sorted(slots_to_index)
 
     logger.info(f"Indexing balances for {len(slots_to_index)} slots")
@@ -124,13 +116,11 @@ async def index_balances():
     commit_every = 1
     current_tx = 0
     with session_scope() as session:
-        # TODO undo list + indexes
-        for slot in tqdm((list(eod_slots) + list(slots_to_index))[:1000]):
+        for slot in slots_to_index:
             logger.info(f"Indexing slot {slot}")
             current_tx += 1
 
             # Wait for slot to be finalized
-            # TODO uncomment
             if not await beacon_node.is_slot_finalized(slot):
                 logger.info(f"Waiting for slot {slot} to be finalized")
                 continue
