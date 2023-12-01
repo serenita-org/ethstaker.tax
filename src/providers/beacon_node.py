@@ -190,14 +190,15 @@ class BeaconNode:
             block_hash=block_hash,
         )
 
-    async def activation_slots_for_validators(self, validator_indexes: List[int] | None, cache: Redis) -> Dict[int, Optional[int]]:
+    async def activation_slots_for_validators(self, validator_indexes: List[int] | None, cache: Redis | None) -> Dict[int, Optional[int]]:
         cache_key = f"activation_slots_{validator_indexes}"
 
         # Try to get activation slots from cache first
-        slots_from_cache = await cache.get(cache_key)
-        if slots_from_cache:
-            logger.debug(f"Got activation slots from cache")
-            return {int(k): v for k, v in json.loads(slots_from_cache).items()}
+        if cache:
+            slots_from_cache = await cache.get(cache_key)
+            if slots_from_cache:
+                logger.debug(f"Got activation slots from cache")
+                return {int(k): v for k, v in json.loads(slots_from_cache).items()}
 
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
 
@@ -246,7 +247,8 @@ class BeaconNode:
 
         # Cache slots for a limited amount of time
         # (validator may become active)
-        await cache.set(cache_key, json.dumps(activation_slots), ex=600)
+        if cache:
+            await cache.set(cache_key, json.dumps(activation_slots), ex=600)
 
         return activation_slots
 

@@ -79,8 +79,6 @@ services:
       EXECUTION_NODE_PORT:
       EXECUTION_NODE_RESPONSE_TIMEOUT:
       EXECUTION_NODE_INFURA_ARCHIVE_URL:
-      REDIS_HOST:
-      REDIS_PORT:
     depends_on:
       - db
 
