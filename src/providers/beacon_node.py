@@ -277,7 +277,7 @@ class BeaconNode:
         url = f"{self.BASE_URL}/eth/v1/beacon/states/{slot}/validator_balances"
         params = None
         if validator_indexes:
-            params = {"id": ",".join([str(v) for v in validator_indexes])}
+            params = {"id": [str(vi) for vi in validator_indexes]}
         async with self._get_http_client() as client:
             resp = await client.get_w_backoff(url=url, params=params)
         BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validator_balances", "balances_for_slot").inc()
@@ -310,11 +310,11 @@ class BeaconNode:
             "/eth/v2/beacon/blocks/{state_id}",
             "withdrawals_for_slot").inc()
 
-        if resp.status_code == 404:
+        data = resp.json()["data"]
+
+        if resp.status_code == 404 or data.get("code") == 404:
             # Block not found - missed
             return []
-
-        data = resp.json()["data"]
 
         withdrawals = []
         with session_scope() as session:

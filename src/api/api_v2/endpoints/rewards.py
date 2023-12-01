@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 from collections import defaultdict
 from decimal import Decimal
@@ -10,7 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
-from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate
+from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate, \
+    RocketPoolValidatorRewards, RewardsResponse, RocketPoolNodeRewardForDate, \
+    RocketPoolFeeForDate, RocketPoolBondForDate
 from db.tables import Balance
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @router.post(  # POST method to support bigger requests
     "/rewards",
-    response_model=list[ValidatorRewards],
+    response_model=RewardsResponse,
 )
 async def rewards(
     rewards_request: RewardsRequest,
@@ -29,7 +30,7 @@ async def rewards(
     db_provider: DbProvider = Depends(depends_db),
     cache: Redis = Depends(depends_redis),
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
-):
+) -> RewardsResponse:
     # Handle inputs
     if rewards_request.end_date <= rewards_request.start_date:
         raise HTTPException(
@@ -79,11 +80,14 @@ async def rewards(
             continue
 
         if act_slot > first_slot_in_requested_period:
-            initial_balance = Balance(
-                slot=act_slot,
-                validator_index=validator_index,
-                balance=32,
+            initial_balance_maybe = db_provider.balances(
+                slots=[act_slot],
+                validator_indexes=[validator_index],
             )
+            if len(initial_balance_maybe) == 1:
+                initial_balance = initial_balance_maybe[0]
+            else:
+                raise HTTPException(status_code=500, detail=f"No initial balance found for {validator_index}")
         else:
             initial_balance_slot = BeaconNode.slot_for_datetime(dt=start_datetime)
             initial_balance = db_provider.balances(
@@ -142,6 +146,10 @@ async def rewards(
 
         validator_withdrawals = [w for w in all_withdrawals if w.validator_index == validator_index]
         for eod_balance in [eodb for eodb in eod_balances if eodb.validator_index == validator_index]:
+            if eod_balance.slot < activation_slots[validator_index]:
+                # End of day balance before validator was activated -> discard
+                continue
+
             amount_earned_wei = Decimal(1e18) * (eod_balance.balance - prev_balance.balance)
 
             # Account for withdrawals
@@ -184,11 +192,85 @@ async def rewards(
                 )
             )
 
-    return [
-        ValidatorRewards.construct(
-            validator_index=validator_index,
-            consensus_layer_rewards=consensus_layer_rewards[validator_index],
-            execution_layer_rewards=execution_layer_rewards[validator_index],
-            withdrawals=withdrawals[validator_index],
-        ) for validator_index in validator_indexes if validator_index not in pending_validator_indexes
-    ]
+    rocket_pool_minipools = db_provider.minipools_for_validators(validator_indexes=validator_indexes)
+    rocket_pool_validator_indexes = [mp.validator_index for mp in rocket_pool_minipools]
+    rocket_pool_node_rewards = db_provider.rocket_pool_node_rewards_for_minipools(
+        minipool_indexes=[mp.minipool_index for mp in rocket_pool_minipools],
+        from_datetime=start_datetime,
+        to_datetime=end_datetime,
+    )
+
+    return_data = []
+    for validator_index in sorted(validator_indexes):
+        if validator_index in pending_validator_indexes:
+            continue
+
+        if validator_index in rocket_pool_validator_indexes:
+            minipool_data = [m for m in rocket_pool_minipools if m.validator_index == validator_index][0]
+
+            current_fee = minipool_data.fee
+            current_bond_value = minipool_data.node_deposit_balance
+
+            fees, bonds = [], []
+
+            prev_bond_reduction = None
+            for bond_reduction in minipool_data.bond_reductions:
+                prev_period_start = datetime.date(2000, 1,
+                                                  1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date()
+                fees.append(
+                    RocketPoolFeeForDate(
+                        date=prev_period_start,
+                        fee_value_wei=bond_reduction.prev_node_fee,
+                    )
+                )
+                bonds.append(
+                    RocketPoolBondForDate(
+                        date=prev_period_start,
+                        bond_value_wei=bond_reduction.prev_bond_value,
+                    )
+                )
+                prev_bond_reduction = bond_reduction
+
+            fees.append(
+                RocketPoolFeeForDate(
+                    date=datetime.date(2000, 1, 1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date(),
+                    fee_value_wei=current_fee,
+                )
+            )
+            bonds.append(
+                RocketPoolBondForDate(
+                    date=datetime.date(2000, 1, 1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date(),
+                    bond_value_wei=current_bond_value,
+                )
+            )
+
+            validator_rewards = RocketPoolValidatorRewards.construct(
+                validator_index=validator_index,
+                consensus_layer_rewards=consensus_layer_rewards[validator_index],
+                execution_layer_rewards=execution_layer_rewards[validator_index],
+                withdrawals=withdrawals[validator_index],
+                fees=fees,
+                bonds=bonds,
+            )
+        else:
+            validator_rewards = ValidatorRewards.construct(
+                validator_index=validator_index,
+                consensus_layer_rewards=consensus_layer_rewards[validator_index],
+                execution_layer_rewards=execution_layer_rewards[validator_index],
+                withdrawals=withdrawals[validator_index],
+            )
+
+        return_data.append(validator_rewards)
+
+    return RewardsResponse.construct(
+        validator_rewards=return_data,
+        rocket_pool_node_rewards=[
+            RocketPoolNodeRewardForDate(
+                date=reward.reward_period.reward_period_end_time,
+                node_address=reward.node_address,
+                amount_wei=reward.reward_smoothing_pool_wei,
+                amount_rpl=reward.reward_collateral_rpl,
+            )
+            for reward in rocket_pool_node_rewards
+        ],
+    )

@@ -9,7 +9,7 @@ from api.app import app
 def test_prices():
     with TestClient(app) as client:
         response = client.get(
-            "api/v2/prices",
+            "api/v2/prices/ethereum",
             params={
                 "start_date": "2023-04-12",
                 "end_date": "2023-04-17",

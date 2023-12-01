@@ -1,14 +1,16 @@
+import datetime
 import logging
-from typing import Any, Iterable, List
+from typing import Any, Iterable, List, Type
 from contextlib import contextmanager
 
 import starlette.requests
 from fastapi import FastAPI
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from db.tables import Balance, BlockReward, Withdrawal
+from db.tables import Balance, BlockReward, Withdrawal, RocketPoolMinipool, \
+    RocketPoolReward, RocketPoolRewardPeriod
 from db.db_helpers import _get_db_uri
 from prometheus_client.metrics import Histogram
 
@@ -57,6 +59,7 @@ class DbProvider:
                 .query(Balance) \
                 .filter(Balance.slot.in_(slots))\
                 .filter(Balance.validator_index.in_(validator_indexes))\
+                .order_by(Balance.slot.asc())\
                 .all()
             session.expunge_all()
 
@@ -78,6 +81,28 @@ class DbProvider:
             session.expunge_all()
 
         return block_rewards
+
+    @DB_REQUESTS_SECONDS.time()
+    def minipools_for_validators(self, validator_indexes: Iterable[int]) -> list[Type[RocketPoolMinipool]]:
+        with session_scope(self.engine) as session:
+            minipools = session.query(RocketPoolMinipool).filter(RocketPoolMinipool.validator_index.in_(validator_indexes)).options(joinedload(RocketPoolMinipool.bond_reductions)).all()
+            session.expunge_all()
+        return minipools
+
+    @DB_REQUESTS_SECONDS.time()
+    def rocket_pool_node_rewards_for_minipools(self, minipool_indexes: Iterable[int], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
+        with session_scope(self.engine) as session:
+            node_addresses = [na for na, in session.query(RocketPoolMinipool.node_address).filter(RocketPoolMinipool.minipool_index.in_(minipool_indexes)).distinct().all()]
+            node_rewards = session \
+                .query(RocketPoolReward) \
+                .filter(RocketPoolReward.node_address.in_(node_addresses)) \
+                .join(RocketPoolRewardPeriod) \
+                .filter(RocketPoolRewardPeriod.reward_period_end_time.between(from_datetime, to_datetime)) \
+                .options(joinedload(RocketPoolReward.reward_period)) \
+                .all()
+            session.expunge_all()
+
+        return node_rewards
 
     @DB_REQUESTS_SECONDS.time()
     def withdrawals_to_address(self, address: str, slot: int = None) -> List[Withdrawal]:

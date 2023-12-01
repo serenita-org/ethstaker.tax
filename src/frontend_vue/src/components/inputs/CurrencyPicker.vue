@@ -2,7 +2,7 @@
 import {onMounted, ref} from "vue";
 import axios from "axios";
 
-const supportedCurrenciesUrl = new URL("https://ethstaker.tax/api/v1/supported_currencies", window.location.href);
+const supportedCurrenciesUrl = new URL("/api/v1/supported_currencies", window.location.href);
 
 const supportedCurrencies = ref([]);
 

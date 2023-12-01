@@ -18,6 +18,9 @@ MinerData = namedtuple("MinerData", ["tx_fee", "coinbase", "extra_data"])
 TxData = namedtuple("TxData", ["from_", "to", "value"])
 
 
+_ROCKETPOOL_BOND_REDUCER_ADDRESS = "0xf7aB34C74c02407ed653Ac9128731947187575C0"
+
+
 class ExecutionNode:
     HEADERS = {
         "Content-Type": "application/json"
@@ -44,6 +47,85 @@ class ExecutionNode:
         self.client = self._get_http_client()
         self._last_infura_request_dt = datetime.datetime.now()
         self._get_miner_data_rpc_supported = True
+
+    async def get_block_number(self) -> int:
+        url = f"{self.BASE_URL}"
+        async with self._get_http_client() as client:
+            resp = await client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_blockNumber",
+                "params": [],
+                "id": 1
+            }, headers=self.HEADERS)
+        EXEC_NODE_REQUEST_COUNT.labels("eth_blockNumber", "get_block_number").inc()
+
+        return int(resp.json()["result"], base=16)
+
+    async def eth_call(self, params: list[dict], use_infura=True) -> int:
+        url = f"{self.BASE_URL}"
+
+        if use_infura:
+            await self._wait_for_infura_rate_limiter()
+            url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
+
+        async with self._get_http_client() as client:
+            resp = await client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_call",
+                "params": params,
+                "id": 1
+            }, headers=self.HEADERS)
+
+        EXEC_NODE_REQUEST_COUNT.labels("eth_call", "eth_call").inc()
+        return int(resp.json()["result"], base=16)
+
+    async def rocket_pool_get_last_bond_reduction_prev_node_fee(
+        self,
+        minipool_address: str,
+        block_number: int
+    ):
+        return await self.eth_call(
+            params=[
+                {
+                    "from": "0x0000000000000000000000000000000000000000",
+                    "to": _ROCKETPOOL_BOND_REDUCER_ADDRESS,
+                    "data": f"0x179e5279000000000000000000000000{minipool_address[2:]}",
+                    "block": hex(block_number),
+                }
+            ]
+        )
+
+    async def rocket_pool_get_last_bond_reduction_prev_bond_value(
+        self,
+        minipool_address: str,
+        block_number: int
+    ):
+        return await self.eth_call(
+            params=[
+                {
+                    "from": "0x0000000000000000000000000000000000000000",
+                    "to": _ROCKETPOOL_BOND_REDUCER_ADDRESS,
+                    "data": f"0x81037f20000000000000000000000000{minipool_address[2:]}",
+                    "block": hex(block_number),
+                }
+            ]
+        )
+
+    async def rocket_pool_get_reduce_bond_cancelled(
+        self,
+        minipool_address: str,
+        block_number: int = None
+    ):
+        return await self.eth_call(
+            params=[
+                {
+                    "from": "0x0000000000000000000000000000000000000000",
+                    "to": _ROCKETPOOL_BOND_REDUCER_ADDRESS,
+                    "data": f"0x46505530000000000000000000000000{minipool_address[2:]}",
+                    "block": hex(block_number) if block_number else "latest",
+                }
+            ]
+        )
 
     async def get_block_tx_count(self, block_number: int) -> int:
         url = f"{self.BASE_URL}"
@@ -135,7 +217,7 @@ class ExecutionNode:
         tx_receipt = (await self.get_tx_receipts([tx_hash]))[0]
         return int(tx_receipt["gasUsed"], base=16) * int(tx_receipt["effectiveGasPrice"], base=16)
 
-    async def get_logs(self, address: str, block_number: int, topics: list[str], use_infura=True) -> list[dict]:
+    async def get_logs(self, address: str, block_number_range: tuple[int, int], topics: list[str], use_infura=True) -> list[dict]:
         url = f"{self.BASE_URL}"
         # Use Infura while checking balances in old blocks! (Archive node required)
         if use_infura:
@@ -148,8 +230,8 @@ class ExecutionNode:
                 "params": [
                     {
                         "address": address,
-                        "fromBlock": hex(block_number),
-                        "toBlock": hex(block_number),
+                        "fromBlock": hex(block_number_range[0]),
+                        "toBlock": hex(block_number_range[1]),
                         "topics": topics,
                     }
                 ],

@@ -24,7 +24,8 @@ import { ChartConfiguration } from "chart.js";
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
-import {PricesResponse, ValidatorRewards} from "../../types/rewards.ts";
+import {PricesResponse, RocketPoolValidatorRewards, ValidatorRewards} from "../../types/rewards.ts";
+import {getOperatorReward, isRocketPoolValidatorRewards} from "../../functions/rocketpool.ts";
 
 Chart.register(zoomPlugin);
 
@@ -34,16 +35,20 @@ let uid = 0;
 export default {
   props: {
     rewardsData: {
-      type: Object as PropType<ValidatorRewards[]>,
+      type: Object as PropType<(ValidatorRewards | RocketPoolValidatorRewards)[]>,
       required: true,
     },
-    priceData: {
+    priceDataEth: {
       type: Object as PropType<PricesResponse>,
       required: true,
     },
     currency: {
       type: String,
       required: true
+    },
+    useRocketPoolMode: {
+      type: Boolean,
+      required: true,
     },
     chartContainerHeight: {
       type: String,
@@ -68,6 +73,9 @@ export default {
     rewardsData() {
       this.updateData();
     },
+    useRocketPoolMode() {
+      this.updateData();
+    },
   },
   async mounted() {
     this.setUpChart();
@@ -83,7 +91,7 @@ export default {
         return;
       }
 
-      const allDatesSet = new Set();
+      const allDatesSet : Set<string> = new Set();
       this.rewardsData.forEach(validatorRewards => {
           validatorRewards.consensus_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
           validatorRewards.execution_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
@@ -92,27 +100,49 @@ export default {
 
       // Prepare data for the chart
       const consensusLayerData = allDates.map(date => {
-          const rewardsTotal = this.rewardsData.reduce((total, response) => {
-              const matchingReward = response.consensus_layer_rewards.find(reward => reward.date === date);
+          const rewardsTotal = this.rewardsData.reduce((total, validatorData) => {
+              const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
+
+              let matchingReward = validatorData.consensus_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+
+              if (isRocketPoolValidator && this.useRocketPoolMode) {
+                matchingReward = getOperatorReward(
+                    (validatorData as RocketPoolValidatorRewards).bonds,
+                    (validatorData as RocketPoolValidatorRewards).fees,
+                    matchingReward
+                );
+              }
+
               return total + (matchingReward ? matchingReward.amount_wei : BigInt(0));
           }, BigInt(0));
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
-          const priceDataForDate = this.priceData.prices.find(data => data.date == date);
+          const priceDataForDate = this.priceDataEth.prices.find(data => data.date == date);
           if (!priceDataForDate) throw `No price data for ${date}!`
           return [totalEth, priceDataForDate.price * totalEth];
       });
 
       const executionLayerData = allDates.map(date => {
-          const rewardsTotal = this.rewardsData.reduce((total, response) => {
-              const matchingReward = response.execution_layer_rewards.find(reward => reward.date === date);
+          const rewardsTotal = this.rewardsData.reduce((total, validatorData) => {
+              const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
+
+              let matchingReward = validatorData.execution_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+
+              if (isRocketPoolValidator && this.useRocketPoolMode) {
+                matchingReward = getOperatorReward(
+                    (validatorData as RocketPoolValidatorRewards).bonds,
+                    (validatorData as RocketPoolValidatorRewards).fees,
+                    matchingReward
+                );
+              }
+
               return total + (matchingReward ? matchingReward.amount_wei : BigInt(0));
           }, BigInt(0));
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
-          const priceDataForDate = this.priceData.prices.find(data => data.date == date);
+          const priceDataForDate = this.priceDataEth.prices.find(data => data.date == date);
           if (!priceDataForDate) throw `No price data for ${date}!`
           return [totalEth, priceDataForDate.price * totalEth];
       });

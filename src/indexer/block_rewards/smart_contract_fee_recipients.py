@@ -31,7 +31,7 @@ SMART_CONTRACTS_KRAKEN = (
 async def _get_lido_rewards_distribution_value(block_number: int, execution_node: ExecutionNode) -> int:
     rewards_value = 0
 
-    logs = await execution_node.get_logs("0xae7ab96520de3a18e5e111b5eaab095312d7fe84", block_number, topics=[
+    logs = await execution_node.get_logs("0xae7ab96520de3a18e5e111b5eaab095312d7fe84", (block_number, block_number), topics=[
         "0xd27f9b0c98bdee27044afa149eadcd2047d6399cb6613a45c5b87e6aca76e6b5",
     ])
 
@@ -44,7 +44,7 @@ async def _get_lido_rewards_distribution_value(block_number: int, execution_node
 
 async def _get_stakefish_rewards_distribution_value(block_number: int, address: str, execution_node: ExecutionNode) -> int:
     rewards_value = 0
-    logs = await execution_node.get_logs(address, block_number,
+    logs = await execution_node.get_logs(address, (block_number, block_number),
                                          topics=[
                                              "0x7916d844d976746a43b9efc42cf4339ebe50001364a8790d4aec7bbd9a2b599e",
                                          ])
@@ -58,7 +58,7 @@ async def _get_stakefish_rewards_distribution_value(block_number: int, address: 
 
 async def _get_kraken_rewards_distribution_value(block_number: int, address: str, execution_node: ExecutionNode) -> int:
     rewards_value = 0
-    logs = await execution_node.get_logs(address, block_number,
+    logs = await execution_node.get_logs(address, (block_number, block_number),
                                          topics=[
                                              "0x1bb9fb49058794ee4e0f88f3c95c10019922d0b1c6f27da1ee2a98ad19d9b308",
                                          ])
@@ -72,7 +72,7 @@ async def _get_kraken_rewards_distribution_value(block_number: int, address: str
 
 async def _get_rocketpool_rewards_distribution_value(block_number: int, address: str, execution_node: ExecutionNode) -> int:
     rewards_value = 0
-    logs = await execution_node.get_logs(address, block_number,
+    logs = await execution_node.get_logs(address, (block_number, block_number),
                                          topics=[
                                              "0x4c41dd034da8150bccdeba2e484837eb447e0a3840b3e02a54e9bd6eb883210e",
                                          ])

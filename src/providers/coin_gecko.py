@@ -51,7 +51,7 @@ class CoinGecko:
         return currencies
 
     @staticmethod
-    async def price_for_date(date: datetime.date, currency: str, cache: Redis) -> float:
+    async def price_for_date(date: datetime.date, token: str, currency_fiat: str, cache: Redis) -> float:
         # Gets the "close" price for the given date.
         # Coingecko returns open price for day,
         # we need to get the close price (=open price for next day)
@@ -61,9 +61,9 @@ class CoinGecko:
         close_date = date + datetime.timedelta(days=1)
 
         close_date_str = close_date.strftime("%d-%m-%Y")
-        currency = currency.lower()
+        currency_fiat = currency_fiat.lower()
 
-        cache_key = f"prices_{close_date}"
+        cache_key = f"prices_{token}_{close_date}"
 
         # Try to get price from cache first
         price_from_cache = await cache.get(cache_key)
@@ -71,12 +71,12 @@ class CoinGecko:
             logger.debug(f"Got prices for date {close_date_str} from cache")
             prices = json.loads(price_from_cache)
             for c, p in prices:
-                if c != currency:
+                if c != currency_fiat:
                     continue
                 return p
 
         # Try to get close price
-        url = f"{CoinGecko.BASE_URL}/coins/ethereum/history"
+        url = f"{CoinGecko.BASE_URL}/coins/{token}/history"
         params = {
             "date": close_date_str,
             "localization": "false",
@@ -104,10 +104,10 @@ class CoinGecko:
 
         # Return currency-specific price
         for c, p in prices:
-            if c != currency:
+            if c != currency_fiat:
                 continue
             return p
-        raise Exception(f"Failed to fetch price for {date} in {currency}")
+        raise Exception(f"Failed to fetch price for {date} in {currency_fiat}")
 
 
 coin_gecko_plugin = CoinGecko()

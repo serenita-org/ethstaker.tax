@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import {Ref, ref, watch} from 'vue'
+import {computed, Ref, ref, watch} from 'vue'
 import ValidatorAdder from "../components/inputs/ValidatorAdder.vue";
 import CurrencyPicker from "../components/inputs/CurrencyPicker.vue";
 import DateRangePicker from "../components/inputs/DateRangePicker.vue";
 import {
   PricesRequestParams,
   PricesResponse,
-  RewardsRequest,
+  RewardsRequest, RewardsResponse, RocketPoolNodeRewardForDate, RocketPoolValidatorRewards,
   ValidatorRewards,
 } from "../types/rewards.ts";
 import { parse, isInteger } from 'lossless-json'
@@ -15,25 +15,30 @@ import { downloadAsCsv } from '../components/outputs/csvDownload.ts'
 import axios, {AxiosError} from "axios";
 import IncomeChart from "../components/outputs/IncomeChart.vue";
 import SummaryTable from "../components/outputs/SummaryTable.vue";
+import {isRocketPoolValidatorRewards} from "../functions/rocketpool.ts";
 
 let validatorIndexes: Ref<Set<number>> = ref(new Set([]));
 let selectedCurrency = ref();
 let startDateString = ref();
 let endDateString = ref();
 
-let rewardsData: Ref<ValidatorRewards[]> = ref([]);
-let rewardsDataLoading = ref(false);
+let rocketPoolNodeRewards: Ref<(RocketPoolNodeRewardForDate)[]> = ref([]);
+let validatorRewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]> = ref([]);
+let rewardsLoading = ref(false);
 
-let priceData: Ref<PricesResponse | undefined> = ref();
+let useRocketPoolMode = ref(false);
+
+let priceDataEth: Ref<PricesResponse | undefined> = ref();
+let priceDataRpl: Ref<PricesResponse | undefined> = ref();
 let priceDataLoading = ref(false);
 
 
 watch(selectedCurrency, async () => {
-  if (rewardsData.value.length == 0) return;
+  if (validatorRewardsData.value.length == 0) return;
   await getPriceData();
 })
-watch(rewardsData, async () => {
-  if (rewardsData.value.length == 0) return;
+watch(validatorRewardsData, async () => {
+  if (validatorRewardsData.value.length == 0) return;
   await getPriceData();
 })
 
@@ -45,12 +50,15 @@ async function getPriceData() {
     currency: selectedCurrency.value,
   }
 
-  priceData.value = undefined;
+  priceDataEth.value = undefined;
+  priceDataRpl.value = undefined;
   priceDataLoading.value = true;
 
   try {
-    const resp = await axios.get("https://ethstaker.tax/api/v2/prices", { params: pricesRequestParams });
-    priceData.value = resp.data;
+    const respEth = await axios.get("/api/v2/prices/ethereum", { params: pricesRequestParams });
+    priceDataEth.value = respEth.data;
+    const respRpl = await axios.get("/api/v2/prices/rocket-pool", { params: pricesRequestParams });
+    priceDataRpl.value = respRpl.data;
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
@@ -65,15 +73,16 @@ async function getPriceData() {
   }
 }
 
-async function getRewardsData() {
+async function getRewards() {
   const data: RewardsRequest = {
     validator_indexes: Array.from(validatorIndexes.value),
     start_date: startDateString.value,
     end_date: endDateString.value,
   }
 
-  rewardsData.value = [];
-  rewardsDataLoading.value = true;
+  rocketPoolNodeRewards.value = [];
+  validatorRewardsData.value = [];
+  rewardsLoading.value = true;
 
   // parse integer values into a bigint, and use a regular number otherwise
   function customNumberParser(value: string) {
@@ -82,14 +91,15 @@ async function getRewardsData() {
   }
 
   try {
-    const resp = await axios.post("https://ethstaker.tax/api/v2/rewards", data, {
+    const resp: RewardsResponse = (await axios.post("/api/v2/rewards", data, {
       transformResponse: function (response) {
         // Parse using lossless-json library - the amounts are in wei and could be larger
         // than JS
         return parse(response, undefined, customNumberParser);
       }
-    });
-    rewardsData.value = resp.data;
+    })).data;
+    rocketPoolNodeRewards.value = resp.rocket_pool_node_rewards;
+    validatorRewardsData.value = resp.validator_rewards;
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
@@ -100,9 +110,22 @@ async function getRewardsData() {
     alert(errorMessage);
     throw err;
   } finally {
-    rewardsDataLoading.value = false;
+    rewardsLoading.value = false;
   }
 }
+
+const showOutputs = computed<boolean>(() => {
+  if (validatorRewardsData.value.length == 0) return false;
+  if (!priceDataEth.value) return false;
+  if (!priceDataRpl.value) return false;
+  if (priceDataEth.value?.prices.length == 0) return false;
+  if (priceDataRpl.value?.prices.length == 0) return false;
+  return true;
+})
+
+const showRocketPoolModeToggle = computed<boolean>(() => {
+  return validatorRewardsData.value.some(vr => isRocketPoolValidatorRewards(vr));
+})
 
 </script>
 
@@ -126,11 +149,11 @@ async function getRewardsData() {
   <div class="container my-3 text-center">
     <BButton
         variant="primary"
-        @click.prevent="getRewardsData"
-        :disabled="validatorIndexes.size == 0 || rewardsDataLoading"
+        @click.prevent="getRewards"
+        :disabled="validatorIndexes.size == 0 || rewardsLoading || priceDataLoading"
         class="mx-1"
     >
-      <div v-if="rewardsDataLoading" class="spinner-border spinner-border-sm" role="status">
+      <div v-if="rewardsLoading || priceDataLoading" class="spinner-border spinner-border-sm" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
       <span v-else>
@@ -140,8 +163,15 @@ async function getRewardsData() {
     </BButton>
     <BButton
         class="mx-1"
-        @click="downloadAsCsv(rewardsData, priceData as PricesResponse, ($refs['groupByDateCheckbox'] as HTMLInputElement).checked)"
-        :disabled="rewardsData.length == 0 || !priceData"
+        @click="downloadAsCsv(
+            validatorRewardsData,
+            rocketPoolNodeRewards,
+            useRocketPoolMode,
+            priceDataEth as PricesResponse,
+            priceDataRpl as PricesResponse,
+            ($refs['groupByDateCheckbox'] as HTMLInputElement).checked
+            )"
+        :disabled="validatorRewardsData.length == 0 || rewardsLoading || priceDataLoading"
         variant="secondary"
     >
       <span>
@@ -154,16 +184,28 @@ async function getRewardsData() {
       <label class="form-check-label" for="groupByDateCheckbox">Group By Date</label>
     </div>
   </div>
+  <div v-if="showRocketPoolModeToggle" class="container d-flex flex-column justify-content-center align-items-center">
+    <div class="d-flex flex-row align-items-center"  v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>">
+      <BFormCheckbox v-model="useRocketPoolMode" switch disabled>
+        <span class="mx-1">Use Rocket Pool Mode</span>
+        <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
+          opacity: useRocketPoolMode ? 1 : 0.3
+        }" class="mx-1" />
+      </BFormCheckbox>
+    </div>
+  </div>
   <div class="container mt-3 mb-5">
     <div
-      v-if="rewardsData.length > 0 && priceData && priceData.prices.length > 0"
+      v-if="showOutputs"
       class="row d-flex align-items-center"
     >
       <div class="col-lg-6">
         <IncomeChart
-            :rewards-data="rewardsData"
-            :price-data="priceData"
+            v-if="priceDataEth"
+            :rewards-data="validatorRewardsData"
+            :price-data-eth="priceDataEth"
             :currency="selectedCurrency"
+            :use-rocket-pool-mode="useRocketPoolMode"
             chart-container-height="300px"
             chart-container-width="100%"
         >
@@ -171,8 +213,12 @@ async function getRewardsData() {
       </div>
       <div class="col-lg-6">
         <SummaryTable
-            :rewards-data="rewardsData"
-            :price-data="priceData"
+            v-if="priceDataEth && priceDataRpl"
+            :validator-rewards-data="validatorRewardsData"
+            :rocket-pool-node-rewards="rocketPoolNodeRewards"
+            :use-rocket-pool-mode="useRocketPoolMode"
+            :price-data-eth="priceDataEth"
+            :price-data-rpl="priceDataRpl"
             :currency="selectedCurrency"
         >
         </SummaryTable>
