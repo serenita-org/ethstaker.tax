@@ -1,9 +1,9 @@
 import datetime
 import logging
 import asyncio
+from collections import defaultdict
 
 import pytz
-from tqdm import tqdm
 from prometheus_client import start_http_server, Gauge
 from sqlalchemy import text
 
@@ -35,9 +35,22 @@ async def index_balances():
 
     beacon_node = BeaconNode()
 
-    logger.info(f"Indexing balances for {len(TIMEZONES_TO_INDEX)} timezones.")
-    slots_needed = set()
+    eod_slots = set()
+    activation_slots = set()
+
     logger.debug(f"Calculating the needed slot numbers...")
+
+    # Slot numbers for balances at activation slot
+    # We only want to store activation balances for validators during their activation epoch
+    validator_index_to_activation_slot = await beacon_node.activation_slots_for_validators(validator_indexes=None, cache=None)
+    activation_slot_to_validators = defaultdict(list)
+    for vi, as_ in validator_index_to_activation_slot.items():
+        if as_ is not None:
+            activation_slot_to_validators[as_].append(vi)
+            activation_slots.add(as_)
+
+    # Slot numbers for end-of-day balances
+    eod_slots = set()
     for timezone in TIMEZONES_TO_INDEX:
 
         start_dt = datetime.datetime.combine(start_date, datetime.time.min)
@@ -68,12 +81,11 @@ async def index_balances():
         head_slot = beacon_node.head_slot()
         slots.extend(beacon_node.slot_for_datetime(dt) for dt in datetimes)
 
-
         # Cap slots at head slot
         slots = [s for s in slots if s < head_slot]
 
         for slot in slots:
-            slots_needed.add(slot)
+            eod_slots.add(slot)
 
     # Remove slots that have already been indexed previously
     logger.info("Removing previously indexed slots")
@@ -84,18 +96,22 @@ async def index_balances():
             ]
 
     for s in ALREADY_INDEXED_SLOTS:
-        slots_needed.remove(s)
+        if s in activation_slots:
+            activation_slots.remove(s)
+        if s in eod_slots:
+            eod_slots.remove(s)
 
     # Order the slots - to retrieve the balances for the oldest slots first
-    slots_needed = sorted(slots_needed)
+    slots_to_index = sorted(activation_slots.union(eod_slots))
 
-    logger.info(f"Indexing balances for {len(slots_needed)} slots")
-    SLOTS_WITH_MISSING_BALANCES.set(len(slots_needed))
+    logger.info(f"Indexing balances for {len(slots_to_index)} slots")
+    SLOTS_WITH_MISSING_BALANCES.set(len(slots_to_index))
 
     commit_every = 1
     current_tx = 0
     with session_scope() as session:
-        for slot in tqdm(slots_needed):
+        for slot in slots_to_index:
+            logger.info(f"Indexing slot {slot}")
             current_tx += 1
 
             # Wait for slot to be finalized
@@ -104,7 +120,14 @@ async def index_balances():
                 continue
 
             # Store balances in DB
-            balances_for_slot = await beacon_node.balances_for_slot(slot)
+            if slot in eod_slots:
+                # Index balances for all validators
+                balances_for_slot = await beacon_node.balances_for_slot(slot)
+            else:
+                # Activation slot - only index balances for validators which were activated at this point
+                balances_for_slot = await beacon_node.balances_for_slot(
+                    slot=slot, validator_indexes=activation_slot_to_validators[slot]
+                )
             logger.debug(f"Executing insert statements for slot {slot}")
             if len(balances_for_slot) == 0:
                 # No balances available for slot (yet?), move on
@@ -112,7 +135,9 @@ async def index_balances():
                 continue
             session.execute(
                 text(
-                    "INSERT INTO balance(validator_index, slot, balance) VALUES(:validator_index, :slot, :balance)"
+                    "INSERT INTO balance(validator_index, slot, balance)"
+                    " VALUES(:validator_index, :slot, :balance)"
+                    " ON CONFLICT ON CONSTRAINT balance_pkey DO NOTHING"
                 ),
                 [
                     {
