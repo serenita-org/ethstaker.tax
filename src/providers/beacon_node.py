@@ -310,7 +310,7 @@ class BeaconNode:
             "/eth/v2/beacon/blocks/{state_id}",
             "withdrawals_for_slot").inc()
 
-        data = resp.json()["data"]
+        data = resp.json()
 
         if resp.status_code == 404 or data.get("code") == 404:
             # Block not found - missed
@@ -318,7 +318,7 @@ class BeaconNode:
 
         withdrawals = []
         with session_scope() as session:
-            for w in data["message"]["body"]["execution_payload"]["withdrawals"]:
+            for w in data["data"]["message"]["body"]["execution_payload"]["withdrawals"]:
                 address = w["address"]
 
                 # Check if the address is already in DB
