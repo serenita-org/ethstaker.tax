@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BButton: typeof import('bootstrap-vue-next')['BButton']
+    BButtonGroup: typeof import('bootstrap-vue-next')['BButtonGroup']
     BCard: typeof import('bootstrap-vue-next')['BCard']
     BFormCheckbox: typeof import('bootstrap-vue-next')['BFormCheckbox']
     BTab: typeof import('bootstrap-vue-next')['BTab']
