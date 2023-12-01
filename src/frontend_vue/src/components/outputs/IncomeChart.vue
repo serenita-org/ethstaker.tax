@@ -11,7 +11,10 @@
     >
       <canvas :id="chartCanvasId"></canvas>
     </div>
-    <BButton @click="Chart.getChart(chartCanvasId)?.resetZoom()">Reset zoom</BButton>
+    <BButtonGroup>
+      <BButton @click="showIncomeInFiat = !showIncomeInFiat" variant="secondary">Show income in {{ showIncomeInFiat ? "ETH" : currency }}</BButton>
+      <BButton @click="Chart.getChart(chartCanvasId)?.resetZoom()" class="ms-1" variant="outline-secondary">Reset zoom</BButton>
+    </BButtonGroup>
   </div>
 </template>
 
@@ -64,6 +67,7 @@ export default {
   data() {
     uid += 1;
     return {
+      showIncomeInFiat: false,
       chartCanvasId: `simpleBarChartCanvas-${uid}`,
       backgroundColor: CHART_COLORS,
       Chart,
@@ -74,6 +78,9 @@ export default {
       this.updateData();
     },
     useRocketPoolMode() {
+      this.updateData();
+    },
+    showIncomeInFiat() {
       this.updateData();
     },
   },
@@ -156,6 +163,7 @@ export default {
             backgroundColor: CHART_COLORS[0],
             type: 'bar',
             yAxisID: "y-axis-eth",
+            hidden: this.showIncomeInFiat
           },
           {
             label: 'Execution Layer Income [ETH]',
@@ -163,6 +171,7 @@ export default {
             backgroundColor: CHART_COLORS[6],
             type: 'bar',
             yAxisID: "y-axis-eth",
+            hidden: this.showIncomeInFiat
           },
           {
             label: `Consensus Layer Income [${this.currency}]`,
@@ -170,7 +179,7 @@ export default {
             backgroundColor: CHART_COLORS[3],
             type: 'bar',
             yAxisID: "y-axis-currency",
-            hidden: true,
+            hidden: !this.showIncomeInFiat
           },
           {
             label: `Execution Layer Income [${this.currency}]`,
@@ -178,7 +187,7 @@ export default {
             backgroundColor: CHART_COLORS[2],
             type: 'bar',
             yAxisID: "y-axis-currency",
-            hidden: true,
+            hidden: !this.showIncomeInFiat
           },
         ]
       };
