@@ -184,6 +184,9 @@ const showRocketPoolModeToggle = computed<boolean>(() => {
       <label class="form-check-label" for="groupByDateCheckbox">Group By Date</label>
     </div>
   </div>
+  <div class="container text-center">
+    <p class="text-muted">Wondering how this works? Find out <a href="#">here</a></p>
+  </div>
   <div v-if="showRocketPoolModeToggle" class="container d-flex flex-column justify-content-center align-items-center">
     <div class="d-flex flex-row align-items-center"  v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>">
       <BFormCheckbox v-model="useRocketPoolMode" switch disabled>
