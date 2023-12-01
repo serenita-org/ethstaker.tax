@@ -46,6 +46,10 @@ export default {
       type: String,
       required: true
     },
+    useRocketPoolMode: {
+      type: Boolean,
+      required: true,
+    },
     chartContainerHeight: {
       type: String,
       required: false,
@@ -67,6 +71,9 @@ export default {
   },
   watch: {
     rewardsData() {
+      this.updateData();
+    },
+    useRocketPoolMode() {
       this.updateData();
     },
   },
@@ -98,7 +105,7 @@ export default {
 
               let matchingReward = validatorData.consensus_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
 
-              if (isRocketPoolValidator) {
+              if (isRocketPoolValidator && this.useRocketPoolMode) {
                 matchingReward = getOperatorReward(
                     (validatorData as RocketPoolValidatorRewards).bonds,
                     (validatorData as RocketPoolValidatorRewards).fees,
@@ -122,7 +129,7 @@ export default {
 
               let matchingReward = validatorData.execution_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
 
-              if (isRocketPoolValidator) {
+              if (isRocketPoolValidator && this.useRocketPoolMode) {
                 matchingReward = getOperatorReward(
                     (validatorData as RocketPoolValidatorRewards).bonds,
                     (validatorData as RocketPoolValidatorRewards).fees,

@@ -15,6 +15,7 @@ import { downloadAsCsv } from '../components/outputs/csvDownload.ts'
 import axios, {AxiosError} from "axios";
 import IncomeChart from "../components/outputs/IncomeChart.vue";
 import SummaryTable from "../components/outputs/SummaryTable.vue";
+import {isRocketPoolValidatorRewards} from "../functions/rocketpool.ts";
 
 let validatorIndexes: Ref<Set<number>> = ref(new Set([]));
 let selectedCurrency = ref();
@@ -24,6 +25,8 @@ let endDateString = ref();
 let rocketPoolNodeRewards: Ref<(RocketPoolNodeRewardForDate)[]> = ref([]);
 let validatorRewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]> = ref([]);
 let rewardsLoading = ref(false);
+
+let useRocketPoolMode = ref(false);
 
 let priceDataEth: Ref<PricesResponse | undefined> = ref();
 let priceDataRpl: Ref<PricesResponse | undefined> = ref();
@@ -120,6 +123,10 @@ const showOutputs = computed<boolean>(() => {
   return true;
 })
 
+const showRocketPoolModeToggle = computed<boolean>(() => {
+  return validatorRewardsData.value.some(vr => isRocketPoolValidatorRewards(vr));
+})
+
 </script>
 
 <template>
@@ -159,6 +166,7 @@ const showOutputs = computed<boolean>(() => {
         @click="downloadAsCsv(
             validatorRewardsData,
             rocketPoolNodeRewards,
+            useRocketPoolMode,
             priceDataEth as PricesResponse,
             priceDataRpl as PricesResponse,
             ($refs['groupByDateCheckbox'] as HTMLInputElement).checked
@@ -176,6 +184,16 @@ const showOutputs = computed<boolean>(() => {
       <label class="form-check-label" for="groupByDateCheckbox">Group By Date</label>
     </div>
   </div>
+  <div v-if="showRocketPoolModeToggle" class="container d-flex flex-column justify-content-center align-items-center">
+    <div class="d-flex flex-row align-items-center"  v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>">
+      <BFormCheckbox v-model="useRocketPoolMode" switch disabled>
+        <span class="mx-1">Use Rocket Pool Mode</span>
+        <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
+          opacity: useRocketPoolMode ? 1 : 0.3
+        }" class="mx-1" />
+      </BFormCheckbox>
+    </div>
+  </div>
   <div class="container mt-3 mb-5">
     <div
       v-if="showOutputs"
@@ -187,6 +205,7 @@ const showOutputs = computed<boolean>(() => {
             :rewards-data="validatorRewardsData"
             :price-data-eth="priceDataEth"
             :currency="selectedCurrency"
+            :use-rocket-pool-mode="useRocketPoolMode"
             chart-container-height="300px"
             chart-container-width="100%"
         >
@@ -197,6 +216,7 @@ const showOutputs = computed<boolean>(() => {
             v-if="priceDataEth && priceDataRpl"
             :validator-rewards-data="validatorRewardsData"
             :rocket-pool-node-rewards="rocketPoolNodeRewards"
+            :use-rocket-pool-mode="useRocketPoolMode"
             :price-data-eth="priceDataEth"
             :price-data-rpl="priceDataRpl"
             :currency="selectedCurrency"

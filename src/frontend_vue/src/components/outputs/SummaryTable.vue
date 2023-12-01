@@ -35,7 +35,7 @@
       </tr>
     </tbody>
     <tfoot>
-      <tr class="fw-bold">
+      <tr v-if="!useRocketPoolMode" class="fw-bold">
         <th scope="row">Total</th>
         <td>{{ (totalConsensusLayerIncome[0] + totalExecutionLayerIncome[0] + totalSmoothingPoolIncome[0] ).toFixed(6) }}</td>
         <td v-if="showRocketPoolIncome">{{ totalRplIncome[0] }}</td>
@@ -69,6 +69,10 @@ const props = defineProps({
     type: Object as PropType<RocketPoolNodeRewardForDate[]>,
     required: true,
   },
+  useRocketPoolMode: {
+    type: Boolean,
+    required: true,
+  },
   priceDataEth: {
     type: Object as PropType<PricesResponse>,
     required: true,
@@ -88,7 +92,7 @@ function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
     const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
 
     const validatorRewardsSumWei = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
-      if (isRocketPoolValidator) {
+      if (isRocketPoolValidator && props.useRocketPoolMode) {
         return totalForValidator + getOperatorReward(
             (validatorData as RocketPoolValidatorRewards).bonds,
             (validatorData as RocketPoolValidatorRewards).fees,
@@ -106,7 +110,7 @@ function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
     const validatorRewardsSumCurr = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
       const priceData = props.priceDataEth.prices.find(price => price.date == reward.date);
       if (!priceData) throw `Price data not found for ${reward.date}`;
-      if (isRocketPoolValidator) {
+      if (isRocketPoolValidator && props.useRocketPoolMode) {
         return totalForValidator + getOperatorReward(
             (validatorData as RocketPoolValidatorRewards).bonds,
             (validatorData as RocketPoolValidatorRewards).fees,
@@ -147,6 +151,8 @@ const totalExecutionLayerIncome = computed<[number, number]>(() => {
 })
 
 const totalSmoothingPoolIncome = computed<[number, number]>(() => {
+  if (!props.useRocketPoolMode) return [0, 0];
+
   const smoothingPoolSumWei = props.rocketPoolNodeRewards.reduce((total, reward) => {
     return total + reward.amount_wei;
   }, BigInt(0));
@@ -191,7 +197,7 @@ const totalRplIncome = computed<[number, number]>(() => {
 })
 
 const showRocketPoolIncome = computed<boolean>(() => {
-  return props.validatorRewardsData?.some(vr => isRocketPoolValidatorRewards(vr));
+  return props.useRocketPoolMode && props.validatorRewardsData?.some(vr => isRocketPoolValidatorRewards(vr));
 })
 
 </script>

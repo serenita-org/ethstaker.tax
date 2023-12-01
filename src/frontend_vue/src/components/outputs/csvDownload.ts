@@ -31,6 +31,7 @@ function createLinkAndDownload(csvContent: string): void {
 export function downloadAsCsv(
     validatorRewardsData: (ValidatorRewards|RocketPoolValidatorRewards)[],
     rocketPoolNodeRewards: RocketPoolNodeRewardForDate[],
+    useRocketPoolMode: boolean,
     priceDataEth: PricesResponse,
     priceDataRpl: PricesResponse,
     groupByDate: boolean,
@@ -50,10 +51,7 @@ export function downloadAsCsv(
         "Withdrawals",
     ]
 
-    let includeRocketPoolData = false;
-    if (validatorRewardsData.some(vr => isRocketPoolValidatorRewards(vr))) {
-        includeRocketPoolData = true;
-
+    if (useRocketPoolMode && validatorRewardsData.some(vr => isRocketPoolValidatorRewards(vr))) {
         if (!groupByDate) {
             columns.push("Node Address")
         }
@@ -156,7 +154,7 @@ export function downloadAsCsv(
                 `${Number(withdrawalTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
             ]
 
-            if (includeRocketPoolData) {
+            if (useRocketPoolMode) {
                 columnValues.push(...[
                     (Number(smoothingPoolTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)).toString(),
                     (Number(rplIncomeTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)).toString(),
@@ -183,7 +181,7 @@ export function downloadAsCsv(
                     `${Number(executionReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
                     `${Number(withdrawalReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
                 ]
-                if (includeRocketPoolData) {
+                if (useRocketPoolMode) {
                     columnValues.push(...["", "", "", ""])
                 }
                 csvContent += columnValues.join(SEPARATOR);

@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     BButton: typeof import('bootstrap-vue-next')['BButton']
     BCard: typeof import('bootstrap-vue-next')['BCard']
+    BFormCheckbox: typeof import('bootstrap-vue-next')['BFormCheckbox']
     BTab: typeof import('bootstrap-vue-next')['BTab']
     BTabs: typeof import('bootstrap-vue-next')['BTabs']
     CurrencyPicker: typeof import('./src/components/inputs/CurrencyPicker.vue')['default']
@@ -16,5 +17,8 @@ declare module 'vue' {
     IncomeChart: typeof import('./src/components/outputs/IncomeChart.vue')['default']
     SummaryTable: typeof import('./src/components/outputs/SummaryTable.vue')['default']
     ValidatorAdder: typeof import('./src/components/inputs/ValidatorAdder.vue')['default']
+  }
+  export interface ComponentCustomProperties {
+    vBTooltip: typeof import('bootstrap-vue-next')['vBTooltip']
   }
 }
