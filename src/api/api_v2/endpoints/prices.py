@@ -4,7 +4,7 @@ from enum import Enum
 
 import pytz
 from redis import Redis
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
@@ -56,9 +56,13 @@ async def prices(
     )
     for day_idx in range(range_day_count):
         date = start_date + datetime.timedelta(days=day_idx)
-        response.prices.append(PriceForDate(
-            date=date,
-            price=round(await coin_gecko.price_for_date(date=date, token=token.value, currency_fiat=currency, cache=cache), 2)
-        ))
+        try:
+            response.prices.append(PriceForDate(
+                date=date,
+                price=round(await coin_gecko.price_for_date(date=date, token=token.value, currency_fiat=currency, cache=cache), 2)
+            ))
+        except Exception as e:
+            raise HTTPException(status_code=500,
+                                detail=f"Failed to get price for {date}")
 
     return response
