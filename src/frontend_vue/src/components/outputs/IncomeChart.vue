@@ -174,39 +174,37 @@ export default {
         labels: allDates,
         datasets: [
           {
-            label: 'Consensus Layer Income [ETH]',
-            data: consensusLayerData.map(d => d[0] as number),
+            label: `Consensus Layer Income [${this.showIncomeInFiat ? this.currency : "ETH"}]`,
+            data: this.showIncomeInFiat ? consensusLayerData.map(d => d[1]) : consensusLayerData.map(d => d[0] as number),
             backgroundColor: CHART_COLORS[0],
             type: 'bar',
-            yAxisID: "y-axis-eth",
-            hidden: this.showIncomeInFiat
           },
           {
-            label: 'Execution Layer Income [ETH]',
+            label: `Execution Layer Income [${this.showIncomeInFiat ? this.currency : "ETH"}]`,
             data: executionLayerData.map(d => d[0] as number),
             backgroundColor: CHART_COLORS[6],
             type: 'bar',
-            yAxisID: "y-axis-eth",
-            hidden: this.showIncomeInFiat
-          },
-          {
-            label: `Consensus Layer Income [${this.currency}]`,
-            data: consensusLayerData.map(d => d[1]),
-            backgroundColor: CHART_COLORS[3],
-            type: 'bar',
-            yAxisID: "y-axis-currency",
-            hidden: !this.showIncomeInFiat
-          },
-          {
-            label: `Execution Layer Income [${this.currency}]`,
-            data: executionLayerData.map(d => d[1]),
-            backgroundColor: CHART_COLORS[2],
-            type: 'bar',
-            yAxisID: "y-axis-currency",
-            hidden: !this.showIncomeInFiat
           },
         ]
       };
+
+      chart.options.scales = {
+        x: {
+          stacked: true,
+          type: 'time',
+          time: {
+            tooltipFormat: 'PP'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: this.showIncomeInFiat ? `Income [${this.currency}]` : "Income [ETH]",
+          },
+          stacked: true,
+        },
+      }
+
       chart.update();
     },
     setUpChart() {
@@ -218,37 +216,6 @@ export default {
         },
         options: {
           maintainAspectRatio: false,
-          scales: {
-            x: {
-              stacked: true,
-              type: 'time',
-              time: {
-                tooltipFormat: 'PP'
-              }
-            },
-            "y-axis-eth": {
-              title: {
-                display: true,
-                text: "Income [ETH]"
-              },
-              stacked: true,
-            },
-            "y-axis-currency": {
-              type: 'linear',
-              display: true,
-              stacked: true,
-              position: 'right',
-              title: {
-                display: true,
-                text: `Income [${this.currency}]`,
-              },
-
-              // grid line settings
-              grid: {
-                drawOnChartArea: false, // only want the grid lines for one axis to show up
-              },
-            },
-          },
           plugins: {
             zoom: {
               zoom: {
@@ -276,17 +243,13 @@ export default {
                     return labels;
                   },
                   footer: (context) => {
-                      let totalEth = 0;
-                      let totalCurrency = 0;
+                      let total = 0;
                       for (let ctx of context) {
-                        for (const dataset of ctx.chart.data.datasets.filter(d => d.label?.includes("[ETH]"))) {
-                          totalEth += dataset.data[ctx.dataIndex] as number;
-                        }
-                        for (const dataset of ctx.chart.data.datasets.filter(d => d.label?.includes(`[${this.currency}]`))) {
-                          totalCurrency += dataset.data[ctx.dataIndex] as number;
+                        for (const dataset of ctx.chart.data.datasets) {
+                          total += dataset.data[ctx.dataIndex] as number;
                         }
                       }
-                      return `Total: ${totalEth.toFixed(5)} Ether / ${totalCurrency.toFixed(2)} ${this.currency}`;
+                      return `Total: ${total.toFixed(this.showIncomeInFiat ? 2 : 5)} ${this.showIncomeInFiat ? this.currency : "ETH"}`;
                   }
                 }
             },
