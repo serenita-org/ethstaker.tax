@@ -40,22 +40,22 @@ export function downloadAsCsv(
     let columns = groupByDate ? [
         "Date",
         `Price [${priceDataEth.currency}/ETH]`,
-        "Consensus Layer Income",
-        "Execution Layer Income",
+        "Consensus Layer Income [ETH]",
+        "Execution Layer Income [ETH]",
     ] : [
         "Date",
         "Validator Index",
         `Price [${priceDataEth.currency}/ETH]`,
-        "Consensus Layer Income",
-        "Execution Layer Income",
+        "Consensus Layer Income [ETH]",
+        "Execution Layer Income [ETH]",
     ]
 
-    if (useRocketPoolMode && validatorRewardsData.some(vr => isRocketPoolValidatorRewards(vr))) {
+    if (useRocketPoolMode) {
         if (!groupByDate) {
             columns.push("Node Address")
         }
 
-        columns.push(...["Smoothing Pool Income", "RPL Income", `Price [${priceDataRpl.currency}/RPL]`])
+        columns.push(...["Smoothing Pool Income [ETH]", "Rocket Pool Node Income [RPL]", `Price [${priceDataRpl.currency}/RPL]`])
     }
 
     let csvContent = columns.join(SEPARATOR);
@@ -89,7 +89,7 @@ export function downloadAsCsv(
             let rplIncomeTotal = BigInt(0);
 
             for (const rewards of validatorRewardsData) {
-                const isRocketPoolValidator = isRocketPoolValidatorRewards(rewards);
+                const isRocketPoolValidator = useRocketPoolMode && isRocketPoolValidatorRewards(rewards);
 
                 if (!useConsensusIncomeOnWithdrawal) {
                     for (const reward of rewards.consensus_layer_rewards) {
@@ -166,7 +166,7 @@ export function downloadAsCsv(
         } else {
             for (const rewards of validatorRewardsData) {
                 const validatorIndex = rewards.validator_index;
-                const isRocketPoolValidator = isRocketPoolValidatorRewards(rewards);
+                const isRocketPoolValidator = useRocketPoolMode && isRocketPoolValidatorRewards(rewards);
 
                 let consensusReward: RewardForDate;
                 if (useConsensusIncomeOnWithdrawal) {
@@ -190,22 +190,24 @@ export function downloadAsCsv(
                 csvContent += "\n";
             }
 
-            for (const reward of rocketPoolNodeRewards) {
-                if (reward.date !== date) continue
+            if (useRocketPoolMode) {
+                for (const reward of rocketPoolNodeRewards) {
+                    if (reward.date !== date) continue
 
-                const columnValues = [
-                    `${date}`,
-                    "", // Validator Index
-                    `${getPriceForDate(priceDataEth.prices, date)}`,
-                    "", // Consensus Layer
-                    "", // Execution Layer
-                    `${reward.node_address}`,
-                    `${Number(reward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                    `${Number(reward.amount_rpl / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                    `${getPriceForDate(priceDataRpl.prices, date)}`,
-                ]
-                csvContent += columnValues.join(SEPARATOR);
-                csvContent += "\n";
+                    const columnValues = [
+                        `${date}`,
+                        "", // Validator Index
+                        `${getPriceForDate(priceDataEth.prices, date)}`,
+                        "", // Consensus Layer
+                        "", // Execution Layer
+                        `${reward.node_address}`,
+                        `${Number(reward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                        `${Number(reward.amount_rpl / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                        `${getPriceForDate(priceDataRpl.prices, date)}`,
+                    ]
+                    csvContent += columnValues.join(SEPARATOR);
+                    csvContent += "\n";
+                }
             }
         }
     }
