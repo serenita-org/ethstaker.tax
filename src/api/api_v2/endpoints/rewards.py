@@ -63,7 +63,11 @@ async def rewards(
 
     # Let's get the rewards
     first_slot_in_requested_period = min_slot
-    activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes=validator_indexes, cache=cache)
+    try:
+        activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes=validator_indexes, cache=cache)
+    except Exception:
+        raise HTTPException(status_code=500,
+                            detail=f"Failed to get activation slots for {', '.join(validator_indexes)}")
     consensus_layer_rewards: dict[int, list[RewardForDate]] = defaultdict(list)
     execution_layer_rewards: dict[int, list[RewardForDate]] = defaultdict(list)
     withdrawals: dict[int, list[RewardForDate]] = defaultdict(list)
