@@ -27,7 +27,7 @@ import { ChartConfiguration } from "chart.js";
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
-import {PricesResponse, RocketPoolValidatorRewards, ValidatorRewards} from "../../types/rewards.ts";
+import {PricesResponse, RewardForDate, RocketPoolValidatorRewards, ValidatorRewards} from "../../types/rewards.ts";
 import {getOperatorReward, isRocketPoolValidatorRewards} from "../../functions/rocketpool.ts";
 
 Chart.register(zoomPlugin);
@@ -48,6 +48,10 @@ export default {
     currency: {
       type: String,
       required: true
+    },
+    useConsensusIncomeOnWithdrawal: {
+      type: Boolean,
+      required: true,
     },
     useRocketPoolMode: {
       type: Boolean,
@@ -77,6 +81,9 @@ export default {
     rewardsData() {
       this.updateData();
     },
+    useConsensusIncomeOnWithdrawal() {
+      this.updateData();
+    },
     useRocketPoolMode() {
       this.updateData();
     },
@@ -100,8 +107,12 @@ export default {
 
       const allDatesSet : Set<string> = new Set();
       this.rewardsData.forEach(validatorRewards => {
+        if (this.useConsensusIncomeOnWithdrawal) {
+          validatorRewards.withdrawals.forEach(reward => allDatesSet.add(reward.date));
+        } else {
           validatorRewards.consensus_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
-          validatorRewards.execution_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
+        }
+        validatorRewards.execution_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
       });
       const allDates = Array.from(allDatesSet).sort();
 
@@ -110,7 +121,12 @@ export default {
           const rewardsTotal = this.rewardsData.reduce((total, validatorData) => {
               const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
 
-              let matchingReward = validatorData.consensus_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+              let matchingReward: RewardForDate;
+              if (this.useConsensusIncomeOnWithdrawal) {
+                matchingReward = validatorData.withdrawals.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+              } else {
+                matchingReward = validatorData.consensus_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+              }
 
               if (isRocketPoolValidator && this.useRocketPoolMode) {
                 matchingReward = getOperatorReward(

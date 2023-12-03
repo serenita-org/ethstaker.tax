@@ -69,6 +69,10 @@ const props = defineProps({
     type: Object as PropType<RocketPoolNodeRewardForDate[]>,
     required: true,
   },
+  useConsensusIncomeOnWithdrawal: {
+    type: Boolean,
+    required: true,
+  },
   useRocketPoolMode: {
     type: Boolean,
     required: true,
@@ -143,7 +147,11 @@ function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
 }
 
 const totalConsensusLayerIncome = computed<[number, number]>(() => {
-  return aggregateRewardsData("consensus_layer_rewards");
+  if (props.useConsensusIncomeOnWithdrawal) {
+    return aggregateRewardsData("withdrawals");
+  } else {
+    return aggregateRewardsData("consensus_layer_rewards");
+  }
 })
 
 const totalExecutionLayerIncome = computed<[number, number]>(() => {
