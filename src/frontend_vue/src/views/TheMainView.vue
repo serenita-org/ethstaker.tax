@@ -27,6 +27,7 @@ let validatorRewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]>
 let rewardsLoading = ref(false);
 
 let useRocketPoolMode = ref(false);
+let useConsensusIncomeOnWithdrawal = ref(true);
 
 let priceDataEth: Ref<PricesResponse | undefined> = ref();
 let priceDataRpl: Ref<PricesResponse | undefined> = ref();
@@ -123,7 +124,7 @@ const showOutputs = computed<boolean>(() => {
   return true;
 })
 
-const showRocketPoolModeToggle = computed<boolean>(() => {
+const enableRocketPoolModeToggle = computed<boolean>(() => {
   return validatorRewardsData.value.some(vr => isRocketPoolValidatorRewards(vr));
 })
 
@@ -166,6 +167,7 @@ const showRocketPoolModeToggle = computed<boolean>(() => {
         @click="downloadAsCsv(
             validatorRewardsData,
             rocketPoolNodeRewards,
+            useConsensusIncomeOnWithdrawal,
             useRocketPoolMode,
             priceDataEth as PricesResponse,
             priceDataRpl as PricesResponse,
@@ -184,14 +186,31 @@ const showRocketPoolModeToggle = computed<boolean>(() => {
       <label class="form-check-label" for="groupByDateCheckbox">Group By Date</label>
     </div>
   </div>
-  <div v-if="showRocketPoolModeToggle" class="container d-flex flex-column justify-content-center align-items-center">
-    <div class="d-flex flex-row align-items-center"  v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>">
-      <BFormCheckbox v-model="useRocketPoolMode" switch disabled>
-        <span class="mx-1">Use Rocket Pool Mode</span>
-        <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
-          opacity: useRocketPoolMode ? 1 : 0.3
-        }" class="mx-1" />
-      </BFormCheckbox>
+  <div v-if="showOutputs" class="container">
+    <div>
+      <BFormCheckbox v-model="useConsensusIncomeOnWithdrawal" switch>
+          <span class="mx-1">Recognize consensus layer income upon withdrawal</span>
+          <i
+              class="bi-question-square"
+              v-b-tooltip
+              title="The default behavior of ethstaker.tax is to account for the consensus layer income
+                     when the excess validator balance is withdrawn to the withdrawal address.
+                     This toggle overrides this behavior and uses
+                     the validator's end-of-day balance to determine consensus layer income
+                     on a daily basis instead."
+          />
+        </BFormCheckbox>
+    </div>
+    <div>
+      <div>
+        <BFormCheckbox v-model="useRocketPoolMode" switch :disabled="!enableRocketPoolModeToggle">
+          <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
+            opacity: useRocketPoolMode ? 1 : 0.3
+          }" class="mx-1" />
+          <span class="mx-1">Rocket Pool Mode</span>
+          <i class="bi-question-square" v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>"/>
+        </BFormCheckbox>
+      </div>
     </div>
   </div>
   <div class="container mt-3 mb-5">
@@ -205,6 +224,7 @@ const showRocketPoolModeToggle = computed<boolean>(() => {
             :rewards-data="validatorRewardsData"
             :price-data-eth="priceDataEth"
             :currency="selectedCurrency"
+            :use-consensus-income-on-withdrawal="useConsensusIncomeOnWithdrawal"
             :use-rocket-pool-mode="useRocketPoolMode"
             chart-container-height="300px"
             chart-container-width="100%"
@@ -216,6 +236,7 @@ const showRocketPoolModeToggle = computed<boolean>(() => {
             v-if="priceDataEth && priceDataRpl"
             :validator-rewards-data="validatorRewardsData"
             :rocket-pool-node-rewards="rocketPoolNodeRewards"
+            :use-consensus-income-on-withdrawal="useConsensusIncomeOnWithdrawal"
             :use-rocket-pool-mode="useRocketPoolMode"
             :price-data-eth="priceDataEth"
             :price-data-rpl="priceDataRpl"
