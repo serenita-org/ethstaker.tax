@@ -16,13 +16,29 @@
         <td>{{ totalConsensusLayerIncome[1].toFixed(3) }}</td>
       </tr>
       <tr>
-        <th scope="row">Execution Layer Income</th>
+        <th scope="row">
+          Execution Layer Income
+          <i
+              v-if="showRocketPoolIncome"
+              class="bi-question-square"
+              v-b-tooltip
+              title="If you're opted into Rocket Pool's smoothing pool, you should disregard the execution layer income."
+          />
+        </th>
         <td>{{ totalExecutionLayerIncome[0].toFixed(6) }}</td>
         <td v-if="showRocketPoolIncome">0</td>
         <td>{{ totalExecutionLayerIncome[1].toFixed(3) }}</td>
       </tr>
       <tr v-if="showRocketPoolIncome">
-        <th scope="row">Smoothing Pool Income</th>
+        <th scope="row">
+          Smoothing Pool Income
+          <i
+              v-if="showRocketPoolIncome"
+              class="bi-question-square"
+              v-b-tooltip
+              title="If you're opted into Rocket Pool's smoothing pool, you should disregard the execution layer income."
+          />
+        </th>
         <td>{{ totalSmoothingPoolIncome[0].toFixed(6) }}</td>
         <td>0</td>
         <td>{{ totalSmoothingPoolIncome[1].toFixed(3) }}</td>
