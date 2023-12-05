@@ -4,6 +4,7 @@ import ValidatorAdder from "../components/inputs/ValidatorAdder.vue";
 import CurrencyPicker from "../components/inputs/CurrencyPicker.vue";
 import DateRangePicker from "../components/inputs/DateRangePicker.vue";
 import {
+  InvalidApiRequestResponse,
   PricesRequestParams,
   PricesResponse,
   RewardsRequest, RewardsResponse, RocketPoolNodeRewardForDate, RocketPoolValidatorRewards,
@@ -105,7 +106,11 @@ async function getRewards() {
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
-      errorMessage = `Failed to get rewards - ${(err as AxiosError).message}`;
+      if (err.response?.status === 422) {
+        errorMessage = `Failed to get rewards - ${(((err as AxiosError).response?.data) as InvalidApiRequestResponse).detail[0].msg}`;
+      } else {
+        errorMessage = `Failed to get rewards - ${(err as AxiosError).message}`;
+      }
     } else {
       errorMessage = `Unknown error occurred - ${err}`;
     }
