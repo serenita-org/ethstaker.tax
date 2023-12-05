@@ -57,3 +57,13 @@ export interface PricesRequestParams {
     end_date: string
     currency: string
 }
+
+type InvalidApiRequestErrorMessage = {
+    loc: string[]
+    msg: string
+    type: string
+}
+
+export type InvalidApiRequestResponse = {
+    detail: InvalidApiRequestErrorMessage[]
+}
