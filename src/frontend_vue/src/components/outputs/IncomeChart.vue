@@ -181,7 +181,7 @@ export default {
           },
           {
             label: `Execution Layer Income [${this.showIncomeInFiat ? this.currency : "ETH"}]`,
-            data: executionLayerData.map(d => d[0] as number),
+            data: this.showIncomeInFiat ? executionLayerData.map(d => d[1]) : executionLayerData.map(d => d[0] as number),
             backgroundColor: CHART_COLORS[6],
             type: 'bar',
           },
