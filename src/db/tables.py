@@ -78,6 +78,13 @@ class RocketPoolRewardPeriod(Base):
     rewards = relationship("RocketPoolReward", back_populates="reward_period")
 
 
+class Validator(Base):
+    __tablename__ = "validator"
+
+    validator_index = Column(Integer, nullable=False, primary_key=True)
+    pubkey = Column(String(length=98), nullable=False, index=True)
+
+
 class Withdrawal(Base):
     __tablename__ = "withdrawal"
 
