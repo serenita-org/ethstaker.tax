@@ -27,8 +27,13 @@ import { ChartConfiguration } from "chart.js";
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import {CHART_COLORS, gweiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
-import {PricesResponse, RewardForDate, RocketPoolValidatorRewards, ValidatorRewards} from "../../types/rewards.ts";
-import {getOperatorReward, isRocketPoolValidatorRewards} from "../../functions/rocketpool.ts";
+import {
+  PricesResponse,
+  RewardForDate,
+  RocketPoolNodeRewardForDate,
+  RocketPoolValidatorRewards,
+  ValidatorRewards
+} from "../../types/rewards.ts";
 
 Chart.register(zoomPlugin);
 
@@ -39,6 +44,10 @@ export default {
   props: {
     rewardsData: {
       type: Object as PropType<(ValidatorRewards | RocketPoolValidatorRewards)[]>,
+      required: true,
+    },
+    rocketPoolNodeRewards: {
+      type: Object as PropType<RocketPoolNodeRewardForDate[]>,
       required: true,
     },
     priceDataEth: {
@@ -81,6 +90,9 @@ export default {
     rewardsData() {
       this.updateData();
     },
+    rocketPoolNodeRewards() {
+      this.updateData();
+    },
     useConsensusIncomeOnWithdrawal() {
       this.updateData();
     },
@@ -110,32 +122,33 @@ export default {
         if (this.useConsensusIncomeOnWithdrawal) {
           validatorRewards.withdrawals.forEach(reward => allDatesSet.add(reward.date));
         } else {
-          validatorRewards.consensus_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
+          if (validatorRewards.consensus_layer_rewards != null) {
+            validatorRewards.consensus_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
+          }
         }
         validatorRewards.execution_layer_rewards.forEach(reward => allDatesSet.add(reward.date));
       });
+      this.rocketPoolNodeRewards.forEach(
+          reward => allDatesSet.add(reward.date)
+      );
       const allDates = Array.from(allDatesSet).sort();
 
       // Prepare data for the chart
       const consensusLayerData = allDates.map(date => {
           const rewardsTotal = this.rewardsData.reduce((total, validatorData) => {
-              const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
 
               let matchingReward: RewardForDate;
               if (this.useConsensusIncomeOnWithdrawal) {
                 matchingReward = validatorData.withdrawals.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
               } else {
-                matchingReward = validatorData.consensus_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+                if (validatorData.consensus_layer_rewards != null) {
+                  matchingReward = validatorData.consensus_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+                } else {
+                  const errorMessage = "Must use withdrawal option for Rocket Pool validators!";
+                  alert(errorMessage);
+                  throw errorMessage;
+                }
               }
-
-              if (isRocketPoolValidator && this.useRocketPoolMode) {
-                matchingReward = getOperatorReward(
-                    (validatorData as RocketPoolValidatorRewards).bonds,
-                    (validatorData as RocketPoolValidatorRewards).fees,
-                    matchingReward
-                );
-              }
-
               return total + (matchingReward ? matchingReward.amount_wei : BigInt(0));
           }, BigInt(0));
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
@@ -148,21 +161,22 @@ export default {
 
       const executionLayerData = allDates.map(date => {
           const rewardsTotal = this.rewardsData.reduce((total, validatorData) => {
-              const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
-
               let matchingReward = validatorData.execution_layer_rewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
-
-              if (isRocketPoolValidator && this.useRocketPoolMode) {
-                matchingReward = getOperatorReward(
-                    (validatorData as RocketPoolValidatorRewards).bonds,
-                    (validatorData as RocketPoolValidatorRewards).fees,
-                    matchingReward
-                );
-              }
 
               return total + (matchingReward ? matchingReward.amount_wei : BigInt(0));
           }, BigInt(0));
           const totalGwei = rewardsTotal / WeiToGweiMultiplier;
+          if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
+          const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
+          const priceDataForDate = this.priceDataEth.prices.find(data => data.date == date);
+          if (!priceDataForDate) throw `No price data for ${date}!`
+          return [totalEth, priceDataForDate.price * totalEth];
+      });
+
+      const smoothingPoolData = allDates.map(date => {
+          let matchingReward = this.rocketPoolNodeRewards.find(reward => reward.date === date) ?? { amount_wei: 0n, date: date};
+
+          const totalGwei = BigInt(matchingReward.amount_wei) / WeiToGweiMultiplier;
           if (totalGwei > Number.MAX_SAFE_INTEGER) throw `totalGwei (${totalGwei}) > Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER})`
           const totalEth = Number(totalGwei) / Number(gweiToEthMultiplier);
           const priceDataForDate = this.priceDataEth.prices.find(data => data.date == date);
@@ -187,6 +201,18 @@ export default {
           },
         ]
       };
+
+      if (this.useRocketPoolMode) {
+        // Also show smoothing pool income in Rocket Pool mode
+        chart.data.datasets.push(
+          {
+            label: `Smoothing Pool Income [${this.showIncomeInFiat ? this.currency : "ETH"}]`,
+            data: this.showIncomeInFiat ? smoothingPoolData.map(d => d[1]) : smoothingPoolData.map(d => d[0] as number),
+            backgroundColor: CHART_COLORS[8],
+            type: 'bar',
+          },
+        )
+      }
 
       chart.options.scales = {
         x: {
@@ -238,7 +264,7 @@ export default {
                     let labels = [];
                     for (const dataset of tooltipItem.chart.data.datasets) {
                         const datasetValue = dataset.data[tooltipItem.dataIndex];
-                        labels.push(dataset.label + ": " + (datasetValue as number).toFixed(5));
+                        labels.push(dataset.label + ": " + (datasetValue as number).toFixed(6));
                     }
                     return labels;
                   },
@@ -249,7 +275,7 @@ export default {
                           total += dataset.data[ctx.dataIndex] as number;
                         }
                       }
-                      return `Total: ${total.toFixed(this.showIncomeInFiat ? 2 : 5)} ${this.showIncomeInFiat ? this.currency : "ETH"}`;
+                      return `Total: ${total.toFixed(this.showIncomeInFiat ? 2 : 6)} ${this.showIncomeInFiat ? this.currency : "ETH"}`;
                   }
                 }
             },
