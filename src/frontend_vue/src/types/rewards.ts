@@ -14,32 +14,29 @@ export interface RocketPoolNodeRewardForDate extends RewardForDate {
     amount_rpl: bigint
 }
 
-export interface ValidatorRewards {
+export interface ValidatorRewardsBase {
     validator_index: number
 
-    consensus_layer_rewards: RewardForDate[]
+    consensus_layer_rewards: RewardForDate[] | null
     execution_layer_rewards: RewardForDate[]
 
     withdrawals: RewardForDate[]
 }
 
-export interface RocketPoolBondForDate {
-    date: string
-    bond_value_wei: bigint
-}
-export interface RocketPoolFeeForDate {
-    date: string
-    fee_value_wei: bigint
+export interface ValidatorRewards extends ValidatorRewardsBase{
+    consensus_layer_rewards: RewardForDate[]
 }
 
-export interface RocketPoolValidatorRewards extends ValidatorRewards {
-    bonds: RocketPoolBondForDate[]
-    fees: RocketPoolFeeForDate[]
+export interface RocketPoolValidatorRewards extends ValidatorRewardsBase {
+    consensus_layer_rewards: null
 }
 
-export interface RewardsResponse {
-    validator_rewards: ValidatorRewards[] | RocketPoolValidatorRewards[]
+export interface RewardsResponseRocketPool {
+    validator_rewards: RocketPoolValidatorRewards[]
     rocket_pool_node_rewards: RocketPoolNodeRewardForDate[]
+}
+export interface RewardsResponseFull {
+    validator_rewards: ValidatorRewards[]
 }
 
 export interface PriceForDate {
