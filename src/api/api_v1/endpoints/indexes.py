@@ -7,6 +7,7 @@ from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 from prometheus_client.metrics import Histogram
 
+from providers.db_provider import DbProvider, depends_db
 from providers.beacon_node import depends_beacon_node, BeaconNode
 from api.api_v1.models import ErrorMessage
 
@@ -73,3 +74,23 @@ async def index_for_publickey(
             detail=f"No validator index found for public key {publickey}.",
         )
     return index
+
+
+@router.get(
+    "/indexes_for_rocket_pool_node_address",
+    response_model=List[int],
+    summary="Returns the validator indexes for a Rocket Pool Node",
+)
+async def indexes_for_rp_node_address(
+    rp_node_address: str = Query(
+        ...,
+        description="The Rocket Pool node address",
+        min_length=42,
+        max_length=42,
+        regex="^0x[a-fA-F0-9]{40}$",
+        example="0x1a94ecadb050ef1381a40a6a004bf658eec559d7",
+    ),
+    db_provider: DbProvider = Depends(depends_db),
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=10, hours=1)),
+):
+    return db_provider.indexes_for_rp_node_address(node_address=rp_node_address.lower())
