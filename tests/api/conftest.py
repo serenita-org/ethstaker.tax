@@ -6,7 +6,8 @@ import pytz
 
 from db.db_helpers import session_scope
 from db.tables import Balance, Withdrawal, BlockReward, RocketPoolReward, \
-    RocketPoolRewardPeriod, RocketPoolMinipool, RocketPoolBondReduction
+    RocketPoolRewardPeriod, RocketPoolMinipool, RocketPoolBondReduction, RocketPoolNode, \
+    Validator
 from providers.beacon_node import BeaconNode
 
 
@@ -154,29 +155,41 @@ def _populated_db():
                 )
             ],
             # LEB16 with bond reduction to LEB8
-            RocketPoolMinipool(
-                minipool_index=9225,
-                minipool_address="0xb8d17ec656d5353d04d7f876e0ff6cc10f9d3b65",
-                validator_index=461308,
+            RocketPoolNode(
                 node_address="0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2",
-                node_deposit_balance=8000000000000000000,
-                fee=140000000000000000,
+                fee_distributor="0xb10eea2539aa4a4c3a4857aef9541e447ac7fb4f",
+            ),
+            # LEB16 with bond reduction to LEB8
+            RocketPoolMinipool(
+                minipool_address="0xb8d17ec656d5353d04d7f876e0ff6cc10f9d3b65",
+                validator_pubkey="0x80d01a89591a4cf72a1606b232f6286212329a7bf461ffaaf27d1c919bed8bc778a67e4380363a82d1bb761f6ee201e1",
+                node_address="0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2",
+                initial_bond_value=16*1e18,
+                initial_fee_value=15*1e16,
                 bond_reductions=[
                     RocketPoolBondReduction(
                         timestamp=datetime.datetime(2023, 4, 18, 7, 30, 35, tzinfo=pytz.UTC),
-                        prev_node_fee=150000000000000000,
-                        prev_bond_value=16000000000000000000,
+                        new_bond_amount=8*1e18,
+                        new_fee=14*1e16,
                     )
                 ]
             ),
             # LEB8 from the start
             RocketPoolMinipool(
-                minipool_index=14942,
                 minipool_address="0xacc7bb997e1a835311289c8e973140c2f95e2d66",
-                validator_index=584908,
+                validator_pubkey="0x8dd0ceb8526365acf58bde1eb231b86b153666f40b3a37d419b39bb803b845d54b62063c8a1cd70019f63211c1b46659",
                 node_address="0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2",
-                node_deposit_balance=8000000000000000000,
-                fee=140000000000000000,
+                initial_bond_value=8*1e18,
+                initial_fee_value=14*1e16,
+            ),
+            # Mapping of validator pubkey <-> minipool
+            Validator(
+                validator_index=461308,
+                pubkey="0x80d01a89591a4cf72a1606b232f6286212329a7bf461ffaaf27d1c919bed8bc778a67e4380363a82d1bb761f6ee201e1",
+            ),
+            Validator(
+                validator_index=584908,
+                pubkey="0x8dd0ceb8526365acf58bde1eb231b86b153666f40b3a37d419b39bb803b845d54b62063c8a1cd70019f63211c1b46659",
             ),
             RocketPoolRewardPeriod(
                 reward_period_index=8,
