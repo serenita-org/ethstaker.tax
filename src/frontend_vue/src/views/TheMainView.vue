@@ -7,7 +7,11 @@ import {
   InvalidApiRequestResponse,
   PricesRequestParams,
   PricesResponse,
-  RewardsRequest, RewardsResponse, RocketPoolNodeRewardForDate, RocketPoolValidatorRewards,
+  RewardsRequest,
+  RewardsResponseFull,
+  RewardsResponseRocketPool,
+  RocketPoolNodeRewardForDate,
+  RocketPoolValidatorRewards,
   ValidatorRewards,
 } from "../types/rewards.ts";
 import { parse, isInteger } from 'lossless-json'
@@ -16,7 +20,6 @@ import { downloadAsCsv } from '../components/outputs/csvDownload.ts'
 import axios, {AxiosError} from "axios";
 import IncomeChart from "../components/outputs/IncomeChart.vue";
 import SummaryTable from "../components/outputs/SummaryTable.vue";
-import {isRocketPoolValidatorRewards} from "../functions/rocketpool.ts";
 
 let validatorIndexes: Ref<Set<number>> = ref(new Set([]));
 let selectedCurrency = ref();
@@ -44,6 +47,20 @@ watch(validatorRewardsData, async () => {
   if (validatorRewardsData.value.length == 0) return;
   await getPriceData();
 })
+watch(validatorIndexes, () => {
+  // Whenever the validator indexes change, reset
+  // any previously retrieved rewards data
+  rocketPoolNodeRewards.value = [];
+  validatorRewardsData.value = [];
+})
+watch(useRocketPoolMode, () => {
+  // Reset consensus income accounting to withdrawal-based
+  useConsensusIncomeOnWithdrawal.value = true;
+  // Reset any previously retrieved data - it will need
+  // to be recalculated for Rocket Pool Mode
+  rocketPoolNodeRewards.value = [];
+  validatorRewardsData.value = [];
+})
 
 
 async function getPriceData() {
@@ -60,8 +77,10 @@ async function getPriceData() {
   try {
     const respEth = await axios.get("/api/v2/prices/ethereum", { params: pricesRequestParams });
     priceDataEth.value = respEth.data;
-    const respRpl = await axios.get("/api/v2/prices/rocket-pool", { params: pricesRequestParams });
-    priceDataRpl.value = respRpl.data;
+    if (useRocketPoolMode) {
+      const respRpl = await axios.get("/api/v2/prices/rocket-pool", { params: pricesRequestParams });
+      priceDataRpl.value = respRpl.data;
+    }
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
@@ -76,7 +95,11 @@ async function getPriceData() {
   }
 }
 
-async function getRewards() {
+async function updateValidatorIndexes(newIndexes: Set<number>) {
+  validatorIndexes.value = new Set([...newIndexes]);
+}
+
+async function getRewardsFull() {
   const data: RewardsRequest = {
     validator_indexes: Array.from(validatorIndexes.value),
     start_date: startDateString.value,
@@ -94,20 +117,28 @@ async function getRewards() {
   }
 
   try {
-    const resp: RewardsResponse = (await axios.post("/api/v2/rewards", data, {
+    let requestUrl = "/api/v2/rewards";
+    if (useRocketPoolMode.value) {
+      requestUrl += "/rocket_pool"
+    } else {
+      requestUrl += "/full"
+    }
+    const resp: RewardsResponseFull | RewardsResponseRocketPool = (await axios.post(requestUrl, data, {
       transformResponse: function (response) {
         // Parse using lossless-json library - the amounts are in wei and could be larger
-        // than JS
+        // than JS can handle
         return parse(response, undefined, customNumberParser);
       }
     })).data;
-    rocketPoolNodeRewards.value = resp.rocket_pool_node_rewards;
-    validatorRewardsData.value = resp.validator_rewards;
+    rocketPoolNodeRewards.value = useRocketPoolMode.value ? resp.rocket_pool_node_rewards : [];
+    validatorRewardsData.value = resp.validator_rewards_list;
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
       if (err.response?.status === 422) {
         errorMessage = `Failed to get rewards - ${(((err as AxiosError).response?.data) as InvalidApiRequestResponse).detail[0].msg}`;
+      } else if (err.response?.status === 400) {
+        errorMessage = `Failed to get rewards - ${(((err as AxiosError).response?.data) as InvalidApiRequestResponse).detail}`;
       } else {
         errorMessage = `Failed to get rewards - ${(err as AxiosError).message}`;
       }
@@ -122,11 +153,14 @@ async function getRewards() {
 }
 
 const showOutputs = computed<boolean>(() => {
-  if (validatorRewardsData.value.length == 0) return false;
+  if (validatorIndexes.value.size === 0) return false;
+  if (validatorRewardsData.value.length === 0) return false;
   if (!priceDataEth.value) return false;
-  if (!priceDataRpl.value) return false;
-  if (priceDataEth.value?.prices.length == 0) return false;
-  if (priceDataRpl.value?.prices.length == 0) return false;
+  if (priceDataEth.value?.prices.length === 0) return false;
+  if (useRocketPoolMode.value) {
+    if (!priceDataRpl.value) return false;
+    if (priceDataRpl.value?.prices.length === 0) return false;
+  }
   return true;
 })
 
@@ -138,10 +172,17 @@ const enableRocketPoolModeToggle = computed<boolean>(() => {
 
 <template>
   <div class="container my-3">
-    <h2>Add your validators here</h2>
-    <ValidatorAdder @validator-indexes-changed="(newValidatorIndexes: Set<number>) => validatorIndexes = newValidatorIndexes"></ValidatorAdder>
+    <h2>Add your validators</h2>
+    <BFormCheckbox v-model="useRocketPoolMode" switch size="lg">
+      <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
+        opacity: useRocketPoolMode ? 1 : 0.3
+      }" class="mx-1" />
+      <span class="mx-1">Rocket Pool Mode</span>
+      <i class="bi-question-square" v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>"/>
+    </BFormCheckbox>
+    <ValidatorAdder :use-rocket-pool-mode="useRocketPoolMode" @validator-indexes-changed="updateValidatorIndexes"></ValidatorAdder>
   </div>
-  <div class="container my-3">
+  <div class="container my-3" v-show="validatorIndexes.size > 0">
     <div class="row">
       <div class="col">
         <h3>Pick a date range</h3>
@@ -153,29 +194,32 @@ const enableRocketPoolModeToggle = computed<boolean>(() => {
       </div>
     </div>
   </div>
-  <div class="container mt-3 text-center">
+  <div v-show="validatorIndexes.size > 0" class="container mt-3 text-center">
     <BButton
         variant="primary"
-        @click.prevent="getRewards"
+        @click.prevent="getRewardsFull"
         :disabled="validatorIndexes.size == 0 || rewardsLoading || priceDataLoading"
         class="mx-1"
     >
       <div v-if="rewardsLoading || priceDataLoading" class="spinner-border spinner-border-sm" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
+      <div v-else-if="validatorIndexes.size === 0">
+        Add some validators first!
+      </div>
       <span v-else>
         <i class="bi-calculator"></i>
         Calculate
-        <i
-            class="bi-question-square mx-1"
-            v-b-tooltip
-            title='Wondering how this works? Find out <a href="#">here</a>'
-        />
       </span>
     </BButton>
+    <i
+        class="bi-question-square mx-1"
+        v-b-tooltip
+        title='Wondering how this works? Find out <a href="#">here (coming soon)</a>'
+    />
   </div>
-  <div v-if="showOutputs" class="container border-top border-bottom py-2 mt-2">
-    <div class="my-1 d-flex align-items-center">
+  <div v-show="showOutputs" class="container border-top border-bottom py-2 mt-2">
+    <div v-if="!useRocketPoolMode" class="my-1 d-flex align-items-center">
       <BFormCheckbox v-model="useConsensusIncomeOnWithdrawal" switch>
         <span class="mx-1">Recognize consensus layer income upon withdrawal</span>
         <i
@@ -189,16 +233,7 @@ const enableRocketPoolModeToggle = computed<boolean>(() => {
         />
       </BFormCheckbox>
     </div>
-    <div class="my-1 d-flex align-items-center">
-      <BFormCheckbox v-model="useRocketPoolMode" switch :disabled="!enableRocketPoolModeToggle">
-        <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
-          opacity: useRocketPoolMode ? 1 : 0.3
-        }" class="mx-1" />
-        <span class="mx-1">Rocket Pool Mode</span>
-        <i class="bi-question-square" v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>"/>
-      </BFormCheckbox>
-    </div>
-    <div class="my-1 d-flex align-items-center border-top pt-2 mb-0">
+    <div class="my-1 d-flex align-items-center pt-2 mb-0">
       <BButton
         class="mx-3"
         @click="downloadAsCsv(
@@ -232,6 +267,7 @@ const enableRocketPoolModeToggle = computed<boolean>(() => {
         <IncomeChart
             v-if="priceDataEth"
             :rewards-data="validatorRewardsData"
+            :rocket-pool-node-rewards="rocketPoolNodeRewards"
             :price-data-eth="priceDataEth"
             :currency="selectedCurrency"
             :use-consensus-income-on-withdrawal="useConsensusIncomeOnWithdrawal"
