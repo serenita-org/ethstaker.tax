@@ -1,61 +1,63 @@
 <template>
-  <table class="table border-primary text-center">
+  <table class="table text-center">
     <thead>
       <tr>
         <th scope="col"></th>
         <th scope="col">ETH</th>
-        <th v-if="showRocketPoolIncome" scope="col">RPL</th>
+        <th v-if="useRocketPoolMode" scope="col">RPL</th>
         <th scope="col">{{ currency }}</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <th scope="row">Consensus Layer Income</th>
-        <td>{{ totalConsensusLayerIncome[0].toFixed(6) }}</td>
-        <td v-if="showRocketPoolIncome">0</td>
-        <td>{{ totalConsensusLayerIncome[1].toFixed(3) }}</td>
+        <th scope="row">
+          Consensus Layer Income
+          <i
+              v-if="useRocketPoolMode"
+              class="bi-question-square"
+              v-b-tooltip
+              title="Shows your part of the CL income that was withdrawn to your minipool contract addresses"
+          />
+        </th>
+        <td>{{ formatZero(totalConsensusLayerIncome[0], 6) }}</td>
+        <td v-if="useRocketPoolMode">0</td>
+        <td>{{ formatZero(totalConsensusLayerIncome[1], 3) }}</td>
       </tr>
       <tr>
         <th scope="row">
           Execution Layer Income
           <i
-              v-if="showRocketPoolIncome"
+              v-if="useRocketPoolMode"
               class="bi-question-square"
               v-b-tooltip
-              title="If you're opted into Rocket Pool's smoothing pool, you should disregard the execution layer income."
+              title="Shows your part of the EL income that went to your node's fee distributor contract"
           />
         </th>
-        <td>{{ totalExecutionLayerIncome[0].toFixed(6) }}</td>
-        <td v-if="showRocketPoolIncome">0</td>
-        <td>{{ totalExecutionLayerIncome[1].toFixed(3) }}</td>
+        <td>{{ formatZero(totalExecutionLayerIncome[0], 6) }}</td>
+        <td v-if="useRocketPoolMode">0</td>
+        <td>{{ formatZero(totalExecutionLayerIncome[1], 3) }}</td>
       </tr>
-      <tr v-if="showRocketPoolIncome">
+      <tr v-if="useRocketPoolMode">
         <th scope="row">
           Smoothing Pool Income
-          <i
-              v-if="showRocketPoolIncome"
-              class="bi-question-square"
-              v-b-tooltip
-              title="If you're opted into Rocket Pool's smoothing pool, you should disregard the execution layer income."
-          />
         </th>
-        <td>{{ totalSmoothingPoolIncome[0].toFixed(6) }}</td>
+        <td>{{ formatZero(totalSmoothingPoolIncome[0], 6) }}</td>
         <td>0</td>
-        <td>{{ totalSmoothingPoolIncome[1].toFixed(3) }}</td>
+        <td>{{ formatZero(totalSmoothingPoolIncome[1], 3) }}</td>
       </tr>
-      <tr v-if="showRocketPoolIncome">
+      <tr v-if="useRocketPoolMode">
         <th scope="row">RPL Income</th>
         <td>0</td>
-        <td>{{ totalRplIncome[0].toFixed(6) }}</td>
-        <td>{{ totalRplIncome[1].toFixed(3) }}</td>
+        <td>{{ formatZero(totalRplIncome[0], 6) }}</td>
+        <td>{{ formatZero(totalRplIncome[1], 3) }}</td>
       </tr>
     </tbody>
     <tfoot>
-      <tr v-if="!useRocketPoolMode" class="fw-bold">
+      <tr class="fw-bold">
         <th scope="row">Total</th>
-        <td>{{ (totalConsensusLayerIncome[0] + totalExecutionLayerIncome[0] + totalSmoothingPoolIncome[0] ).toFixed(6) }}</td>
-        <td v-if="showRocketPoolIncome">{{ totalRplIncome[0] }}</td>
-        <td>{{ (totalConsensusLayerIncome[1] + totalExecutionLayerIncome[1] + totalSmoothingPoolIncome[1] + totalRplIncome[1] ).toFixed(3) }}</td>
+        <td>{{ formatZero(totalConsensusLayerIncome[0] + totalExecutionLayerIncome[0] + totalSmoothingPoolIncome[0], 6) }}</td>
+        <td v-if="useRocketPoolMode">{{ formatZero(totalRplIncome[0], 6) }}</td>
+        <td>{{ formatZero(totalConsensusLayerIncome[1] + totalExecutionLayerIncome[1] + totalSmoothingPoolIncome[1] + totalRplIncome[1], 3) }}</td>
       </tr>
     </tfoot>
   </table>
@@ -68,13 +70,9 @@ import {
   RewardForDate,
   RocketPoolNodeRewardForDate,
   RocketPoolValidatorRewards,
-  ValidatorRewards
+  ValidatorRewards, ValidatorRewardsBase
 } from "../../types/rewards.ts";
 import {gweiToEthMultiplier, WeiToEthMultiplier, WeiToGweiMultiplier} from "../../constants.ts";
-import {
-  getOperatorReward,
-  isRocketPoolValidatorRewards
-} from "../../functions/rocketpool.ts";
 
 const props = defineProps({
   validatorRewardsData: {
@@ -107,40 +105,24 @@ const props = defineProps({
   },
 });
 
-function aggregateRewardsData(key: keyof ValidatorRewards): [number, number] {
-  const aggregateValidatorRewardsSumWei = props.validatorRewardsData?.reduce((total, validatorData) => {
-    const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
+function formatZero(number: number, digits: number) {
+  if (number === 0) {
+    return "0"
+  } else { return number.toFixed(digits) }
+}
 
+function aggregateRewardsData(key: keyof ValidatorRewardsBase): [number, number] {
+  const aggregateValidatorRewardsSumWei = props.validatorRewardsData?.reduce((total, validatorData) => {
     const validatorRewardsSumWei = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
-      if (isRocketPoolValidator && props.useRocketPoolMode) {
-        return totalForValidator + getOperatorReward(
-            (validatorData as RocketPoolValidatorRewards).bonds,
-            (validatorData as RocketPoolValidatorRewards).fees,
-            reward
-        ).amount_wei;
-      } else {
-        return totalForValidator + reward.amount_wei;
-      }
+      return totalForValidator + reward.amount_wei;
     }, BigInt(0));
     return total + validatorRewardsSumWei;
   }, BigInt(0));
   const aggregateValidatorRewardsSumCurr = props.validatorRewardsData?.reduce((total, validatorData) => {
-    const isRocketPoolValidator = isRocketPoolValidatorRewards(validatorData);
-
     const validatorRewardsSumCurr = (validatorData[key] as RewardForDate[]).reduce((totalForValidator, reward) => {
       const priceData = props.priceDataEth.prices.find(price => price.date == reward.date);
       if (!priceData) throw `Price data not found for ${reward.date}`;
-      if (isRocketPoolValidator && props.useRocketPoolMode) {
-        return totalForValidator + getOperatorReward(
-            (validatorData as RocketPoolValidatorRewards).bonds,
-            (validatorData as RocketPoolValidatorRewards).fees,
-            reward
-        ).amount_wei * BigInt((100 * priceData.price).toFixed(0)
-        );
-      }
-      else {
-        return totalForValidator + reward.amount_wei * BigInt((100 * priceData.price).toFixed(0));
-      }
+      return totalForValidator + reward.amount_wei * BigInt((100 * priceData.price).toFixed(0));
     }, BigInt(0));
     return total + validatorRewardsSumCurr;
   }, BigInt(0));
@@ -219,11 +201,6 @@ const totalRplIncome = computed<[number, number]>(() => {
       Number(rplIncomeSumCents) / 100,
   ];
 })
-
-const showRocketPoolIncome = computed<boolean>(() => {
-  return props.useRocketPoolMode && props.validatorRewardsData?.some(vr => isRocketPoolValidatorRewards(vr));
-})
-
 </script>
 
 <style scoped>
