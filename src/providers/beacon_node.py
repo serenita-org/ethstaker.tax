@@ -381,6 +381,18 @@ class BeaconNode:
         data = resp.json()["data"]
         return data
 
+    async def get_validators(self, state_id="head") -> dict:
+        url = f"{self.BASE_URL}/eth/v1/beacon/states/{state_id}/validators"
+
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels(
+            "/eth/v1/beacon/states/{state_id}/validators",
+            "get_validators").inc()
+
+        data = resp.json()["data"]
+        return data
+
 
 beacon_node_plugin = BeaconNode()
 
