@@ -29,30 +29,29 @@ class RocketPoolNodeRewardForDate(RewardForDate):
     amount_rpl: int
 
 
-class ValidatorRewards(BaseModel):
+class ValidatorRewardsBase(BaseModel):
     validator_index: int
 
-    consensus_layer_rewards: list[RewardForDate]
+    consensus_layer_rewards: list[RewardForDate] | None
     execution_layer_rewards: list[RewardForDate]
 
     withdrawals: list[RewardForDate]
 
 
-class RocketPoolBondForDate(BaseModel):
-    date: datetime.date
-    bond_value_wei: int
+class ValidatorRewards(ValidatorRewardsBase):
+    consensus_layer_rewards: list[RewardForDate]
 
 
-class RocketPoolFeeForDate(BaseModel):
-    date: datetime.date
-    fee_value_wei: int
+class RocketPoolValidatorRewards(ValidatorRewardsBase):
+    # Returns None for Rocket Pool validators - no way to determine the exact CL
+    # income at any point in time (and therefore every 24h at midnight UTC)
+    consensus_layer_rewards: None = None
 
 
-class RocketPoolValidatorRewards(ValidatorRewards):
-    fees: list[RocketPoolFeeForDate]
-    bonds: list[RocketPoolBondForDate]
-
-
-class RewardsResponse(BaseModel):
-    validator_rewards: list[RocketPoolValidatorRewards | ValidatorRewards]
+class RewardsResponseRocketPool(BaseModel):
+    validator_rewards_list: list[RocketPoolValidatorRewards]
     rocket_pool_node_rewards: list[RocketPoolNodeRewardForDate]
+
+
+class RewardsResponseFull(BaseModel):
+    validator_rewards_list: list[ValidatorRewards]
