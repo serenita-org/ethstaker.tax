@@ -10,8 +10,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, joinedload
 
 from db.tables import Balance, BlockReward, Withdrawal, RocketPoolMinipool, \
-    RocketPoolReward, RocketPoolRewardPeriod
-from db.db_helpers import _get_db_uri
+    RocketPoolReward, RocketPoolRewardPeriod, Validator, RocketPoolNode
+from db.db_helpers import _get_engine
 from prometheus_client.metrics import Histogram
 
 DB_REQUESTS_SECONDS = Histogram("db_requests_seconds",
@@ -41,12 +41,12 @@ class DbProvider:
         return self
 
     async def init_app(self, app: FastAPI) -> None:
-        self.engine = create_engine(_get_db_uri(), pool_pre_ping=True)
+        self.engine = _get_engine()
 
         app.state.DB_PROVIDER = self
 
     def __init__(self) -> None:
-        self.engine = create_engine(_get_db_uri(), pool_pre_ping=True)
+        self.engine = _get_engine()
 
     @DB_REQUESTS_SECONDS.time()
     def balances(self,
@@ -83,16 +83,57 @@ class DbProvider:
         return block_rewards
 
     @DB_REQUESTS_SECONDS.time()
-    def minipools_for_validators(self, validator_indexes: Iterable[int]) -> list[Type[RocketPoolMinipool]]:
-        with session_scope(self.engine) as session:
-            minipools = session.query(RocketPoolMinipool).filter(RocketPoolMinipool.validator_index.in_(validator_indexes)).options(joinedload(RocketPoolMinipool.bond_reductions)).all()
+    def fee_distributor_addresses_for_validator_indexes(self, validator_indexes: list[int]) -> dict[int, str]:
+        with (session_scope(self.engine) as session):
+            rows = session.query(
+                Validator.validator_index,
+                RocketPoolNode.fee_distributor,
+            ).select_from(Validator).join(
+                RocketPoolMinipool, onclause=RocketPoolMinipool.validator_pubkey==Validator.pubkey
+            ).join(
+                RocketPoolNode
+            ).filter(Validator.validator_index.in_(validator_indexes)).all()
+
             session.expunge_all()
-        return minipools
+        return {
+            row[0]: row[1] for row in rows
+        }
 
     @DB_REQUESTS_SECONDS.time()
-    def rocket_pool_node_rewards_for_minipools(self, minipool_indexes: Iterable[int], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
+    def indexes_for_rp_node_address(self, node_address: str) -> List[int]:
         with session_scope(self.engine) as session:
-            node_addresses = [na for na, in session.query(RocketPoolMinipool.node_address).filter(RocketPoolMinipool.minipool_index.in_(minipool_indexes)).distinct().all()]
+            pubkeys = [pk for pk, in session.query(RocketPoolMinipool.validator_pubkey).filter(RocketPoolMinipool.node_address == node_address).all()]
+            indexes = session.query(
+                Validator.validator_index
+            ).filter(
+                Validator.pubkey.in_(pubkeys)
+            ).all()
+            session.expunge_all()
+        return [i for i, in indexes]
+
+    @DB_REQUESTS_SECONDS.time()
+    def minipools_for_validators(self, validator_indexes: list[int]) -> dict[int, Type[RocketPoolMinipool]]:
+        return_data = {}
+        with session_scope(self.engine) as session:
+            validators = session.query(Validator).filter(Validator.validator_index.in_(validator_indexes)).all()
+            validator_pubkeys = [v.pubkey for v in validators]
+            minipools = session.query(RocketPoolMinipool).filter(RocketPoolMinipool.validator_pubkey.in_(validator_pubkeys)).options(joinedload(RocketPoolMinipool.bond_reductions)).all()
+            session.expunge_all()
+
+            for v in validators:
+                try:
+                    return_data[v.validator_index] = next(mp for mp in minipools if mp.validator_pubkey == v.pubkey)
+                except StopIteration:
+                    # No minipool found for this validator
+                    logger.warning(f"No minipool found for validator {v.validator_index} / {v.pubkey}")
+                    continue
+
+        return return_data
+
+    @DB_REQUESTS_SECONDS.time()
+    def rocket_pool_node_rewards_for_minipools(self, minipool_addresses: Iterable[str], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
+        with session_scope(self.engine) as session:
+            node_addresses = [na for na, in session.query(RocketPoolMinipool.node_address).filter(RocketPoolMinipool.minipool_address.in_(minipool_addresses)).distinct().all()]
             node_rewards = session \
                 .query(RocketPoolReward) \
                 .filter(RocketPoolReward.node_address.in_(node_addresses)) \
@@ -103,6 +144,13 @@ class DbProvider:
             session.expunge_all()
 
         return node_rewards
+
+    @DB_REQUESTS_SECONDS.time()
+    def validators_by_pubkeys(self, pubkeys: Iterable[str]) -> List[Validator]:
+        with session_scope(self.engine) as session:
+            validators = session.query(Validator).filter(Validator.pubkey.in_(pubkeys)).all()
+            session.expunge_all()
+        return validators
 
     @DB_REQUESTS_SECONDS.time()
     def withdrawals_to_address(self, address: str, slot: int = None) -> List[Withdrawal]:
