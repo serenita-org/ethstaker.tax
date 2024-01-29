@@ -5,6 +5,7 @@ import axios from "axios";
 
 const pubKeyUrl = new URL("/api/v1/index_for_publickey", window.location.href);
 const depositAddrUrl = new URL("/api/v1/indexes_for_eth1_address", window.location.href);
+const rpNodeAddrUrl = new URL("/api/v1/indexes_for_rocket_pool_node_address", window.location.href);
 
 
 const indexesInput = ref("");
@@ -32,7 +33,10 @@ watch(validatorIndexes.value, async (newValidatorIndexes) => {
 })
 watch(() => props.useRocketPoolMode, async (useRocketPoolMode) => {
   // Switch to Rocket Pool Node Address input tab when Rocket Pool Mode toggled on
-  activeTabIndex.value = useRocketPoolMode ? rocketPoolInputTabIndex : 0
+  // if there are no added validators yet.
+  if (validatorIndexes.value.size === 0) {
+    activeTabIndex.value = useRocketPoolMode ? rocketPoolInputTabIndex : 0
+  }
 })
 
 
