@@ -167,6 +167,7 @@ class BeaconNode:
         if "data" not in data.keys():
             # Missed proposals return like this
             if data.get("code") == 404 or resp.status_code == 404:
+                logger.warning(f"Returning missed slot for {slot}")
                 return SlotProposerData(
                     slot=slot,
                     proposer_index=None,
