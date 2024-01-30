@@ -18,17 +18,14 @@ _MINIPOOL_MANAGER_ADDRESSES = [
     {
         # v1 deployed on Nov-02-2021
         "address": "0x6293b8abc1f36afb22406be5f96d893072a8cf3a",
-        "block_range": (13_535_419, 100_000_000),
     },
     {
         # v2 deployed on Aug-14-2022
         "address": "0x84D11B65E026F7aA08F5497dd3593fb083410B71",
-        "block_range": (15_342_000, 100_000_000),
     },
     {
         # v3 deployed on Apr-08-2023
         "address": "0x6d010C43d4e96D74C422f2e27370AF48711B49bF",
-        "block_range": (17_000_000, 100_000_000),
     },
 ]
 _NODE_MANAGER_ADDRESS = "0x89f478e6cc24f052103628f36598d4c14da3d287"
@@ -275,11 +272,13 @@ class RocketPoolDataProvider:
     async def get_minipools(self, known_minipool_addresses: list[str]) -> dict[str, list[tuple[str, str, int, int]]]:
         minipools_per_node = defaultdict(list)
 
+        current_block_number = await self.execution_node.get_block_number()
+
         for minipool_manager in _MINIPOOL_MANAGER_ADDRESSES:
             # Get all emitted "MinipoolCreated" events
             events = await self.execution_node.get_logs(
                 address=minipool_manager["address"],
-                block_number_range=minipool_manager["block_range"],
+                block_number_range=(0, current_block_number),
                 topics=[
                     "0x08b4b91bafaf992145c5dd7e098dfcdb32f879714c154c651c2758a44c7aeae4"],
                 use_infura=True,
