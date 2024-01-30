@@ -221,7 +221,6 @@ async def rewards(
     validator_rewards_list = []
     for validator_index in sorted(validator_indexes):
         if validator_index in rocket_pool_validator_indexes:
-            logger.info(f"Val index in RP val indexes")
             minipool_data = rocket_pool_minipools[validator_index]
 
             withdrawals_node_operator = []
