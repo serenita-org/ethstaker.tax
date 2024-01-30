@@ -22,6 +22,18 @@ ROCKET_POOL_LAST_REWARD_PERIOD_INDEXED = Gauge(
     "rocket_pool_last_reward_period_indexed",
     "Last Rocket Pool reward period that was successfully indexed",
 )
+ROCKET_POOL_NODES = Gauge(
+    "rocket_pool_nodes",
+    "Number of indexed RP nodes",
+)
+ROCKET_POOL_MINIPOOLS = Gauge(
+    "rocket_pool_minipools",
+    "Number of indexed RP minipools",
+)
+ROCKET_POOL_BOND_REDUCTIONS = Gauge(
+    "rocket_pool_bond_reductions",
+    "Number of indexed RP bond reductions",
+)
 
 
 LAST_BLOCK_NUMBER_INDEXED = 0
@@ -37,7 +49,9 @@ async def run():
 
     with session_scope() as session:
         # Nodes and their respective fee distributor contract addresses
-        for node_address, fee_distributor in await rocket_pool_data.get_nodes():
+        rp_nodes = await rocket_pool_data.get_nodes()
+        for node_address, fee_distributor in rp_nodes:
+            # TODO do an upsert here too?
             session.merge(
                 RocketPoolNode(
                     node_address=node_address,
@@ -45,10 +59,12 @@ async def run():
                 )
             )
         session.commit()
+        ROCKET_POOL_NODES.set(len(rp_nodes))
 
         # Minipools
         # Skip indexing minipools we already have indexed
         indexed_mp_addresses = [a for a, in session.query(RocketPoolMinipool.minipool_address).all()]
+        ROCKET_POOL_MINIPOOLS.set(len(indexed_mp_addresses))
 
         for node_address, minipool_list in (await rocket_pool_data.get_minipools(
             known_minipool_addresses=indexed_mp_addresses,
@@ -67,9 +83,10 @@ async def run():
         session.commit()
 
         # Index bond reduction events for every minipool
-        for minipool_address, br_event_datetime, new_bond_amount, new_fee in await rocket_pool_data.get_bond_reductions(
+        bond_reductions = await rocket_pool_data.get_bond_reductions(
             from_block_number=LAST_BLOCK_NUMBER_INDEXED,
-        ):
+        )
+        for minipool_address, br_event_datetime, new_bond_amount, new_fee in bond_reductions:
             # TODO tmp remove this check
             if minipool_address not in indexed_mp_addresses:
                 continue
@@ -82,6 +99,7 @@ async def run():
                 )
             )
         session.commit()
+        ROCKET_POOL_BOND_REDUCTIONS.set(len(bond_reductions))
 
         # Rewards trees
         last_indexed_reward_period, = session.query(func.max(RocketPoolRewardPeriod.reward_period_index)).one_or_none()
