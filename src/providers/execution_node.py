@@ -224,7 +224,7 @@ class ExecutionNode:
                 ))
                 return logs
             else:
-                raise ValueError("Unexpected error: {}".format(resp_data["error"]))
+                raise ValueError(f"Unexpected error: {resp_data['error']} for in get_logs for {address} , {block_number_range}, {topics}, {use_infura}")
 
         return resp_data["result"]
 
