@@ -32,7 +32,6 @@ _NODE_MANAGER_ADDRESS = "0x89f478e6cc24f052103628f36598d4c14da3d287"
 _MINIPOOL_BOND_REDUCER_ADDRESS = "0xf7ab34c74c02407ed653ac9128731947187575c0"
 _NODE_DISTRIBUTOR_FACTORY_ADDRESS = "0xe228017f77b3e0785e794e4c0a8a6b935bb4037c"
 _STORAGE_ADDRESS = "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46"
-_STORAGE_ROCKET_NODE_STAKING_KEY = "8fc06385de84508eaf7eb3d75b93167987c9629589fe0a868a2b4e0e90862dd8"
 _STORAGE_ROCKET_NODE_MANAGER_KEY = "af00be55c9fb8f543c04e0aa0d70351b880c1bfafffd15b60065a4a50c85ec94"
 SMOOTHING_POOL_ADDRESS = "0xd4e96ef8eee8678dbff4d535e033ed1a4f7605b7"
 
@@ -116,11 +115,6 @@ class RocketPoolDataProvider:
         # no-longer-active contract addresses
         return await self.get_rocket_storage_value(key=_STORAGE_ROCKET_NODE_MANAGER_KEY,
                                                    block_number=block_number)
-
-    async def get_node_staking_for_block(self, block_number: int):
-        # TODO we could hardcode these for block ranges to save some RPC calls, at least for the
-        # no-longer-active contract addresses
-        return await self.get_rocket_storage_value(key=_STORAGE_ROCKET_NODE_STAKING_KEY, block_number=block_number)
 
     async def get_node_average_fee(
         self,
