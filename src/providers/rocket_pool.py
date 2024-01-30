@@ -288,32 +288,43 @@ class RocketPoolDataProvider:
 
                 logger.debug(f"Processing minipool {minipool_address}")
 
-                # Get the minipool's initial bond and fee values
-                initial_bond_value = await self.get_minipool_bond(minipool_address=minipool_address, block_number=int(minipool_creation_event["blockNumber"], base=16))
+                try:
+                    # Get the minipool's initial bond and fee values
+                    initial_bond_value = await self.get_minipool_bond(
+                        minipool_address=minipool_address,
+                        block_number=int(minipool_creation_event["blockNumber"],
+                                         base=16))
 
-                if initial_bond_value == 32 * 1e18:
-                    # Full Deposit Type - temporary option where NOs opted to provide the full
-                    # 32ETH for a minipool when there was no ETH in the deposit pool.
-                    # The NO would later get the 2nd 16ETH refunded.
-                    # This deposit type is not used at the moment of writing.
-                    # For the purposes of ethstaker.tax we can consider this the same way as if the
-                    # bond was 16ETH from the beginning, since the NO only earned full rewards
-                    # on 16ETH, on the rest they earned only commission-based rewards.
-                    # Source - Discord, knoshua: "The latter, full on 16 plus commission, from the point of creation"
-                    initial_bond_value = 16 * 1e18
+                    if initial_bond_value == 32 * 1e18:
+                        # Full Deposit Type - temporary option where NOs opted to provide the full
+                        # 32ETH for a minipool when there was no ETH in the deposit pool.
+                        # The NO would later get the 2nd 16ETH refunded.
+                        # This deposit type is not used at the moment of writing.
+                        # For the purposes of ethstaker.tax we can consider this the same way as if the
+                        # bond was 16ETH from the beginning, since the NO only earned full rewards
+                        # on 16ETH, on the rest they earned only commission-based rewards.
+                        # Source - Discord, knoshua: "The latter, full on 16 plus commission, from the point of creation"
+                        initial_bond_value = 16 * 1e18
 
-                initial_fee_value = await self.get_minipool_node_fee(minipool_address=minipool_address, block_number=int(minipool_creation_event["blockNumber"], base=16))
+                    initial_fee_value = await self.get_minipool_node_fee(
+                        minipool_address=minipool_address,
+                        block_number=int(minipool_creation_event["blockNumber"],
+                                         base=16))
 
-                assert initial_fee_value > 0
+                    assert initial_fee_value > 0
 
-                # Get the minipool's associated validator public key
-                pubkey = await self.get_minipool_validator_pubkey(
-                    minipool_manager_address=minipool_manager["address"],
-                    minipool_address=minipool_address
-                )
+                    # Get the minipool's associated validator public key
+                    pubkey = await self.get_minipool_validator_pubkey(
+                        minipool_manager_address=minipool_manager["address"],
+                        minipool_address=minipool_address
+                    )
 
-                minipools_per_node[node_address].append((minipool_address, pubkey, initial_bond_value, initial_fee_value))
+                    minipools_per_node[node_address].append((minipool_address, pubkey,
+                                                             initial_bond_value,
+                                                             initial_fee_value))
 
+                except Exception as e:
+                    logger.error(f"Error processing minipool {minipool_address}! Exception: {e}")
         return minipools_per_node
 
     async def get_nodes(self) -> list[tuple[str, str]]:
