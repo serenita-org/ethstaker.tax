@@ -141,6 +141,9 @@ async function getRewardsFull() {
         errorMessage = `Failed to get rewards - ${(((err as AxiosError).response?.data) as InvalidApiRequestResponse).detail}`;
       } else {
         errorMessage = `Failed to get rewards - ${(err as AxiosError).message}`;
+        if (err.response?.data && err.response?.data.detail) {
+          errorMessage += ` ${err.response?.data.detail}`;
+        }
       }
     } else {
       errorMessage = `Unknown error occurred - ${err}`;

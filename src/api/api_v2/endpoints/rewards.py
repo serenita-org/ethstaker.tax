@@ -224,9 +224,6 @@ async def rewards(
             logger.info(f"Val index in RP val indexes")
             minipool_data = rocket_pool_minipools[validator_index]
 
-            # TODO we are working with RewardForDate objects here but there may be multiple ones
-            # on the same day -> handle it (sum up by key: date)
-
             withdrawals_node_operator = []
             for withdrawal in [w for w in all_withdrawals if
                                w.validator_index == validator_index]:
@@ -268,6 +265,7 @@ async def rewards(
                               f" did not go to smoothing pool ({SMOOTHING_POOL_ADDRESS}) "\
                               f"or fee distributor ({rocket_pool_fee_distributors[validator_index]}) "\
                               f"but {reward_recipient}!"
+                    logger.error(message)
                     raise HTTPException(
                         status_code=500,
                         detail=message
