@@ -283,7 +283,6 @@ class RocketPoolDataProvider:
                 use_infura=True,
             )
 
-            # TODO remove :10 to get all minipools here
             for minipool_creation_event in events:
                 minipool_address = f"0x{minipool_creation_event['topics'][1][26:]}"
                 node_address = f"0x{minipool_creation_event['topics'][2][26:]}"
@@ -293,10 +292,6 @@ class RocketPoolDataProvider:
                     continue
 
                 logger.info(f"Processing minipool {minipool_address}")
-
-                # TODO remove tmp override
-                if node_address != "0x5a8b39df6f1231b5d68036c090a2c5d126eb72d2":
-                    continue
 
                 # Get the minipool's initial bond and fee values
                 initial_bond_value = await self.get_minipool_bond(minipool_address=minipool_address, block_number=int(minipool_creation_event["blockNumber"], base=16))
