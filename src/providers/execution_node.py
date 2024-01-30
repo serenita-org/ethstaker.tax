@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 from collections import namedtuple
+from typing import Any
 
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 from prometheus_client.metrics import Counter
@@ -16,9 +17,6 @@ EXEC_NODE_REQUEST_COUNT = Counter("exec_node_request_count",
 
 MinerData = namedtuple("MinerData", ["tx_fee", "coinbase", "extra_data"])
 TxData = namedtuple("TxData", ["from_", "to", "value"])
-
-
-_ROCKETPOOL_BOND_REDUCER_ADDRESS = "0xf7aB34C74c02407ed653Ac9128731947187575C0"
 
 
 class ExecutionNode:
@@ -61,7 +59,14 @@ class ExecutionNode:
 
         return int(resp.json()["result"], base=16)
 
-    async def eth_call(self, params: list[dict], use_infura=True) -> int:
+    async def eth_call(self, params: list[dict], use_infura=True) -> Any:
+        """
+        If a block number is specified as part of params, the method will
+        return the result as if all transactions in the given block have already
+        been executed (e.g. using the state at the *end* of the block).
+        Source: https://ethereum.stackexchange.com/a/147308
+        """
+
         url = f"{self.BASE_URL}"
 
         if use_infura:
@@ -77,55 +82,11 @@ class ExecutionNode:
             }, headers=self.HEADERS)
 
         EXEC_NODE_REQUEST_COUNT.labels("eth_call", "eth_call").inc()
-        return int(resp.json()["result"], base=16)
-
-    async def rocket_pool_get_last_bond_reduction_prev_node_fee(
-        self,
-        minipool_address: str,
-        block_number: int
-    ):
-        return await self.eth_call(
-            params=[
-                {
-                    "from": "0x0000000000000000000000000000000000000000",
-                    "to": _ROCKETPOOL_BOND_REDUCER_ADDRESS,
-                    "data": f"0x179e5279000000000000000000000000{minipool_address[2:]}",
-                    "block": hex(block_number),
-                }
-            ]
-        )
-
-    async def rocket_pool_get_last_bond_reduction_prev_bond_value(
-        self,
-        minipool_address: str,
-        block_number: int
-    ):
-        return await self.eth_call(
-            params=[
-                {
-                    "from": "0x0000000000000000000000000000000000000000",
-                    "to": _ROCKETPOOL_BOND_REDUCER_ADDRESS,
-                    "data": f"0x81037f20000000000000000000000000{minipool_address[2:]}",
-                    "block": hex(block_number),
-                }
-            ]
-        )
-
-    async def rocket_pool_get_reduce_bond_cancelled(
-        self,
-        minipool_address: str,
-        block_number: int = None
-    ):
-        return await self.eth_call(
-            params=[
-                {
-                    "from": "0x0000000000000000000000000000000000000000",
-                    "to": _ROCKETPOOL_BOND_REDUCER_ADDRESS,
-                    "data": f"0x46505530000000000000000000000000{minipool_address[2:]}",
-                    "block": hex(block_number) if block_number else "latest",
-                }
-            ]
-        )
+        return_data = resp.json()
+        if "result" in return_data:
+            return return_data["result"]
+        else:
+            raise ValueError(f"No result in execution node response! Response: {return_data}")
 
     async def get_block_tx_count(self, block_number: int) -> int:
         url = f"{self.BASE_URL}"
@@ -217,7 +178,7 @@ class ExecutionNode:
         tx_receipt = (await self.get_tx_receipts([tx_hash]))[0]
         return int(tx_receipt["gasUsed"], base=16) * int(tx_receipt["effectiveGasPrice"], base=16)
 
-    async def get_logs(self, address: str, block_number_range: tuple[int, int], topics: list[str], use_infura=True) -> list[dict]:
+    async def get_logs(self, address: str | None, block_number_range: tuple[int | None, int | None], topics: list[str], use_infura=True) -> list[dict]:
         url = f"{self.BASE_URL}"
         # Use Infura while checking balances in old blocks! (Archive node required)
         if use_infura:
@@ -229,9 +190,9 @@ class ExecutionNode:
                 "method": "eth_getLogs",
                 "params": [
                     {
-                        "address": address,
-                        "fromBlock": hex(block_number_range[0]),
-                        "toBlock": hex(block_number_range[1]),
+                        "address": address if address else None,
+                        "fromBlock": hex(block_number_range[0]) if block_number_range[0] else hex(0),
+                        "toBlock": hex(block_number_range[1]) if block_number_range[1] else "latest",
                         "topics": topics,
                     }
                 ],
@@ -239,7 +200,33 @@ class ExecutionNode:
             }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getLogs", "get_logs").inc()
 
-        return resp.json()["result"]
+        resp_data = resp.json()
+        if "error" in resp_data:
+            if resp_data["error"]["code"] == -32005:
+                # query returned more than 10000 results.
+                # --> need to split it up, call get_logs recursively with smaller block ranges
+                logs = []
+                logs.extend(await self.get_logs(
+                    address=address,
+                    block_number_range=(
+                        int(resp_data["error"]["data"]["from"], base=16), int(resp_data["error"]["data"]["to"], base=16)
+                    ),
+                    topics=topics,
+                    use_infura=use_infura,
+                ))
+                logs.extend(await self.get_logs(
+                    address=address,
+                    block_number_range=(
+                        int(resp_data["error"]["data"]["to"], base=16), block_number_range[1]
+                    ),
+                    topics=topics,
+                    use_infura=use_infura,
+                ))
+                return logs
+            else:
+                raise ValueError("Unexpected error: {}".format(resp_data["error"]))
+
+        return resp_data["result"]
 
     async def get_tx_data(self, block_number: int, tx_index: int) -> TxData:
         url = f"{self.BASE_URL}"
