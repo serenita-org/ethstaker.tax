@@ -18,17 +18,17 @@ _MINIPOOL_MANAGER_ADDRESSES = [
     {
         # v1 deployed on Nov-02-2021
         "address": "0x6293b8abc1f36afb22406be5f96d893072a8cf3a",
-        "block_range": (13_535_419, None),
+        "block_range": (13_535_419, 100_000_000),
     },
     {
         # v2 deployed on Aug-14-2022
         "address": "0x84D11B65E026F7aA08F5497dd3593fb083410B71",
-        "block_range": (15_342_000, None),
+        "block_range": (15_342_000, 100_000_000),
     },
     {
         # v3 deployed on Apr-08-2023
         "address": "0x6d010C43d4e96D74C422f2e27370AF48711B49bF",
-        "block_range": (17_000_000, None),
+        "block_range": (17_000_000, 100_000_000),
     },
 ]
 _NODE_MANAGER_ADDRESS = "0x89f478e6cc24f052103628f36598d4c14da3d287"
@@ -200,7 +200,7 @@ class RocketPoolDataProvider:
         # )
         logs = await self.execution_node.get_logs(
             address=None,
-            block_number_range=(None, None),
+            block_number_range=(0, await self.execution_node.get_block_number()),
             topics=[
                 "0x61caab0be2a0f10d869a5f437dab4535eb8e9c868b8c1fc68f3e5c10d0cd8f66"],
             use_infura=True,
@@ -237,11 +237,12 @@ class RocketPoolDataProvider:
 
     async def get_bond_reductions(
         self,
-        from_block_number: int
+        from_block_number: int,
+        to_block_number: int
     ) -> list:
         logs = await self.execution_node.get_logs(
             address=None,
-            block_number_range=(from_block_number, None),
+            block_number_range=(from_block_number, to_block_number),
             topics=["0x90e131460b9acb17565f1719b9ebc49998aec6b07a4743a09b1b700545769eb6"], # BondReduced
             use_infura=True,
         )

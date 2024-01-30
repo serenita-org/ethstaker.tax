@@ -178,8 +178,13 @@ class ExecutionNode:
         tx_receipt = (await self.get_tx_receipts([tx_hash]))[0]
         return int(tx_receipt["gasUsed"], base=16) * int(tx_receipt["effectiveGasPrice"], base=16)
 
-    async def get_logs(self, address: str | None, block_number_range: tuple[int | None, int | None], topics: list[str], use_infura=True) -> list[dict]:
+    async def get_logs(self, address: str | None, block_number_range: tuple[int, int], topics: list[str], use_infura=True) -> list[dict]:
         url = f"{self.BASE_URL}"
+
+        from_block = block_number_range[0]
+        to_block = block_number_range[1]
+        assert from_block <= to_block
+
         # Use Infura while checking balances in old blocks! (Archive node required)
         if use_infura:
             await self._wait_for_infura_rate_limiter()
@@ -191,8 +196,8 @@ class ExecutionNode:
                 "params": [
                     {
                         "address": address if address else None,
-                        "fromBlock": hex(block_number_range[0]) if block_number_range[0] else hex(0),
-                        "toBlock": hex(block_number_range[1]) if block_number_range[1] else "latest",
+                        "fromBlock": hex(from_block),
+                        "toBlock": hex(to_block),
                         "topics": topics,
                     }
                 ],
@@ -202,14 +207,24 @@ class ExecutionNode:
 
         resp_data = resp.json()
         if "error" in resp_data:
-            if resp_data["error"]["code"] == -32005:
-                # query returned more than 10000 results.
+            if resp_data["error"]["code"] in (-32005, -32602):
+                # -32005: query returned more than 10000 results.
+                # -32602: >10K logs
                 # --> need to split it up, call get_logs recursively with smaller block ranges
                 logs = []
+
+                try:
+                    # If the response contains a suggested higher end of the block range
+                    # use it
+                    to_block_limited = resp_data["error"]["data"]["to"]
+                except KeyError:
+                    # Otherwise split request into two halves
+                    to_block_limited = to_block - ((to_block - from_block) // 2)
+
                 logs.extend(await self.get_logs(
                     address=address,
                     block_number_range=(
-                        int(resp_data["error"]["data"]["from"], base=16), int(resp_data["error"]["data"]["to"], base=16)
+                        from_block, to_block_limited
                     ),
                     topics=topics,
                     use_infura=use_infura,
@@ -217,7 +232,7 @@ class ExecutionNode:
                 logs.extend(await self.get_logs(
                     address=address,
                     block_number_range=(
-                        int(resp_data["error"]["data"]["to"], base=16), block_number_range[1]
+                        to_block_limited, to_block
                     ),
                     topics=topics,
                     use_infura=use_infura,
