@@ -2,6 +2,7 @@ import logging
 import asyncio
 
 from prometheus_client import start_http_server
+from sqlalchemy import text
 
 from shared.setup_logging import setup_logging
 from providers.beacon_node import BeaconNode
@@ -18,12 +19,20 @@ async def index_validators():
         logger.info(f"Indexing validators")
         validators = await beacon_node.get_validators()
 
-        for v in validators:
-            session.merge(Validator(
-                validator_index=v["index"],
-                pubkey=v["validator"]["pubkey"],
-            ))
-
+        session.execute(
+            text(
+                f"INSERT INTO {Validator.__tablename__}(validator_index, pubkey)"
+                " VALUES(:validator_index, :pubkey)"
+                f" ON CONFLICT ON CONSTRAINT {Validator.__tablename__}_pkey DO NOTHING"
+            ),
+            [
+                {
+                    "validator_index": v["index"],
+                    "pubkey": v["validator"]["pubkey"],
+                }
+                for v in validators
+            ]
+        )
 
 if __name__ == "__main__":
     # Start metrics server
