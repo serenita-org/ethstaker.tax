@@ -3,7 +3,7 @@ FROM python:3.10
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+RUN pip install --no-cache-dir --require-hashes --use-deprecated=legacy-resolver -r requirements.txt
 
 COPY ./etc/logging.yml ./etc/logging.yml
 COPY ./src ./src
