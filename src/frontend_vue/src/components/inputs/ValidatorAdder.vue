@@ -118,6 +118,7 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
             <input
                 v-model="indexesInput"
                 required
+                autofocus
                 type="text"
                 pattern="^( *(?:\d+) *,? *)*$"
                 oninvalid="this.setCustomValidity('A validator index should be a positive number')"
