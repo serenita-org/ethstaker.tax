@@ -169,7 +169,7 @@ services:
       # P2P
       - "30303:30303/tcp"
       - "30303:30303/udp"
-     volumes:
+    volumes:
       - el_data:/data
       - ./etc/jwt_secret.hex:/tmp/jwt_secret
 
