@@ -130,7 +130,7 @@ async function getRewardsFull() {
         return parse(response, undefined, customNumberParser);
       }
     })).data;
-    rocketPoolNodeRewards.value = useRocketPoolMode.value ? resp.rocket_pool_node_rewards : [];
+    rocketPoolNodeRewards.value = useRocketPoolMode.value ? (resp as RewardsResponseRocketPool).rocket_pool_node_rewards : [];
     validatorRewardsData.value = resp.validator_rewards_list;
   } catch (err: unknown) {
     let errorMessage: string
