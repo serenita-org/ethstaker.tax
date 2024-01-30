@@ -12,7 +12,7 @@
       <canvas :id="chartCanvasId"></canvas>
     </div>
     <BButtonGroup>
-      <BButton @click="showIncomeInFiat = !showIncomeInFiat" variant="secondary">Show income in {{ showIncomeInFiat ? "ETH" : currency }}</BButton>
+      <BButton @click="showIncomeInFiat = !showIncomeInFiat" variant="outline-secondary">Show income in {{ showIncomeInFiat ? "ETH" : currency }}</BButton>
       <BButton @click="Chart.getChart(chartCanvasId)?.resetZoom()" class="ms-1" variant="outline-secondary">Reset zoom</BButton>
     </BButtonGroup>
   </div>

@@ -164,6 +164,11 @@ const showOutputs = computed<boolean>(() => {
     if (!priceDataRpl.value) return false;
     if (priceDataRpl.value?.prices.length === 0) return false;
   }
+  setTimeout(() => window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth"
+  }
+  ), 100);
   return true;
 })
 
@@ -217,8 +222,8 @@ const showOutputs = computed<boolean>(() => {
         title='Wondering how this works? Find out <a href="#">here (coming soon)</a>'
     />
   </div>
-  <div v-show="showOutputs" class="container border-top border-bottom py-2 mt-2">
-    <div v-if="!useRocketPoolMode" class="my-1 d-flex align-items-center">
+  <div v-show="showOutputs && !useRocketPoolMode" class="container border-top border-bottom py-2 mt-2">
+    <div class="my-1 d-flex align-items-center">
       <BFormCheckbox v-model="useConsensusIncomeOnWithdrawal" switch>
         <span class="mx-1">Recognize consensus layer income upon withdrawal</span>
         <i
@@ -230,30 +235,6 @@ const showOutputs = computed<boolean>(() => {
                    the validator's end-of-day balance to determine consensus layer income
                    on a daily basis instead."
         />
-      </BFormCheckbox>
-    </div>
-    <div class="my-1 d-flex align-items-center pt-2 mb-0">
-      <BButton
-        class="mx-3"
-        @click="downloadAsCsv(
-            validatorRewardsData,
-            rocketPoolNodeRewards,
-            useConsensusIncomeOnWithdrawal,
-            useRocketPoolMode,
-            priceDataEth as PricesResponse,
-            priceDataRpl as PricesResponse,
-            csvDownloadGroupByDate,
-            )"
-        :disabled="validatorRewardsData.length == 0 || rewardsLoading || priceDataLoading"
-        variant="secondary"
-      >
-        <span>
-          <i class="bi-cloud-download me-1"></i>
-          Download CSV for all validators
-        </span>
-      </BButton>
-      <BFormCheckbox v-model="csvDownloadGroupByDate" switch>
-        <span class="mx-1">Group By Date</span>
       </BFormCheckbox>
     </div>
   </div>
@@ -289,6 +270,30 @@ const showOutputs = computed<boolean>(() => {
         >
         </SummaryTable>
       </div>
+      <div class="my-3 d-flex align-items-center justify-content-center pt-2 mb-0 border-top">
+          <BButton
+            class="m-3"
+            @click="downloadAsCsv(
+                validatorRewardsData,
+                rocketPoolNodeRewards,
+                useConsensusIncomeOnWithdrawal,
+                useRocketPoolMode,
+                priceDataEth as PricesResponse,
+                priceDataRpl as PricesResponse,
+                csvDownloadGroupByDate,
+                )"
+            :disabled="validatorRewardsData.length == 0 || rewardsLoading || priceDataLoading"
+            variant="secondary"
+          >
+            <span>
+              <i class="bi-cloud-download me-1"></i>
+              Download CSV for all validators
+            </span>
+          </BButton>
+          <BFormCheckbox v-model="csvDownloadGroupByDate" switch>
+            <span class="mx-1">Group By Date</span>
+          </BFormCheckbox>
+        </div>
     </div>
   </div>
 </template>
