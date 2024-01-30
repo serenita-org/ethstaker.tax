@@ -5,7 +5,6 @@ from contextlib import contextmanager
 
 import starlette.requests
 from fastapi import FastAPI
-from sqlalchemy import create_engine, func
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, joinedload
 
