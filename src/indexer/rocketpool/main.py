@@ -37,7 +37,8 @@ async def run():
 
     with session_scope() as session:
         # Nodes and their respective fee distributor contract addresses
-        for node_address, fee_distributor in await rocket_pool_data.get_nodes():
+        # TODO reverse for node_address, fee_distributor in await rocket_pool_data.get_nodes():
+        for node_address, fee_distributor in []:
             session.merge(
                 RocketPoolNode(
                     node_address=node_address,
