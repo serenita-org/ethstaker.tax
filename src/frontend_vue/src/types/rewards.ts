@@ -32,11 +32,11 @@ export interface RocketPoolValidatorRewards extends ValidatorRewardsBase {
 }
 
 export interface RewardsResponseRocketPool {
-    validator_rewards: RocketPoolValidatorRewards[]
+    validator_rewards_list: RocketPoolValidatorRewards[]
     rocket_pool_node_rewards: RocketPoolNodeRewardForDate[]
 }
 export interface RewardsResponseFull {
-    validator_rewards: ValidatorRewards[]
+    validator_rewards_list: ValidatorRewards[]
 }
 
 export interface PriceForDate {
