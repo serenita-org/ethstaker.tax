@@ -148,8 +148,6 @@ services:
     volumes:
       - cl_data:/root/.lighthouse
       - ./etc/jwt_secret.hex:/tmp/jwt_secret
-    volumes:
-      - beacon_node_data:/root/.lighthouse
 
   geth:
     image: ethereum/client-go:v1.13.5
