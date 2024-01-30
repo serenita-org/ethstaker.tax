@@ -38,6 +38,10 @@ scrape_configs:
     static_configs:
       - targets: ['indexer_rocketpool:8000']
 
+  - job_name: indexer_validators
+    static_configs:
+      - targets: ['indexer_validators:8000']
+
   - job_name: beacon_node
     static_configs:
       - targets: ['beacon_node:5054']
