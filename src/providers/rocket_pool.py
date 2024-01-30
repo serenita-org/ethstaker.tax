@@ -234,12 +234,11 @@ class RocketPoolDataProvider:
 
     async def get_bond_reductions(
         self,
-        from_block_number: int,
-        to_block_number: int
+        from_block_number: int
     ) -> list:
         logs = await self.execution_node.get_logs(
             address=None,
-            block_number_range=(from_block_number, to_block_number),
+            block_number_range=(from_block_number, await self.execution_node.get_block_number()),
             topics=["0x90e131460b9acb17565f1719b9ebc49998aec6b07a4743a09b1b700545769eb6"], # BondReduced
             use_infura=True,
         )

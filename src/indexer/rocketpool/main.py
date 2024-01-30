@@ -69,7 +69,7 @@ async def run():
 
         # Index bond reduction events for every minipool
         for minipool_address, br_event_datetime, new_bond_amount, new_fee in await rocket_pool_data.get_bond_reductions(
-            from_block_number=LAST_BLOCK_NUMBER_INDEXED
+            from_block_number=LAST_BLOCK_NUMBER_INDEXED,
         ):
             # TODO tmp remove this check
             if minipool_address not in indexed_mp_addresses:
