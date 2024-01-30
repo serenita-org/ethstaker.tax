@@ -283,15 +283,16 @@ class RocketPoolDataProvider:
                 use_infura=True,
             )
 
+            logger.info(f"Processing {len(events)} events for minipools")
             for minipool_creation_event in events:
                 minipool_address = f"0x{minipool_creation_event['topics'][1][26:]}"
                 node_address = f"0x{minipool_creation_event['topics'][2][26:]}"
 
                 if minipool_address in known_minipool_addresses:
-                    logger.warning(f"Skipping {minipool_address}, already known")
+                    logger.debug(f"Skipping {minipool_address}, already known")
                     continue
 
-                logger.info(f"Processing minipool {minipool_address}")
+                logger.debug(f"Processing minipool {minipool_address}")
 
                 # Get the minipool's initial bond and fee values
                 initial_bond_value = await self.get_minipool_bond(minipool_address=minipool_address, block_number=int(minipool_creation_event["blockNumber"], base=16))
