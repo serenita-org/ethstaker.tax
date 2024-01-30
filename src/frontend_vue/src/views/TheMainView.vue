@@ -164,10 +164,6 @@ const showOutputs = computed<boolean>(() => {
   return true;
 })
 
-const enableRocketPoolModeToggle = computed<boolean>(() => {
-  return validatorRewardsData.value.some(vr => isRocketPoolValidatorRewards(vr));
-})
-
 </script>
 
 <template>
