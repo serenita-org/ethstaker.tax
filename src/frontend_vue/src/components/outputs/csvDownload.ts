@@ -160,6 +160,10 @@ export function downloadAsCsv(
                 }
                 let executionReward = getRewardForDate(rewards.execution_layer_rewards, date);
 
+                if (consensusReward.amount_wei === BigInt(0) && executionReward.amount_wei === BigInt(0)) {
+                    continue
+                }
+
                 const columnValues = [
                     `${date}`,
                     `${validatorIndex}`,
