@@ -223,6 +223,9 @@ const showOutputs = computed<boolean>(() => {
         v-b-tooltip
         title='Wondering how this works? Find out <a href="#">here (coming soon)</a>'
     />
+    <div v-if="(rewardsLoading || priceDataLoading) && validatorIndexes.size > 10" class="alert alert-secondary text-center fade show my-3" role="alert">
+      <p class="text-muted m-0">It may take up to a few minutes to load the data</p>
+    </div>
   </div>
   <div v-show="showOutputs && !useRocketPoolMode" class="container border-top border-bottom py-2 mt-2">
     <div class="my-1 d-flex align-items-center">
