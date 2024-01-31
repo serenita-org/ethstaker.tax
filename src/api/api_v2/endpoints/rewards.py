@@ -223,69 +223,68 @@ async def rewards(
 
     validator_rewards_list = []
     for validator_index in sorted(validator_indexes):
-        if validator_index in rocket_pool_validator_indexes:
-            minipool_data = rocket_pool_minipools[validator_index]
+        minipool_data = rocket_pool_minipools[validator_index]
 
-            withdrawals_node_operator = []
-            for withdrawal in [w for w in all_withdrawals if
-                               w.validator_index == validator_index]:
-                withdrawals_node_operator.append(
-                    get_rocket_pool_reward_share_withdrawal(
-                        withdrawal=withdrawal,
-                        bond_reductions=minipool_data.bond_reductions,
-                        initial_bond=minipool_data.initial_bond_value,
-                        initial_fee=minipool_data.initial_fee_value,
-                    )
+        withdrawals_node_operator = []
+        for withdrawal in [w for w in all_withdrawals if
+                           w.validator_index == validator_index]:
+            withdrawals_node_operator.append(
+                get_rocket_pool_reward_share_withdrawal(
+                    withdrawal=withdrawal,
+                    bond_reductions=minipool_data.bond_reductions,
+                    initial_bond=minipool_data.initial_bond_value,
+                    initial_fee=minipool_data.initial_fee_value,
+                )
+            )
+
+        # Sum in case multiple proposals happen on the same day
+        exec_layer_rewards_node_operator_for_date = defaultdict(Decimal)
+        # Only count block rewards if they didn't go to Rocket Pool's Smoothing Pool
+        for br in [br for br in all_block_rewards if br.proposer_index == validator_index]:
+            reward_recipient = br.mev_reward_recipient if br.mev else br.fee_recipient
+            reward_recipient = reward_recipient.lower()
+
+            if reward_recipient == SMOOTHING_POOL_ADDRESS:
+                # This reward does not belong to the proposer only
+                # It is accounted for in the 28-day smoothing pool rewards
+                continue
+            elif reward_recipient == rocket_pool_fee_distributors[
+                validator_index]:
+                # Get the balance delta of the fee distributor contract
+                date = BeaconNode.datetime_for_slot(slot=br.slot, timezone=pytz.UTC).date()
+
+                exec_layer_rewards_node_operator_for_date[date] += await get_rocket_pool_reward_share_proposal_fee_distributor(
+                    node_address=minipool_data.node_address,
+                    fee_distributor=rocket_pool_fee_distributors[validator_index],
+                    slot=br.slot,
+                    beacon_node=beacon_node,
+                    rocket_pool_data=rocket_pool_data,
+                )
+            else:
+                message = f"Block reward for slot {br.slot} "\
+                          f"proposed by RP minipool ({minipool_data.minipool_address} / {validator_index})"\
+                          f" did not go to smoothing pool ({SMOOTHING_POOL_ADDRESS}) "\
+                          f"or fee distributor ({rocket_pool_fee_distributors[validator_index]}) "\
+                          f"but {reward_recipient}!"
+                logger.error(message)
+                raise HTTPException(
+                    status_code=500,
+                    detail=message
                 )
 
-            # Sum in case multiple proposals happen on the same day
-            exec_layer_rewards_node_operator_for_date = defaultdict(Decimal)
-            # Only count block rewards if they didn't go to Rocket Pool's Smoothing Pool
-            for br in [br for br in all_block_rewards if br.proposer_index == validator_index]:
-                reward_recipient = br.mev_reward_recipient if br.mev else br.fee_recipient
-                reward_recipient = reward_recipient.lower()
+        execution_layer_rewards_node_operator = []
+        for date, reward_amount in exec_layer_rewards_node_operator_for_date.items():
+            execution_layer_rewards_node_operator.append(RewardForDate(
+                date=date,
+                amount_wei=reward_amount
+            ))
 
-                if reward_recipient == SMOOTHING_POOL_ADDRESS:
-                    # This reward does not belong to the proposer only
-                    # It is accounted for in the 28-day smoothing pool rewards
-                    continue
-                elif reward_recipient == rocket_pool_fee_distributors[
-                    validator_index]:
-                    # Get the balance delta of the fee distributor contract
-                    date = BeaconNode.datetime_for_slot(slot=br.slot, timezone=pytz.UTC).date()
-
-                    exec_layer_rewards_node_operator_for_date[date] += await get_rocket_pool_reward_share_proposal_fee_distributor(
-                        node_address=minipool_data.node_address,
-                        fee_distributor=rocket_pool_fee_distributors[validator_index],
-                        slot=br.slot,
-                        beacon_node=beacon_node,
-                        rocket_pool_data=rocket_pool_data,
-                    )
-                else:
-                    message = f"Block reward for slot {br.slot} "\
-                              f"proposed by RP minipool ({minipool_data.minipool_address} / {validator_index})"\
-                              f" did not go to smoothing pool ({SMOOTHING_POOL_ADDRESS}) "\
-                              f"or fee distributor ({rocket_pool_fee_distributors[validator_index]}) "\
-                              f"but {reward_recipient}!"
-                    logger.error(message)
-                    raise HTTPException(
-                        status_code=500,
-                        detail=message
-                    )
-
-            execution_layer_rewards_node_operator = []
-            for date, reward_amount in exec_layer_rewards_node_operator_for_date.items():
-                execution_layer_rewards_node_operator.append(RewardForDate(
-                    date=date,
-                    amount_wei=reward_amount
-                ))
-
-            validator_rewards = RocketPoolValidatorRewards.construct(
-                validator_index=validator_index,
-                execution_layer_rewards=execution_layer_rewards_node_operator,
-                withdrawals=withdrawals_node_operator,
-            )
-            validator_rewards_list.append(validator_rewards)
+        validator_rewards = RocketPoolValidatorRewards.construct(
+            validator_index=validator_index,
+            execution_layer_rewards=execution_layer_rewards_node_operator,
+            withdrawals=withdrawals_node_operator,
+        )
+        validator_rewards_list.append(validator_rewards)
 
     return RewardsResponseRocketPool.construct(
         validator_rewards_list=validator_rewards_list,
