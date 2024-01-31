@@ -48,6 +48,7 @@ async def run():
     current_exec_block_number = await execution_node.get_block_number()
 
     with session_scope() as session:
+        logger.info("Indexing nodes")
         # Nodes and their respective fee distributor contract addresses
         rp_nodes = await rocket_pool_data.get_nodes(block_number=current_exec_block_number)
         for node_address, fee_distributor in rp_nodes:
@@ -66,6 +67,7 @@ async def run():
         indexed_mp_addresses = [a for a, in session.query(RocketPoolMinipool.minipool_address).all()]
         ROCKET_POOL_MINIPOOLS.set(len(indexed_mp_addresses))
 
+        logger.info("Indexing minipools")
         for node_address, minipool_list in (await rocket_pool_data.get_minipools(
             known_minipool_addresses=indexed_mp_addresses,
             block_number=current_exec_block_number
@@ -84,6 +86,7 @@ async def run():
         session.commit()
 
         # Index bond reduction events for every minipool
+        logger.info("Indexing bond reductions")
         bond_reductions = await rocket_pool_data.get_bond_reductions(
             from_block_number=LAST_BLOCK_NUMBER_INDEXED,
             to_block_number=current_exec_block_number
@@ -108,8 +111,8 @@ async def run():
         if last_indexed_reward_period is not None:
             ROCKET_POOL_LAST_REWARD_PERIOD_INDEXED.set(last_indexed_reward_period)
 
+        logger.info("Indexing reward snapshots")
         new_reward_trees = await rocket_pool_data.get_reward_snapshots(start_at_period=last_indexed_reward_period+1 if last_indexed_reward_period else 0)
-
         for reward_period_index, node_rewards, period_end_time in new_reward_trees:
             session.add(RocketPoolRewardPeriod(
                 reward_period_index=reward_period_index,
