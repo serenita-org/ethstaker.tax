@@ -82,7 +82,7 @@ export function downloadAsCsv(
         allDates.add(reward.date)
     }
 
-    for (const date of allDates) {
+    for (const date of Array.from(allDates).sort()) {
         if (groupByDate) {
             let consensusTotal = BigInt(0);
             let executionTotal = BigInt(0);
