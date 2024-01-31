@@ -263,7 +263,12 @@ class RocketPoolDataProvider:
 
         return bond_reductions
 
-    async def get_minipools(self, known_minipool_addresses: list[str], block_number: int) -> dict[str, list[tuple[str, str, int, int]]]:
+    async def get_minipools(
+        self,
+        known_node_addresses: list[str],
+        known_minipool_addresses: list[str],
+        block_number: int
+    ) -> dict[str, list[tuple[str, str, int, int]]]:
         minipools_per_node = defaultdict(list)
 
         for minipool_manager in _MINIPOOL_MANAGER_ADDRESSES:
@@ -285,7 +290,11 @@ class RocketPoolDataProvider:
                     logger.debug(f"Skipping {minipool_address}, already known")
                     continue
 
-                logger.debug(f"Processing minipool {minipool_address}")
+                if node_address not in known_node_addresses:
+                    logger.warning(f"Skipping {minipool_address}, its node address {node_address} is not known yet")
+                    continue
+
+                logger.info(f"Processing minipool {minipool_address}")
 
                 try:
                     # Get the minipool's initial bond and fee values
