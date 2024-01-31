@@ -177,13 +177,15 @@ const showOutputs = computed<boolean>(() => {
 <template>
   <div class="container my-3">
     <h2>Add your validators</h2>
-    <BFormCheckbox v-model="useRocketPoolMode" switch size="lg">
-      <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
-        opacity: useRocketPoolMode ? 1 : 0.3
-      }" class="mx-1" />
-      <span class="mx-1">Rocket Pool Mode</span>
-      <i class="bi-question-square" v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>"/>
-    </BFormCheckbox>
+    <div class="align-items-center my-3">
+      <BFormCheckbox v-model="useRocketPoolMode" switch size="md">
+        <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
+          opacity: useRocketPoolMode ? 1 : 0.3
+        }" class="mx-1" />
+        <span class="mx-1">Rocket Pool Mode</span>
+        <i class="bi-question-square" v-b-tooltip title="<a href='#'>Learn More (coming soon)</a>"/>
+      </BFormCheckbox>
+    </div>
     <ValidatorAdder :use-rocket-pool-mode="useRocketPoolMode" @validator-indexes-changed="updateValidatorIndexes"></ValidatorAdder>
   </div>
   <div class="container my-3" v-show="validatorIndexes.size > 0">
