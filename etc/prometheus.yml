@@ -34,9 +34,9 @@ scrape_configs:
     static_configs:
       - targets: ['indexer_withdrawals:8000']
 
-  - job_name: indexer_rocketpool
+  - job_name: indexer_rocket_pool
     static_configs:
-      - targets: ['indexer_rocketpool:8000']
+      - targets: ['indexer_rocket_pool:8000']
 
   - job_name: indexer_validators
     static_configs:

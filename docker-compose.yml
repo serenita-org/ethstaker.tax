@@ -116,13 +116,13 @@ services:
     depends_on:
       - db
 
-  indexer_rocketpool:
+  indexer_rocket_pool:
     image: eth2-tax:latest
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: [ "python", "./src/indexer/rocketpool/main.py" ]
+    command: [ "python", "./src/indexer/rocket_pool/main.py" ]
     environment:
       DB_URI:
       BEACON_NODE_USE_INFURA:
