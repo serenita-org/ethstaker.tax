@@ -51,7 +51,7 @@ async def run():
         logger.info("Indexing nodes")
         # Nodes and their respective fee distributor contract addresses
         known_node_addresses = [a for a, in session.query(RocketPoolNode.node_address).all()]
-        rp_nodes = await rocket_pool_data.get_nodes(block_number=current_exec_block_number)
+        rp_nodes = await rocket_pool_data.get_nodes(known_node_addresses=known_node_addresses, block_number=current_exec_block_number)
         for node_address, fee_distributor in rp_nodes:
             if node_address in known_node_addresses:
                 continue

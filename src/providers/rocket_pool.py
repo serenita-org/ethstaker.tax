@@ -335,7 +335,7 @@ class RocketPoolDataProvider:
                     logger.error(f"Error processing minipool {minipool_address}! Exception: {e}")
         return minipools_per_node
 
-    async def get_nodes(self, block_number: int) -> list[tuple[str, str]]:
+    async def get_nodes(self, known_node_addresses: list[str], block_number: int) -> list[tuple[str, str]]:
         nodes = []
 
         resp = await self.execution_node.eth_call(
@@ -351,21 +351,24 @@ class RocketPoolDataProvider:
         )
         node_addresses_string = resp[130:]
         n = 64
-        node_addresses = [node_addresses_string[i+24:i+n] for i in range(0, len(node_addresses_string), n)]
+        node_addresses = [f"0x{node_addresses_string[i+24:i+n]}" for i in range(0, len(node_addresses_string), n)]
 
         # Get node fee distributor contract (collects EL rewards)
         for node_address in node_addresses:
+            if node_address in known_node_addresses:
+                continue
+
             res = await self.execution_node.eth_call(
                 params=[
                     {
                         "from": "0x0000000000000000000000000000000000000000",
                         "to": _NODE_DISTRIBUTOR_FACTORY_ADDRESS,
-                        "data": f"0xfa2a5b01000000000000000000000000{node_address}",
+                        "data": f"0xfa2a5b01000000000000000000000000{node_address[2:]}",
                     },
                     "latest"
                 ],
                 use_infura=False,
             )
-            fee_distributor_address = res[26:]
-            nodes.append((f"0x{node_address}", f"0x{fee_distributor_address}"))
+            fee_distributor_address = f"0x{res[26:]}"
+            nodes.append((node_address, fee_distributor_address))
         return nodes
