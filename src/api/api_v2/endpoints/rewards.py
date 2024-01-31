@@ -147,18 +147,18 @@ async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tup
         day=rewards_request.start_date.day,
         tzinfo=pytz.UTC,
     )
-    end_datetime = datetime.datetime(
-        year=rewards_request.end_date.year,
-        month=rewards_request.end_date.month,
-        day=rewards_request.end_date.day,
-        tzinfo=pytz.UTC,
+    end_datetime = datetime.datetime.combine(
+        datetime.datetime(
+            year=rewards_request.end_date.year,
+            month=rewards_request.end_date.month,
+            day=rewards_request.end_date.day,
+            tzinfo=pytz.UTC,
+        ),
+        datetime.time(hour=23, minute=59, second=59, tzinfo=pytz.UTC)
     )
 
     min_slot = BeaconNode.slot_for_datetime(start_datetime)
-    max_slot = BeaconNode.slot_for_datetime(datetime.datetime.combine(
-        end_datetime,
-        datetime.time(hour=23, minute=59, second=59, tzinfo=pytz.UTC)
-    ))
+    max_slot = BeaconNode.slot_for_datetime(end_datetime)
 
     logger.info(f"Input data - validator indexes: {validator_indexes}")
     logger.info(f"Input data - date range: {start_datetime} ({min_slot}) - {end_datetime} ({max_slot})")
