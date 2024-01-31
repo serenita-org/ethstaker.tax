@@ -160,6 +160,9 @@ async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tup
         datetime.time(hour=23, minute=59, second=59, tzinfo=pytz.UTC)
     ))
 
+    logger.info(f"Input data - validator indexes: {validator_indexes}")
+    logger.info(f"Input data - date range: {start_datetime} ({min_slot}) - {end_datetime} ({max_slot})")
+
     return validator_indexes, start_datetime, end_datetime, min_slot, max_slot
 
 
