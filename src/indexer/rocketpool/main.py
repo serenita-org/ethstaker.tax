@@ -49,7 +49,7 @@ async def run():
 
     with session_scope() as session:
         # Nodes and their respective fee distributor contract addresses
-        rp_nodes = await rocket_pool_data.get_nodes()
+        rp_nodes = await rocket_pool_data.get_nodes(block_number=current_exec_block_number)
         for node_address, fee_distributor in rp_nodes:
             # TODO do an upsert here too?
             session.merge(
@@ -68,6 +68,7 @@ async def run():
 
         for node_address, minipool_list in (await rocket_pool_data.get_minipools(
             known_minipool_addresses=indexed_mp_addresses,
+            block_number=current_exec_block_number
         )).items():
             for minipool_address, pubkey, initial_bond_value, initial_fee_value in minipool_list:
                 indexed_mp_addresses.append(minipool_address)
@@ -85,6 +86,7 @@ async def run():
         # Index bond reduction events for every minipool
         bond_reductions = await rocket_pool_data.get_bond_reductions(
             from_block_number=LAST_BLOCK_NUMBER_INDEXED,
+            to_block_number=current_exec_block_number
         )
         for minipool_address, br_event_datetime, new_bond_amount, new_fee in bond_reductions:
             # TODO tmp remove this check

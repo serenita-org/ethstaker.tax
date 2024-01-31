@@ -228,11 +228,12 @@ class RocketPoolDataProvider:
 
     async def get_bond_reductions(
         self,
-        from_block_number: int
+        from_block_number: int,
+        to_block_number: int,
     ) -> list:
         logs = await self.execution_node.get_logs(
             address=None,
-            block_number_range=(from_block_number, await self.execution_node.get_block_number()),
+            block_number_range=(from_block_number, to_block_number),
             topics=["0x90e131460b9acb17565f1719b9ebc49998aec6b07a4743a09b1b700545769eb6"], # BondReduced
             use_infura=True,
         )
@@ -262,16 +263,14 @@ class RocketPoolDataProvider:
 
         return bond_reductions
 
-    async def get_minipools(self, known_minipool_addresses: list[str]) -> dict[str, list[tuple[str, str, int, int]]]:
+    async def get_minipools(self, known_minipool_addresses: list[str], block_number: int) -> dict[str, list[tuple[str, str, int, int]]]:
         minipools_per_node = defaultdict(list)
-
-        current_block_number = await self.execution_node.get_block_number()
 
         for minipool_manager in _MINIPOOL_MANAGER_ADDRESSES:
             # Get all emitted "MinipoolCreated" events
             events = await self.execution_node.get_logs(
                 address=minipool_manager["address"],
-                block_number_range=(0, current_block_number),
+                block_number_range=(0, block_number),
                 topics=[
                     "0x08b4b91bafaf992145c5dd7e098dfcdb32f879714c154c651c2758a44c7aeae4"],
                 use_infura=True,
@@ -327,7 +326,7 @@ class RocketPoolDataProvider:
                     logger.error(f"Error processing minipool {minipool_address}! Exception: {e}")
         return minipools_per_node
 
-    async def get_nodes(self) -> list[tuple[str, str]]:
+    async def get_nodes(self, block_number: int) -> list[tuple[str, str]]:
         nodes = []
 
         resp = await self.execution_node.eth_call(
@@ -337,7 +336,7 @@ class RocketPoolDataProvider:
                     "to": _NODE_MANAGER_ADDRESS,
                     "data": f"0x2d7f21d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
                 },
-                "latest"
+                hex(block_number)
             ],
             use_infura=False,
         )
