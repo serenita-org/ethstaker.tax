@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee):
     _FULL_MINIPOOL_BOND = 32 * Decimal(1e18)
 
-    if withdrawal.amount > 8 * Decimal(1e18):
+    if withdrawal.amount_gwei > 8 * Decimal(1e9):
         raise HTTPException(status_code=500, detail="Full withdrawals not handled for RP yet!")
         # Consider this a full withdrawal
         # TODO
