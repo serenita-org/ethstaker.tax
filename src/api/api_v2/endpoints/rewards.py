@@ -322,6 +322,9 @@ async def rewards(
                 )
             )
 
+    for validator_index in sorted(validator_indexes):
+        minipool = rocket_pool_minipools[validator_index]
+
         # Sum in case multiple proposals happen on the same day
         exec_layer_rewards_node_operator_for_date = defaultdict(Decimal)
         # Only count block rewards if they didn't go to Rocket Pool's Smoothing Pool
