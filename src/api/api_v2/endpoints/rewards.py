@@ -463,10 +463,19 @@ async def rewards(
             amount_earned_wei = Decimal(1e18) * (eod_balance.balance - prev_balance.balance)
 
             # Account for withdrawals
-            amount_withdrawn_this_day_wei = Decimal(1e9) * sum(
-                w.amount_gwei for w in validator_withdrawals
-                if eod_balance.slot >= w.slot > prev_balance.slot
-            )
+            amount_withdrawn_this_day_wei = 0
+            for w in validator_withdrawals:
+                if eod_balance.slot >= w.slot > prev_balance.slot:
+                    if w.amount_gwei > 8 * Decimal(1e9):
+                        # Assume full withdrawal
+                        if w.amount_gwei < 32 * Decimal(1e9):
+                            raise HTTPException(
+                                status_code=500,
+                                detail=f"Full withdrawal for {validator_index} with <32 ETH leads to negative income"
+                            )
+                        amount_withdrawn_this_day_wei += w.amount_gwei % (32 * Decimal(1e9))
+                    else:
+                        amount_withdrawn_this_day_wei += w.amount_gwei * Decimal(1e9)
             amount_earned_wei += amount_withdrawn_this_day_wei
 
             date = beacon_node.datetime_for_slot(
