@@ -75,7 +75,7 @@ def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee)
 
         pass
 
-    return Decimal(1e9) * withdrawal.amount * (
+    return Decimal(1e9) * withdrawal.amount_gwei * (
         # NO bond part
         (bond / _FULL_MINIPOOL_BOND)
         # User bond part - commission
