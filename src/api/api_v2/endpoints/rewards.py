@@ -473,7 +473,7 @@ async def rewards(
                                 status_code=500,
                                 detail=f"Full withdrawal for {validator_index} with <32 ETH leads to negative income"
                             )
-                        amount_withdrawn_this_day_wei += w.amount_gwei % (32 * Decimal(1e9))
+                        amount_withdrawn_this_day_wei += (w.amount_gwei % (32 * Decimal(1e9))) * Decimal(1e9)
                     else:
                         amount_withdrawn_this_day_wei += w.amount_gwei * Decimal(1e9)
             amount_earned_wei += amount_withdrawn_this_day_wei
