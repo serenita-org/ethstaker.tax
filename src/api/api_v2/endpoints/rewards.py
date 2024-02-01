@@ -339,7 +339,7 @@ async def rewards(
                 date = BeaconNode.datetime_for_slot(slot=br.slot, timezone=pytz.UTC).date()
 
                 exec_layer_rewards_node_operator_for_date[date] += await get_rocket_pool_reward_share_proposal_fee_distributor(
-                    node_address=minipool_data.node_address,
+                    node_address=minipool.node_address,
                     fee_distributor=rocket_pool_fee_distributors[validator_index],
                     slot=br.slot,
                     beacon_node=beacon_node,
@@ -347,7 +347,7 @@ async def rewards(
                 )
             else:
                 message = f"Block reward for slot {br.slot} "\
-                          f"proposed by RP minipool ({minipool_data.minipool_address} / {validator_index})"\
+                          f"proposed by RP minipool ({minipool.minipool_address} / {validator_index})"\
                           f" did not go to smoothing pool ({SMOOTHING_POOL_ADDRESS}) "\
                           f"or fee distributor ({rocket_pool_fee_distributors[validator_index]}) "\
                           f"but {reward_recipient}!"
