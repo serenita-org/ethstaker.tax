@@ -22,8 +22,67 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reductions: list[RocketPoolBondReduction], initial_bond: Decimal, initial_fee: Decimal) -> RewardForDate:
+def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee):
     _FULL_MINIPOOL_BOND = 32 * Decimal(1e18)
+
+    if withdrawal.amount > 8 * Decimal(1e18):
+        # Consider this a full withdrawal
+        # TODO
+        # We need to take into account "penalties",
+        # see _distributeBalance
+
+        # uint256 nodeAmount = 0;
+        #         uint256 userCapital = getUserDepositBalance();
+        #         // Check if node operator was slashed
+        #         if (_balance < userCapital) {
+        #             // Only slash on first call to distribute
+        #             if (withdrawalBlock == 0) {
+        #                 // Record shortfall for slashing
+        #                 nodeSlashBalance = userCapital.sub(_balance);
+        #             }
+
+        # First check - if the withdrawal amount is less than the "user" part
+        # the node operator gets nothing (likely due to being slashed)
+        # -> they will actually lose RPL from their node's RPL collateral
+        # -> that will not be part of the output, not supported for now
+        # TODO
+
+        # nodeAmount = _calculateNodeShare(_balance);
+        #     function _calculateNodeShare(uint256 _balance) internal view returns (uint256) {
+        #         uint256 userCapital = getUserDepositBalance();
+        #         uint256 nodeCapital = nodeDepositBalance;
+        #         uint256 nodeShare = 0;
+        #         // Calculate the total capital (node + user)
+        #         uint256 capital = userCapital.add(nodeCapital);
+        #         if (_balance > capital) {
+        #             // Total rewards to share
+        #             uint256 rewards = _balance.sub(capital);
+        #             nodeShare = nodeCapital.add(calculateNodeRewards(nodeCapital, userCapital, rewards));
+        #         } else if (_balance > userCapital) {
+        #             nodeShare = _balance.sub(userCapital);
+        #         }
+        #         // Check if node has an ETH penalty
+        #         uint256 penaltyRate = RocketMinipoolPenaltyInterface(rocketMinipoolPenalty).getPenaltyRate(address(this));
+        #         if (penaltyRate > 0) {
+        #             uint256 penaltyAmount = nodeShare.mul(penaltyRate).div(calcBase);
+        #             if (penaltyAmount > nodeShare) {
+        #                 penaltyAmount = nodeShare;
+        #             }
+        #             nodeShare = nodeShare.sub(penaltyAmount);
+        #         }
+        #         return nodeShare;
+
+        pass
+
+    return Decimal(1e9) * withdrawal.amount * (
+        # NO bond part
+        (bond / _FULL_MINIPOOL_BOND)
+        # User bond part - commission
+        + ((_FULL_MINIPOOL_BOND - bond) / _FULL_MINIPOOL_BOND) * (fee / Decimal(1e18))
+    )
+
+
+def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reductions: list[RocketPoolBondReduction], initial_bond: Decimal, initial_fee: Decimal) -> RewardForDate:
     # Figure out correct bond & fee for this withdrawal
     withdrawal_dt = BeaconNode.datetime_for_slot(
         slot=withdrawal.slot,
@@ -37,13 +96,10 @@ def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reducti
     for bond_reduction in sorted(bond_reductions,
                                  key=lambda x: x.timestamp, reverse=True):
         if withdrawal_dt > bond_reduction.timestamp:
-            amount_no = Decimal(1e9) * withdrawal.amount_gwei * (
-                # NO bond part
-                (bond_reduction.new_bond_amount / _FULL_MINIPOOL_BOND)
-                # User bond part - commission
-                + (
-                    (_FULL_MINIPOOL_BOND - bond_reduction.new_bond_amount) / _FULL_MINIPOOL_BOND
-                ) * (bond_reduction.new_fee / Decimal(1e18))
+            amount_no = _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
+                withdrawal=withdrawal,
+                bond=bond_reduction.new_bond_amount,
+                fee=bond_reduction.new_fee,
             )
 
             return RewardForDate(
@@ -53,13 +109,10 @@ def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reducti
 
     # The withdrawal occurred before any bond reductions
     # => apply minipool's initial bond & fee
-    amount_no = Decimal(1e9) * withdrawal.amount_gwei * (
-        # NO bond part
-        (initial_bond / _FULL_MINIPOOL_BOND)
-        # User bond part - commission
-        + (
-            (_FULL_MINIPOOL_BOND - initial_bond) / _FULL_MINIPOOL_BOND
-        ) * (initial_fee / Decimal(1e18))
+    amount_no = _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
+        withdrawal=withdrawal,
+        bond=initial_bond,
+        fee=initial_fee
     )
 
     return RewardForDate(
