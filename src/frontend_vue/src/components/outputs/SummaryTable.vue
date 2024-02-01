@@ -40,13 +40,27 @@
       <tr v-if="useRocketPoolMode">
         <th scope="row">
           Smoothing Pool Income
+          <i
+              v-if="useRocketPoolMode"
+              class="bi-question-square"
+              v-b-tooltip
+              title="This is income at the Rocket Pool node level, spread across all node minipools"
+          />
         </th>
         <td>{{ formatZero(totalSmoothingPoolIncome[0], 6) }}</td>
         <td>0</td>
         <td>{{ formatZero(totalSmoothingPoolIncome[1], 3) }}</td>
       </tr>
       <tr v-if="useRocketPoolMode">
-        <th scope="row">RPL Income</th>
+        <th scope="row">
+          RPL Income
+          <i
+              v-if="useRocketPoolMode"
+              class="bi-question-square"
+              v-b-tooltip
+              title="This is income at the Rocket Pool node level, spread across all node minipools"
+          />
+        </th>
         <td>0</td>
         <td>{{ formatZero(totalRplIncome[0], 6) }}</td>
         <td>{{ formatZero(totalRplIncome[1], 3) }}</td>
