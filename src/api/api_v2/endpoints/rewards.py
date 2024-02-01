@@ -309,20 +309,21 @@ async def rewards(
         rocket_pool_data = RocketPoolDataProvider(execution_node=ExecutionNode())
 
     validator_rewards_list = []
-    for validator_index in sorted(validator_indexes):
+    withdrawals_node_operator = defaultdict(list)
+    for validator_index in validator_indexes:
         minipool = rocket_pool_minipools[validator_index]
 
-        withdrawals_node_operator = []
         for withdrawal in [w for w in all_withdrawals if
                            w.validator_index == validator_index]:
-            withdrawals_node_operator.append(
+            withdrawals_node_operator[validator_index].append(
                 await get_rocket_pool_reward_share_withdrawal(
                     withdrawal=withdrawal,
                     minipool=minipool
                 )
             )
 
-    for validator_index in sorted(validator_indexes):
+    el_rewards_node_operator = defaultdict(list)
+    for validator_index in validator_indexes:
         minipool = rocket_pool_minipools[validator_index]
 
         # Sum in case multiple proposals happen on the same day
@@ -360,17 +361,17 @@ async def rewards(
                     detail=message
                 )
 
-        execution_layer_rewards_node_operator = []
         for date, reward_amount in exec_layer_rewards_node_operator_for_date.items():
-            execution_layer_rewards_node_operator.append(RewardForDate(
+            el_rewards_node_operator[validator_index].append(RewardForDate(
                 date=date,
                 amount_wei=reward_amount
             ))
 
+    for validator_index in sorted(validator_indexes):
         validator_rewards = RocketPoolValidatorRewards.construct(
             validator_index=validator_index,
-            execution_layer_rewards=execution_layer_rewards_node_operator,
-            withdrawals=withdrawals_node_operator,
+            execution_layer_rewards=el_rewards_node_operator[validator_index],
+            withdrawals=withdrawals_node_operator[validator_index],
         )
         validator_rewards_list.append(validator_rewards)
 
