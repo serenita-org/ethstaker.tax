@@ -2,6 +2,8 @@ import datetime
 import logging
 from collections import defaultdict
 from decimal import Decimal
+from typing import Type
+
 from math import floor
 
 import pytz
@@ -12,7 +14,7 @@ from fastapi_limiter.depends import RateLimiter
 
 from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate, \
     RocketPoolValidatorRewards, RewardsResponseRocketPool, RewardsResponseFull, RocketPoolNodeRewardForDate
-from db.tables import Withdrawal, RocketPoolBondReduction
+from db.tables import Withdrawal, RocketPoolBondReduction, RocketPoolMinipool
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
 from providers.execution_node import ExecutionNode
@@ -22,11 +24,10 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee):
+async def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee, minipool_address: str):
     _FULL_MINIPOOL_BOND = 32 * Decimal(1e18)
 
     if withdrawal.amount_gwei > 8 * Decimal(1e9):
-        raise HTTPException(status_code=500, detail="Full withdrawals not handled for RP yet!")
         # Consider this a full withdrawal
         # TODO
         # We need to take into account "penalties",
@@ -42,11 +43,29 @@ def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee)
         #                 nodeSlashBalance = userCapital.sub(_balance);
         #             }
 
+        rocket_pool_data = RocketPoolDataProvider(execution_node=ExecutionNode())
+        block_number = (
+            await BeaconNode().get_slot_proposer_data(withdrawal.slot)).block_number
+        user_capital = await rocket_pool_data.get_minipool_user_deposit_balance(
+            minipool_address=minipool_address,
+            block_number=block_number
+        )
+        node_capital = await rocket_pool_data.get_minipool_node_deposit_balance(
+            minipool_address=minipool_address,
+            block_number=block_number
+        )
+        capital = user_capital + node_capital
+
+        # Work with wei from here
+        withdrawal_amount_wei = withdrawal.amount_gwei * Decimal(1e9)
+
         # First check - if the withdrawal amount is less than the "user" part
         # the node operator gets nothing (likely due to being slashed)
         # -> they will actually lose RPL from their node's RPL collateral
         # -> that will not be part of the output, not supported for now
-        # TODO
+        if withdrawal_amount_wei < user_capital:
+            # TODO not supported yet
+            raise HTTPException(status_code=500, detail="Full withdrawal, balance < user_capital!")
 
         # nodeAmount = _calculateNodeShare(_balance);
         #     function _calculateNodeShare(uint256 _balance) internal view returns (uint256) {
@@ -73,7 +92,19 @@ def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee)
         #         }
         #         return nodeShare;
 
-        pass
+        if withdrawal_amount_wei > capital:
+            # Total rewards to share
+            total_reward_wei = withdrawal_amount_wei - capital
+            # --> calculate node's share by current bond, fee... per usual
+            return total_reward_wei * (
+                # NO bond part
+                (bond / _FULL_MINIPOOL_BOND)
+                # User bond part - commission
+                + ((_FULL_MINIPOOL_BOND - bond) / _FULL_MINIPOOL_BOND) * (fee / Decimal(1e18))
+            )
+        # TODO rest of branches?
+        # TODO handle ETH penalties!
+        raise HTTPException(status_code=500, detail="Full withdrawal and value less than minipool capital - not supported yet")
 
     return Decimal(1e9) * withdrawal.amount_gwei * (
         # NO bond part
@@ -83,7 +114,7 @@ def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee)
     )
 
 
-def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reductions: list[RocketPoolBondReduction], initial_bond: Decimal, initial_fee: Decimal) -> RewardForDate:
+async def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, minipool: 'Type[RocketPoolMinipool]') -> RewardForDate:
     # Figure out correct bond & fee for this withdrawal
     withdrawal_dt = BeaconNode.datetime_for_slot(
         slot=withdrawal.slot,
@@ -94,13 +125,14 @@ def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reducti
     # If the withdrawal occurred after a given bond reduction, its value
     # will be split among the node and user based on the bond/fee at
     # that time
-    for bond_reduction in sorted(bond_reductions,
+    for bond_reduction in sorted(minipool.bond_reductions,
                                  key=lambda x: x.timestamp, reverse=True):
         if withdrawal_dt > bond_reduction.timestamp:
-            amount_no = _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
+            amount_no = await _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
                 withdrawal=withdrawal,
                 bond=bond_reduction.new_bond_amount,
                 fee=bond_reduction.new_fee,
+                minipool_address=minipool.minipool_address,
             )
 
             return RewardForDate(
@@ -110,10 +142,11 @@ def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, bond_reducti
 
     # The withdrawal occurred before any bond reductions
     # => apply minipool's initial bond & fee
-    amount_no = _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
+    amount_no = await _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
         withdrawal=withdrawal,
-        bond=initial_bond,
-        fee=initial_fee
+        bond=minipool.initial_bond_value,
+        fee=minipool.initial_fee_value,
+        minipool_address=minipool.minipool_address,
     )
 
     return RewardForDate(
@@ -277,17 +310,15 @@ async def rewards(
 
     validator_rewards_list = []
     for validator_index in sorted(validator_indexes):
-        minipool_data = rocket_pool_minipools[validator_index]
+        minipool = rocket_pool_minipools[validator_index]
 
         withdrawals_node_operator = []
         for withdrawal in [w for w in all_withdrawals if
                            w.validator_index == validator_index]:
             withdrawals_node_operator.append(
-                get_rocket_pool_reward_share_withdrawal(
+                await get_rocket_pool_reward_share_withdrawal(
                     withdrawal=withdrawal,
-                    bond_reductions=minipool_data.bond_reductions,
-                    initial_bond=minipool_data.initial_bond_value,
-                    initial_fee=minipool_data.initial_fee_value,
+                    minipool=minipool
                 )
             )
 

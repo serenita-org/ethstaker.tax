@@ -8,15 +8,44 @@ from fastapi.testclient import TestClient
 from api.api_v2.endpoints.rewards import get_rocket_pool_reward_share_withdrawal, get_rocket_pool_reward_share_proposal_fee_distributor
 
 from api.app import app
-from db.tables import Withdrawal, RocketPoolBondReduction
+from db.tables import Withdrawal, RocketPoolBondReduction, RocketPoolMinipool
 from providers.beacon_node import BeaconNode
 from providers.execution_node import ExecutionNode
 from providers.rocket_pool import RocketPoolDataProvider
 
 
-def test_get_rocket_pool_reward_share_withdrawal():
+@pytest.mark.parametrize(
+    ["withdrawal_amount_gwei", "slot", "expected_node_share"],
+    [
+        pytest.param(
+            Decimal(10_000_000),
+            100,
+            5_900_000_000_000_000,
+            id="Partial withdrawal before bond reduction, initial fee & bond should be used"
+        ),
+        pytest.param(
+            32 * Decimal(1e9) + Decimal(50_000_000),
+            5_074_010,
+            29_500_000_000_000_000,
+            id="Full withdrawal before bond reduction, initial fee & bond should be used"
+        ),
+        pytest.param(
+            Decimal(10_000_000),
+            BeaconNode.slot_for_datetime(dt=datetime.datetime(year=2023, month=5, day=1, tzinfo=pytz.UTC)) + 1_000,
+            3_550_000_000_000_000,
+            id="Partial withdrawal after 1st bond reduction, LEB8"
+        ),
+        pytest.param(
+            Decimal(10_000_000),
+            BeaconNode.slot_for_datetime(dt=datetime.datetime(year=2025, month=1, day=1, tzinfo=pytz.UTC)) + 1_000,
+            2300000000000000,
+            id="Partial withdrawal after 2nd bond reduction, LEB4"
+        ),
+    ]
+)
+@pytest.mark.asyncio
+async def test_get_rocket_pool_reward_share_withdrawal(withdrawal_amount_gwei, slot, expected_node_share):
     # Set up - a validator with 2 bond reductions
-    full_withdrawal_amount = Decimal(10_000_000)
     initial_bond = Decimal(16_000_000_000_000_000_000)
     initial_fee = Decimal(180_000_000_000_000_000)
     bond_reductions = [
@@ -34,44 +63,22 @@ def test_get_rocket_pool_reward_share_withdrawal():
         ),
     ]
 
-    # Withdrawal before any bond reduction -> initial bond & fee should be used to calculate NO share
-    share = get_rocket_pool_reward_share_withdrawal(
-        withdrawal=Withdrawal(
-            slot=100,
-            validator_index=123,
-            amount_gwei=full_withdrawal_amount,
-        ),
+    minipool = RocketPoolMinipool(
+        minipool_address="0xb8d17ec656d5353d04d7f876e0ff6cc10f9d3b65",
         bond_reductions=bond_reductions,
-        initial_bond=initial_bond,
-        initial_fee=initial_fee,
+        initial_bond_value=initial_bond,
+        initial_fee_value=initial_fee,
     )
-    assert share.amount_wei == 5_900_000_000_000_000
 
-    # Withdrawal after 1st bond reduction
-    share = get_rocket_pool_reward_share_withdrawal(
+    share = await get_rocket_pool_reward_share_withdrawal(
         withdrawal=Withdrawal(
-            slot=BeaconNode.slot_for_datetime(dt=bond_reductions[0].timestamp) + 1_000,
+            slot=slot,
             validator_index=123,
-            amount_gwei=full_withdrawal_amount,
+            amount_gwei=withdrawal_amount_gwei,
         ),
-        bond_reductions=bond_reductions,
-        initial_bond=initial_bond,
-        initial_fee=initial_fee,
+        minipool=minipool
     )
-    assert share.amount_wei == 3_550_000_000_000_000
-
-    # Withdrawal after 2nd bond reduction
-    share = get_rocket_pool_reward_share_withdrawal(
-        withdrawal=Withdrawal(
-            slot=BeaconNode.slot_for_datetime(dt=bond_reductions[1].timestamp) + 1_000,
-            validator_index=123,
-            amount_gwei=full_withdrawal_amount,
-        ),
-        bond_reductions=bond_reductions,
-        initial_bond=initial_bond,
-        initial_fee=initial_fee,
-    )
-    assert share.amount_wei == 2_300_000_000_000_000
+    assert share.amount_wei == expected_node_share
 
 
 @pytest.mark.asyncio

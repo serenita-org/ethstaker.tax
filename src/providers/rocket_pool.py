@@ -165,7 +165,7 @@ class RocketPoolDataProvider:
     async def get_node_fee_distributor_share(
         self,
         node_fee_distributor_address: str,
-        block_number: int = None
+        block_number: int
     ) -> Decimal:
         result = await self.execution_node.eth_call(
             params=[
@@ -174,7 +174,43 @@ class RocketPoolDataProvider:
                     "to": node_fee_distributor_address,
                     "data": "0x372d054b",  # getNodeShare()
                 },
-                hex(block_number) if block_number else "latest",
+                hex(block_number)
+            ],
+            use_infura=True,
+        )
+        return Decimal(int(result, base=16))
+
+    async def get_minipool_node_deposit_balance(
+        self,
+        minipool_address: str,
+        block_number: int = None
+    ) -> Decimal:
+        result = await self.execution_node.eth_call(
+            params=[
+                {
+                    "from": "0x0000000000000000000000000000000000000000",
+                    "to": minipool_address,
+                    "data": "0x74ca6bf2",  # getNodeDepositBalance()
+                },
+                hex(block_number),
+            ],
+            use_infura=True,
+        )
+        return Decimal(int(result, base=16))
+
+    async def get_minipool_user_deposit_balance(
+        self,
+        minipool_address: str,
+        block_number: int = None
+    ) -> Decimal:
+        result = await self.execution_node.eth_call(
+            params=[
+                {
+                    "from": "0x0000000000000000000000000000000000000000",
+                    "to": minipool_address,
+                    "data": "0xe7e04aba",  # getUserDepositBalance()
+                },
+                hex(block_number),
             ],
             use_infura=True,
         )
