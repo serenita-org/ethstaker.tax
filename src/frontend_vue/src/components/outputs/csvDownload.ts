@@ -126,6 +126,10 @@ export function downloadAsCsv(
                 }
             }
 
+            if ((consensusTotal + executionTotal + smoothingPoolTotal + rplIncomeTotal) === BigInt(0)) {
+                continue
+            }
+
             const columnValues = [
                 `${date}`,
                 `${getPriceForDate(priceDataEth.prices, date)}`,
