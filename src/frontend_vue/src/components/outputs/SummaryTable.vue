@@ -122,7 +122,7 @@ const props = defineProps({
 function formatZero(number: number, digits: number) {
   if (number === 0) {
     return "0"
-  } else { return Number(number.toFixed(digits)).toLocaleString(navigator.language) }
+  } else { return Number(number.toFixed(digits)).toLocaleString(navigator.language, {minimumFractionDigits: digits}) }
 }
 
 function aggregateRewardsData(key: keyof ValidatorRewardsBase): [number, number] {
