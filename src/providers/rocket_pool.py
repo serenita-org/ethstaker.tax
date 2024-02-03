@@ -313,7 +313,8 @@ class RocketPoolDataProvider:
                 address=minipool_manager["address"],
                 block_number_range=(0, block_number),
                 topics=[
-                    "0x08b4b91bafaf992145c5dd7e098dfcdb32f879714c154c651c2758a44c7aeae4"],
+                    "0x08b4b91bafaf992145c5dd7e098dfcdb32f879714c154c651c2758a44c7aeae4"  # MinipoolCreated
+                ],
                 use_infura=True,
             )
 
