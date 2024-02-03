@@ -216,7 +216,7 @@ class ExecutionNode:
                 try:
                     # If the response contains a suggested higher end of the block range
                     # use it
-                    to_block_limited = resp_data["error"]["data"]["to"]
+                    to_block_limited = int(resp_data["error"]["data"]["to"], 16)
                 except KeyError:
                     # Otherwise split request into two halves
                     to_block_limited = to_block - ((to_block - from_block) // 2)
