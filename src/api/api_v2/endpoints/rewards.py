@@ -214,7 +214,8 @@ async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tup
     datetime.datetime,
     datetime.datetime,
     int,
-    int
+    int,
+    list[str],
 ]:
     # Handle inputs
     if rewards_request.end_date <= rewards_request.start_date:
@@ -250,7 +251,7 @@ async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tup
     logger.info(f"Input data - validator indexes: {validator_indexes}")
     logger.info(f"Input data - date range: {start_datetime} ({min_slot}) - {end_datetime} ({max_slot})")
 
-    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot
+    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot, rewards_request.expected_withdrawal_addresses
 
 
 @router.post(  # POST method to support bigger requests
@@ -265,7 +266,7 @@ async def rewards(
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
 ) -> RewardsResponseRocketPool:
     (validator_indexes, start_datetime, end_datetime,
-     min_slot, max_slot) = await _preprocess_request_input_data(rewards_request)
+     min_slot, max_slot, _) = await _preprocess_request_input_data(rewards_request)
 
     # Get all withdrawals
     logger.debug(f"Getting withdrawals")
@@ -400,7 +401,7 @@ async def rewards(
     cache: Redis = Depends(depends_redis),
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
 ) -> RewardsResponseFull:
-    validator_indexes, start_datetime, end_datetime, min_slot, max_slot = await _preprocess_request_input_data(rewards_request)
+    validator_indexes, start_datetime, end_datetime, min_slot, max_slot, expected_withdrawal_addresses = await _preprocess_request_input_data(rewards_request)
 
     # Let's get the rewards
     first_slot_in_requested_period = min_slot
@@ -475,12 +476,23 @@ async def rewards(
     for br in all_block_rewards:
         if not br.reward_processed_ok:
             msg = (f"Execution layer rewards not available"
-                   f" - missing data for proposer {br.proposer_index} - {br.slot}")
+                   f" - missing data for proposer {br.proposer_index}, slot {br.slot}")
             logger.error(msg)
             raise HTTPException(
                 status_code=500,
                 detail=msg
             )
+        if len(expected_withdrawal_addresses) > 0:
+            # Check block reward recipient against expected withdrawal addresses
+            # to double check any MEV was processed correctly
+            if br.mev and br.mev_reward_recipient not in expected_withdrawal_addresses:
+                msg = f"MEV recipient {br.mev_reward_recipient} not in expected withdrawal addresses {expected_withdrawal_addresses} for {br.slot}"
+                logger.error(msg)
+                raise HTTPException(status_code=400, detail=msg)
+            if not br.mev and br.fee_recipient not in expected_withdrawal_addresses:
+                msg = f"Block fee recipient {br.mev_reward_recipient} not in expected withdrawal addresses {expected_withdrawal_addresses} for {br.slot}"
+                logger.error(msg)
+                raise HTTPException(status_code=400, detail=msg)
 
     total_validators = len(validator_indexes)
     for idx, validator_index in enumerate(validator_indexes):

@@ -7,6 +7,7 @@ class RewardsRequest(BaseModel):
     validator_indexes: list[int]
     start_date: datetime.date
     end_date: datetime.date
+    expected_withdrawal_addresses: list[str] = []
 
 
 class PriceForDate(BaseModel):
