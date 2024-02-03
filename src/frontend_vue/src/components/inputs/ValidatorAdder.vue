@@ -201,8 +201,6 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
       </BTabs>
     </BCard>
   </div>
-  <div v-if="validatorIndexes.size > 0" class="d-flex flex-row align-items-center">
-  </div>
 </template>
 
 <style scoped>

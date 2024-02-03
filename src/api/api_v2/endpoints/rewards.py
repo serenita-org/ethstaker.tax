@@ -251,7 +251,7 @@ async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tup
     logger.info(f"Input data - validator indexes: {validator_indexes}")
     logger.info(f"Input data - date range: {start_datetime} ({min_slot}) - {end_datetime} ({max_slot})")
 
-    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot, rewards_request.expected_withdrawal_addresses
+    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot, rewards_request.expected_fee_recipient_addresses
 
 
 @router.post(  # POST method to support bigger requests
@@ -401,7 +401,7 @@ async def rewards(
     cache: Redis = Depends(depends_redis),
     rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
 ) -> RewardsResponseFull:
-    validator_indexes, start_datetime, end_datetime, min_slot, max_slot, expected_withdrawal_addresses = await _preprocess_request_input_data(rewards_request)
+    validator_indexes, start_datetime, end_datetime, min_slot, max_slot, expected_fee_recipient_addresses = await _preprocess_request_input_data(rewards_request)
 
     # Let's get the rewards
     first_slot_in_requested_period = min_slot
@@ -482,15 +482,15 @@ async def rewards(
                 status_code=500,
                 detail=msg
             )
-        if len(expected_withdrawal_addresses) > 0:
-            # Check block reward recipient against expected withdrawal addresses
+        if len(expected_fee_recipient_addresses) > 0:
+            # Check block reward recipient against expected fee recipient addresses
             # to double check any MEV was processed correctly
-            if br.mev and br.mev_reward_recipient not in expected_withdrawal_addresses:
-                msg = f"MEV recipient {br.mev_reward_recipient} not in expected withdrawal addresses {expected_withdrawal_addresses} for {br.slot}"
+            if br.mev and br.mev_reward_recipient not in expected_fee_recipient_addresses:
+                msg = f"Unexpected MEV recipient {br.mev_reward_recipient} for {br.slot} (expected: {expected_fee_recipient_addresses})"
                 logger.error(msg)
                 raise HTTPException(status_code=400, detail=msg)
-            if not br.mev and br.fee_recipient not in expected_withdrawal_addresses:
-                msg = f"Block fee recipient {br.mev_reward_recipient} not in expected withdrawal addresses {expected_withdrawal_addresses} for {br.slot}"
+            if not br.mev and br.fee_recipient not in expected_fee_recipient_addresses:
+                msg = f"Unexpected fee recipient {br.mev_reward_recipient} for {br.slot} (expected: {expected_fee_recipient_addresses})"
                 logger.error(msg)
                 raise HTTPException(status_code=400, detail=msg)
 
