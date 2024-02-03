@@ -15,6 +15,7 @@ declare module 'vue' {
     BTabs: typeof import('bootstrap-vue-next')['BTabs']
     CurrencyPicker: typeof import('./src/components/inputs/CurrencyPicker.vue')['default']
     DateRangePicker: typeof import('./src/components/inputs/DateRangePicker.vue')['default']
+    FeeRecipientAddressAdder: typeof import('./src/components/inputs/FeeRecipientAddressAdder.vue')['default']
     IncomeChart: typeof import('./src/components/outputs/IncomeChart.vue')['default']
     SummaryTable: typeof import('./src/components/outputs/SummaryTable.vue')['default']
     ValidatorAdder: typeof import('./src/components/inputs/ValidatorAdder.vue')['default']

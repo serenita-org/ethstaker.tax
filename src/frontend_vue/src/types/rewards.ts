@@ -2,6 +2,7 @@ export interface RewardsRequest {
     validator_indexes: number[]
     start_date: string
     end_date: string
+    expected_fee_recipient_addresses: string[]
 }
 
 export interface RewardForDate {

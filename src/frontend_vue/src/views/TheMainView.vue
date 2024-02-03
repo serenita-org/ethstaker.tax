@@ -25,6 +25,7 @@ let validatorIndexes: Ref<Set<number>> = ref(new Set([]));
 let selectedCurrency = ref();
 let startDateString = ref();
 let endDateString = ref();
+let expectedFeeRecipientAddresses: Ref<Set<string>> = ref(new Set([]));
 
 let rocketPoolNodeRewards: Ref<(RocketPoolNodeRewardForDate)[]> = ref([]);
 let validatorRewardsData: Ref<(ValidatorRewards | RocketPoolValidatorRewards)[]> = ref([]);
@@ -89,7 +90,7 @@ async function getPriceData() {
       errorMessage = `Unknown error occurred - ${err}`;
     }
     alert(errorMessage);
-    throw err;
+    console.error(errorMessage);
   } finally {
     priceDataLoading.value = false;
   }
@@ -98,12 +99,16 @@ async function getPriceData() {
 async function updateValidatorIndexes(newIndexes: Set<number>) {
   validatorIndexes.value = new Set([...newIndexes]);
 }
+async function updateFeeRecipientAddresses(newAddresses: Set<string>) {
+  expectedFeeRecipientAddresses.value = new Set([...newAddresses]);
+}
 
-async function getRewardsFull() {
+async function getRewards() {
   const data: RewardsRequest = {
     validator_indexes: Array.from(validatorIndexes.value),
     start_date: startDateString.value,
     end_date: endDateString.value,
+    expected_fee_recipient_addresses: Array.from(expectedFeeRecipientAddresses.value),
   }
 
   rocketPoolNodeRewards.value = [];
@@ -149,7 +154,7 @@ async function getRewardsFull() {
       errorMessage = `Unknown error occurred - ${err}`;
     }
     alert(errorMessage);
-    throw err;
+    console.error(errorMessage);
   } finally {
     rewardsLoading.value = false;
   }
@@ -187,6 +192,9 @@ const showOutputs = computed<boolean>(() => {
       </BFormCheckbox>
     </div>
     <ValidatorAdder :use-rocket-pool-mode="useRocketPoolMode" @validator-indexes-changed="updateValidatorIndexes"></ValidatorAdder>
+    <div v-if="validatorIndexes.size > 0 && !useRocketPoolMode" class="align-items-center my-3">
+      <FeeRecipientAddressAdder @fee-recipient-addresses-changed="updateFeeRecipientAddresses" />
+    </div>
   </div>
   <div class="container my-3" v-show="validatorIndexes.size > 0">
     <div class="row">
@@ -203,7 +211,7 @@ const showOutputs = computed<boolean>(() => {
   <div v-show="validatorIndexes.size > 0" class="container mt-3 text-center">
     <BButton
         variant="primary"
-        @click.prevent="getRewardsFull"
+        @click.prevent="getRewards"
         :disabled="validatorIndexes.size == 0 || rewardsLoading || priceDataLoading"
         class="mx-1"
     >
