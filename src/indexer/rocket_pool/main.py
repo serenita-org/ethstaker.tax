@@ -74,7 +74,8 @@ async def run():
         for node_address, minipool_list in (await rocket_pool_data.get_minipools(
             known_node_addresses=known_node_addresses,
             known_minipool_addresses=indexed_mp_addresses,
-            block_number=current_exec_block_number
+            from_block_number=LAST_BLOCK_NUMBER_INDEXED,
+            to_block_number=current_exec_block_number,
         )).items():
             for minipool_address, pubkey, initial_bond_value, initial_fee_value in minipool_list:
                 indexed_mp_addresses.append(minipool_address)

@@ -303,7 +303,8 @@ class RocketPoolDataProvider:
         self,
         known_node_addresses: list[str],
         known_minipool_addresses: list[str],
-        block_number: int
+        from_block_number: int,
+        to_block_number: int,
     ) -> dict[str, list[tuple[str, str, int, int]]]:
         minipools_per_node = defaultdict(list)
 
@@ -311,7 +312,7 @@ class RocketPoolDataProvider:
             # Get all emitted "MinipoolCreated" events
             events = await self.execution_node.get_logs(
                 address=minipool_manager["address"],
-                block_number_range=(0, block_number),
+                block_number_range=(from_block_number, to_block_number),
                 topics=[
                     "0x08b4b91bafaf992145c5dd7e098dfcdb32f879714c154c651c2758a44c7aeae4"  # MinipoolCreated
                 ],
