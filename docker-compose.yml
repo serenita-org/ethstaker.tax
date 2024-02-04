@@ -1,15 +1,15 @@
 version: "3.8"
 
 services:
-  frontend:
+  frontend_legacy:
     image: eth2-tax:latest
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
     command: [
-        "uvicorn", "src.frontend.app:app",
-        "--host", "frontend",
+        "uvicorn", "src.frontend_legacy.app:app",
+        "--host", "frontend_legacy",
         "--port", "8000",
         "--log-config", "etc/logging.yml",
     ]

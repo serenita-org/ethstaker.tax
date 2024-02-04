@@ -14,9 +14,9 @@ scrape_configs:
     static_configs:
       - targets: ['caddy:2019']
 
-  - job_name: frontend
+  - job_name: frontend_legacy
     static_configs:
-      - targets: ['frontend:8000']
+      - targets: ['frontend_legacy:8000']
 
   - job_name: api
     static_configs:

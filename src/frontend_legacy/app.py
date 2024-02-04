@@ -17,9 +17,9 @@ app = FastAPI(openapi_url=None, docs_url=None)
 app.add_middleware(PrometheusMiddleware)
 app.add_route("/metrics", handle_metrics)
 
-app.mount("/static", StaticFiles(directory="src/frontend/static"), name="static")
-app.mount("/dist", StaticFiles(directory="src/frontend/dist"), name="dist")
-templates = Jinja2Templates(directory="src/frontend/templates")
+app.mount("/static", StaticFiles(directory="src/frontend_legacy/static"), name="static")
+app.mount("/dist", StaticFiles(directory="src/frontend_legacy/dist"), name="dist")
+templates = Jinja2Templates(directory="src/frontend_legacy/templates")
 
 
 @app.get("/", response_class=HTMLResponse)

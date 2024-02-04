@@ -9,7 +9,7 @@ Before starting up all services, the necessary database structure needs to be cr
 Simply run `docker-compose up`. All necessary services will be started, which are:
 
 - caddy - reverse proxy - exposed on ports 443, 80
-- frontend - FastAPI
+- frontend - Vue3
 - API - FastAPI
 - a Lighthouse beacon node
 - balance indexer
