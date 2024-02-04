@@ -157,7 +157,8 @@ services:
         "--checkpoint-sync-url=https://mainnet.checkpoint.sigp.io",
         "--reconstruct-historic-states",
         "--slots-per-restore-point=2048",
-        "--unsafe-and-dangerous-mode",
+        "--disable-backfill-rate-limiting",
+        "--unsafe-and-dangerous-mode", # because of the experimental version
     ]
     stop_grace_period: 15m
     ports:
