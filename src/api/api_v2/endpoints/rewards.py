@@ -92,7 +92,7 @@ async def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond
         #         }
         #         return nodeShare;
 
-        if withdrawal_amount_wei > capital:
+        if withdrawal_amount_wei >= capital:
             # Total rewards to share
             total_reward_wei = withdrawal_amount_wei - capital
             # --> calculate node's share by current bond, fee... per usual
