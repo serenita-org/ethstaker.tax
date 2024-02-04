@@ -251,7 +251,7 @@ async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tup
     logger.info(f"Input data - validator indexes: {validator_indexes}")
     logger.info(f"Input data - date range: {start_datetime} ({min_slot}) - {end_datetime} ({max_slot})")
 
-    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot, rewards_request.expected_fee_recipient_addresses
+    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot, [a.lower() for a in rewards_request.expected_fee_recipient_addresses]
 
 
 @router.post(  # POST method to support bigger requests
@@ -485,11 +485,11 @@ async def rewards(
         if len(expected_fee_recipient_addresses) > 0:
             # Check block reward recipient against expected fee recipient addresses
             # to double check any MEV was processed correctly
-            if br.mev and br.mev_reward_recipient not in expected_fee_recipient_addresses:
+            if br.mev and br.mev_reward_recipient.lower() not in expected_fee_recipient_addresses:
                 msg = f"Unexpected MEV recipient {br.mev_reward_recipient} for {br.slot} (expected: {expected_fee_recipient_addresses})"
                 logger.error(msg)
                 raise HTTPException(status_code=400, detail=msg)
-            if not br.mev and br.fee_recipient not in expected_fee_recipient_addresses:
+            if not br.mev and br.fee_recipient.lower() not in expected_fee_recipient_addresses:
                 msg = f"Unexpected fee recipient {br.mev_reward_recipient} for {br.slot} (expected: {expected_fee_recipient_addresses})"
                 logger.error(msg)
                 raise HTTPException(status_code=400, detail=msg)
