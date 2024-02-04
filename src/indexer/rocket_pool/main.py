@@ -61,7 +61,7 @@ async def run():
                     fee_distributor=fee_distributor,
                 )
             )
-            known_node_addresses.remove(node_address)
+            known_node_addresses.append(node_address)
         session.commit()
         ROCKET_POOL_NODES.set(len(rp_nodes))
 
