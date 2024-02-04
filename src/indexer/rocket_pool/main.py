@@ -63,7 +63,7 @@ async def run():
             )
             known_node_addresses.append(node_address)
         session.commit()
-        ROCKET_POOL_NODES.set(len(rp_nodes))
+        ROCKET_POOL_NODES.set(len(known_node_addresses))
 
         # Minipools
         # Skip indexing minipools we already have indexed
@@ -108,7 +108,7 @@ async def run():
                 )
             )
         session.commit()
-        ROCKET_POOL_BOND_REDUCTIONS.set(len(bond_reductions))
+        ROCKET_POOL_BOND_REDUCTIONS.set(session.query(RocketPoolBondReduction).count())
 
         # Rewards trees
         last_indexed_reward_period, = session.query(func.max(RocketPoolRewardPeriod.reward_period_index)).one_or_none()
