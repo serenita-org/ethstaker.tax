@@ -185,7 +185,7 @@ const showOutputs = computed<boolean>(() => {
     <h2>Add your validators</h2>
     <div class="align-items-center my-3">
       <BFormCheckbox v-model="useRocketPoolMode" switch size="md">
-        <img src="../assets/logo-rocket-pool.svg" alt="Logo Rocket Pool" height="30" :style="{
+        <img src="../assets/logo-rocket-pool.png" alt="Logo Rocket Pool" height="30" :style="{
           opacity: useRocketPoolMode ? 1 : 0.3
         }" class="mx-1" />
         <span class="mx-1">Rocket Pool Mode</span>
