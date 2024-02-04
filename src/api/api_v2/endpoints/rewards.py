@@ -104,7 +104,14 @@ async def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond
             )
         # TODO rest of branches?
         # TODO handle ETH penalties!
-        raise HTTPException(status_code=500, detail="Full withdrawal and value less than minipool capital - not supported yet")
+        msg = (f"Full withdrawal detected where withdrawal value ({withdrawal_amount_wei})"
+               f" is less than minipool capital ({capital}) for minipool {minipool_address}"
+               f" - unable to determine node operator share")
+        logger.error(msg)
+        raise HTTPException(
+            status_code=500,
+            detail=msg
+        )
 
     return Decimal(1e9) * withdrawal.amount_gwei * (
         # NO bond part
