@@ -7,8 +7,6 @@ import {
 } from "../../types/rewards.ts";
 import { gweiToEthMultiplier, WeiToGweiMultiplier } from "../../constants.ts";
 
-const SEPARATOR = ";";
-
 
 function createLinkAndDownload(csvContent: string): void {
     // Create a Blob with the CSV content
@@ -35,6 +33,7 @@ export function downloadAsCsv(
     priceDataEth: PricesResponse,
     priceDataRpl: PricesResponse,
     groupByDate: boolean,
+    delimiter: string,
 ): void {
     let columns = groupByDate ? [
         "Date",
@@ -57,7 +56,7 @@ export function downloadAsCsv(
         columns.push(...["Smoothing Pool Income [ETH]", "Rocket Pool Node Income [RPL]", `Price [${priceDataRpl.currency}/RPL]`])
     }
 
-    let csvContent = columns.join(SEPARATOR);
+    let csvContent = columns.join(delimiter);
     csvContent += "\n";
 
     const allDates = new Set<string>();
@@ -145,7 +144,7 @@ export function downloadAsCsv(
                 ])
             }
 
-            csvContent += columnValues.join(SEPARATOR);
+            csvContent += columnValues.join(delimiter);
             csvContent += "\n";
         } else {
             for (const rewards of validatorRewardsData) {
@@ -178,7 +177,7 @@ export function downloadAsCsv(
                 if (useRocketPoolMode) {
                     columnValues.push(...["", "", "", ""])
                 }
-                csvContent += columnValues.join(SEPARATOR);
+                csvContent += columnValues.join(delimiter);
                 csvContent += "\n";
             }
 
@@ -197,7 +196,7 @@ export function downloadAsCsv(
                         `${Number(reward.amount_rpl / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
                         `${getPriceForDate(priceDataRpl.prices, date)}`,
                     ]
-                    csvContent += columnValues.join(SEPARATOR);
+                    csvContent += columnValues.join(delimiter);
                     csvContent += "\n";
                 }
             }

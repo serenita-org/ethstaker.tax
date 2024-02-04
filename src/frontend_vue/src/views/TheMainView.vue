@@ -34,6 +34,7 @@ let rewardsLoading = ref(false);
 let useRocketPoolMode = ref(false);
 let useConsensusIncomeOnWithdrawal = ref(true);
 let csvDownloadGroupByDate = ref(false);
+let csvDelimiter = ref(";");
 
 let priceDataEth: Ref<PricesResponse | undefined> = ref();
 let priceDataRpl: Ref<PricesResponse | undefined> = ref();
@@ -294,6 +295,7 @@ const showOutputs = computed<boolean>(() => {
                 priceDataEth as PricesResponse,
                 priceDataRpl as PricesResponse,
                 csvDownloadGroupByDate,
+                csvDelimiter,
                 )"
             :disabled="validatorRewardsData.length == 0 || rewardsLoading || priceDataLoading"
             variant="secondary"
@@ -303,9 +305,20 @@ const showOutputs = computed<boolean>(() => {
               Download CSV for all validators
             </span>
           </BButton>
-          <BFormCheckbox v-model="csvDownloadGroupByDate" switch>
-            <span class="mx-1">Group By Date</span>
-          </BFormCheckbox>
+          <div>
+            <BFormCheckbox v-model="csvDownloadGroupByDate" switch>
+              <span class="mx-1">Group By Date</span>
+            </BFormCheckbox>
+            <div class="d-flex align-items-center my-2">
+              <span style="white-space: nowrap">CSV delimiter character</span>
+              <select v-model="csvDelimiter" class="form-select mx-3" id="csvDelimiterSelect">
+                <option>;</option>
+                <option>,</option>
+                <option value=" ">space character</option>
+                <option value="\t">tab character</option>
+              </select>
+            </div>
+          </div>
         </div>
     </div>
   </div>
