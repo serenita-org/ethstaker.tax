@@ -130,7 +130,7 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
               <BButton variant="primary" class="m-2" type="submit">Add</BButton>
               <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
                 <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
-                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size} validators]` }}</p>
               </div>
             </div>
           </form>
@@ -151,7 +151,7 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
               <BButton variant="primary" class="m-2" type="submit">Add</BButton>
               <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
                 <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
-                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size} validators]` }}</p>
               </div>
             </div>
           </form>
@@ -172,7 +172,7 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
               <BButton variant="primary" class="m-2" type="submit">Add</BButton>
               <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
                 <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
-                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size} validators]` }}</p>
               </div>
             </div>
           </form>
@@ -193,7 +193,7 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
               <BButton variant="primary" class="m-2" type="submit">Add</BButton>
               <div v-if="validatorIndexes.size > 0" class="d-flex align-items-center">
                 <BButton v-if="validatorIndexes.size > 0" @click="validatorIndexes.clear()" class="m-2">Reset</BButton>
-                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size}]` }}</p>
+                <p class="my-1">Validator{{ validatorIndexes.size > 1 ? "s" : "" }}: {{ validatorIndexes.size <= 10 ? `${Array.from(validatorIndexes).sort((a, b) => a - b).join(", ")}` : `${Array.from(validatorIndexes).sort((a, b) => a - b).slice(0, 10).join(", ")}, ... [${validatorIndexes.size} validators]` }}</p>
               </div>
             </div>
           </form>
