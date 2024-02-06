@@ -189,7 +189,7 @@ const showOutputs = computed<boolean>(() => {
           opacity: useRocketPoolMode ? 1 : 0.3
         }" class="mx-1" />
         <span class="mx-1">Rocket Pool Mode</span>
-        <i class="bi-question-square" v-b-tooltip title="<a href='https://serenita.io/blog/ethstaker-tax-rocket-pool-mode'>Learn More</a>"/>
+        <i class="bi-question-square" v-b-tooltip title="<a href='https://serenita.io/blog/ethstaker-tax-rocket-pool-mode' target='_blank'>Learn More</a>"/>
       </BFormCheckbox>
     </div>
     <ValidatorAdder :use-rocket-pool-mode="useRocketPoolMode" @validator-indexes-changed="updateValidatorIndexes"></ValidatorAdder>
@@ -230,7 +230,7 @@ const showOutputs = computed<boolean>(() => {
     <i
         class="bi-question-square mx-1"
         v-b-tooltip
-        title='Wondering how this works? Find out <a href="https://serenita.io/blog/ethstaker-tax-under-the-hood">here</a>'
+        title='Wondering how this works? Find out <a href="https://serenita.io/blog/ethstaker-tax-under-the-hood" target="_blank">here</a>'
     />
     <div v-if="(rewardsLoading || priceDataLoading) && validatorIndexes.size > 10" class="alert alert-secondary text-center fade show my-3" role="alert">
       <p class="text-muted m-0">It may take up to a few minutes to load the data</p>
