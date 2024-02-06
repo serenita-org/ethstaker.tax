@@ -8,6 +8,11 @@ const emit = defineEmits<{
 }>()
 
 watch(expectedFeeRecipientAddressesInput, async () => {
+  if (expectedFeeRecipientAddressesInput.value.length == 0) {
+    emit('fee-recipient-addresses-changed', new Set([]));
+    return;
+  }
+
   emit('fee-recipient-addresses-changed', new Set(expectedFeeRecipientAddressesInput.value.split(",").map(function(item) {
     return item.trim();
   })));
