@@ -14,9 +14,9 @@ scrape_configs:
     static_configs:
       - targets: ['caddy:2019']
 
-  - job_name: frontend
+  - job_name: frontend_legacy
     static_configs:
-      - targets: ['frontend:8000']
+      - targets: ['frontend_legacy:8000']
 
   - job_name: api
     static_configs:
@@ -34,9 +34,13 @@ scrape_configs:
     static_configs:
       - targets: ['indexer_withdrawals:8000']
 
-  - job_name: indexer_rocketpool
+  - job_name: indexer_rocket_pool
     static_configs:
-      - targets: ['indexer_rocketpool:8000']
+      - targets: ['indexer_rocket_pool:8000']
+
+  - job_name: indexer_validators
+    static_configs:
+      - targets: ['indexer_validators:8000']
 
   - job_name: beacon_node
     static_configs:

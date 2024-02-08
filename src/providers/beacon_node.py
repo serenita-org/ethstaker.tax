@@ -167,6 +167,7 @@ class BeaconNode:
         if "data" not in data.keys():
             # Missed proposals return like this
             if data.get("code") == 404 or resp.status_code == 404:
+                logger.warning(f"Returning missed slot for {slot}")
                 return SlotProposerData(
                     slot=slot,
                     proposer_index=None,
@@ -377,6 +378,18 @@ class BeaconNode:
                 if status_code != 200:
                     logger.warning(f"Status code {status_code} received for {epoch} in get_validator_inclusion_global")
         BEACON_NODE_REQUEST_COUNT.labels("/teku/v1/validator_inclusion/{epoch}/global", "get_validator_inclusion_global").inc()
+
+        data = resp.json()["data"]
+        return data
+
+    async def get_validators(self, state_id="head") -> dict:
+        url = f"{self.BASE_URL}/eth/v1/beacon/states/{state_id}/validators"
+
+        async with self._get_http_client() as client:
+            resp = await client.get_w_backoff(url=url)
+        BEACON_NODE_REQUEST_COUNT.labels(
+            "/eth/v1/beacon/states/{state_id}/validators",
+            "get_validators").inc()
 
         data = resp.json()["data"]
         return data

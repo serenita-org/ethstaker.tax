@@ -2,6 +2,9 @@ import datetime
 import logging
 from collections import defaultdict
 from decimal import Decimal
+from typing import Type
+
+from math import floor
 
 import pytz
 from redis import Redis
@@ -10,27 +13,217 @@ from fastapi_plugins import depends_redis
 from fastapi_limiter.depends import RateLimiter
 
 from api.api_v2.models import RewardsRequest, ValidatorRewards, RewardForDate, \
-    RocketPoolValidatorRewards, RewardsResponse, RocketPoolNodeRewardForDate, \
-    RocketPoolFeeForDate, RocketPoolBondForDate
-from db.tables import Balance
+    RocketPoolValidatorRewards, RewardsResponseRocketPool, RewardsResponseFull, RocketPoolNodeRewardForDate
+from db.tables import Withdrawal, RocketPoolBondReduction, RocketPoolMinipool
 from providers.beacon_node import BeaconNode, depends_beacon_node
 from providers.db_provider import DbProvider, depends_db
+from providers.execution_node import ExecutionNode
+from providers.rocket_pool import SMOOTHING_POOL_ADDRESS, RocketPoolDataProvider
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.post(  # POST method to support bigger requests
-    "/rewards",
-    response_model=RewardsResponse,
-)
-async def rewards(
-    rewards_request: RewardsRequest,
-    beacon_node: BeaconNode = Depends(depends_beacon_node),
-    db_provider: DbProvider = Depends(depends_db),
-    cache: Redis = Depends(depends_redis),
-    rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
-) -> RewardsResponse:
+async def _get_rocket_pool_reward_share_withdrawal_for_bond_fee(withdrawal, bond, fee, minipool_address: str):
+    _FULL_MINIPOOL_BOND = 32 * Decimal(1e18)
+
+    if withdrawal.amount_gwei > 8 * Decimal(1e9):
+        # Consider this a full withdrawal
+        # TODO
+        # We need to take into account "penalties",
+        # see _distributeBalance
+
+        # uint256 nodeAmount = 0;
+        #         uint256 userCapital = getUserDepositBalance();
+        #         // Check if node operator was slashed
+        #         if (_balance < userCapital) {
+        #             // Only slash on first call to distribute
+        #             if (withdrawalBlock == 0) {
+        #                 // Record shortfall for slashing
+        #                 nodeSlashBalance = userCapital.sub(_balance);
+        #             }
+
+        rocket_pool_data = RocketPoolDataProvider(execution_node=ExecutionNode())
+        block_number = (
+            await BeaconNode().get_slot_proposer_data(withdrawal.slot)).block_number
+        user_capital = await rocket_pool_data.get_minipool_user_deposit_balance(
+            minipool_address=minipool_address,
+            block_number=block_number
+        )
+        node_capital = await rocket_pool_data.get_minipool_node_deposit_balance(
+            minipool_address=minipool_address,
+            block_number=block_number
+        )
+        capital = user_capital + node_capital
+
+        # Work with wei from here
+        withdrawal_amount_wei = withdrawal.amount_gwei * Decimal(1e9)
+
+        # First check - if the withdrawal amount is less than the "user" part
+        # the node operator gets nothing (likely due to being slashed)
+        # -> they will actually lose RPL from their node's RPL collateral
+        # -> that will not be part of the output, not supported for now
+        if withdrawal_amount_wei < user_capital:
+            # TODO not supported yet
+            raise HTTPException(status_code=500, detail="Full withdrawal, balance < user_capital!")
+
+        # nodeAmount = _calculateNodeShare(_balance);
+        #     function _calculateNodeShare(uint256 _balance) internal view returns (uint256) {
+        #         uint256 userCapital = getUserDepositBalance();
+        #         uint256 nodeCapital = nodeDepositBalance;
+        #         uint256 nodeShare = 0;
+        #         // Calculate the total capital (node + user)
+        #         uint256 capital = userCapital.add(nodeCapital);
+        #         if (_balance > capital) {
+        #             // Total rewards to share
+        #             uint256 rewards = _balance.sub(capital);
+        #             nodeShare = nodeCapital.add(calculateNodeRewards(nodeCapital, userCapital, rewards));
+        #         } else if (_balance > userCapital) {
+        #             nodeShare = _balance.sub(userCapital);
+        #         }
+        #         // Check if node has an ETH penalty
+        #         uint256 penaltyRate = RocketMinipoolPenaltyInterface(rocketMinipoolPenalty).getPenaltyRate(address(this));
+        #         if (penaltyRate > 0) {
+        #             uint256 penaltyAmount = nodeShare.mul(penaltyRate).div(calcBase);
+        #             if (penaltyAmount > nodeShare) {
+        #                 penaltyAmount = nodeShare;
+        #             }
+        #             nodeShare = nodeShare.sub(penaltyAmount);
+        #         }
+        #         return nodeShare;
+
+        if withdrawal_amount_wei >= capital:
+            # Total rewards to share
+            total_reward_wei = withdrawal_amount_wei - capital
+            # --> calculate node's share by current bond, fee... per usual
+            return total_reward_wei * (
+                # NO bond part
+                (bond / _FULL_MINIPOOL_BOND)
+                # User bond part - commission
+                + ((_FULL_MINIPOOL_BOND - bond) / _FULL_MINIPOOL_BOND) * (fee / Decimal(1e18))
+            )
+        # TODO rest of branches?
+        # TODO handle ETH penalties!
+        msg = (f"Full withdrawal detected where withdrawal value ({withdrawal_amount_wei})"
+               f" is less than minipool capital ({capital}) for minipool {minipool_address}"
+               f" - unable to determine node operator share")
+        logger.error(msg)
+        raise HTTPException(
+            status_code=500,
+            detail=msg
+        )
+
+    return Decimal(1e9) * withdrawal.amount_gwei * (
+        # NO bond part
+        (bond / _FULL_MINIPOOL_BOND)
+        # User bond part - commission
+        + ((_FULL_MINIPOOL_BOND - bond) / _FULL_MINIPOOL_BOND) * (fee / Decimal(1e18))
+    )
+
+
+async def get_rocket_pool_reward_share_withdrawal(withdrawal: Withdrawal, minipool: 'Type[RocketPoolMinipool]') -> RewardForDate:
+    # Figure out correct bond & fee for this withdrawal
+    withdrawal_dt = BeaconNode.datetime_for_slot(
+        slot=withdrawal.slot,
+        timezone=pytz.UTC
+    )
+
+    # Go over bond reductions in reverse order - most recent to least recent
+    # If the withdrawal occurred after a given bond reduction, its value
+    # will be split among the node and user based on the bond/fee at
+    # that time
+    for bond_reduction in sorted(minipool.bond_reductions,
+                                 key=lambda x: x.timestamp, reverse=True):
+        if withdrawal_dt > bond_reduction.timestamp:
+            amount_no = await _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
+                withdrawal=withdrawal,
+                bond=bond_reduction.new_bond_amount,
+                fee=bond_reduction.new_fee,
+                minipool_address=minipool.minipool_address,
+            )
+
+            return RewardForDate(
+                date=withdrawal_dt.date(),
+                amount_wei=amount_no,
+            )
+
+    # The withdrawal occurred before any bond reductions
+    # => apply minipool's initial bond & fee
+    amount_no = await _get_rocket_pool_reward_share_withdrawal_for_bond_fee(
+        withdrawal=withdrawal,
+        bond=minipool.initial_bond_value,
+        fee=minipool.initial_fee_value,
+        minipool_address=minipool.minipool_address,
+    )
+
+    return RewardForDate(
+        date=withdrawal_dt.date(),
+        amount_wei=amount_no,
+    )
+
+
+async def get_rocket_pool_reward_share_proposal_fee_distributor(
+    node_address: str,
+    fee_distributor: str,
+    slot: int,
+    beacon_node: BeaconNode,
+    rocket_pool_data: RocketPoolDataProvider,
+) -> int:
+    logger.info(f"Getting reward share for proposal in slot {slot}, FD {fee_distributor}...")
+
+    # TODO pass block_number here directly once those are indexed
+    #  and present in the block reward table
+    block_number = (await beacon_node.get_slot_proposer_data(slot)).block_number
+
+    try:
+        node_share_before_proposal = await rocket_pool_data.get_node_fee_distributor_share(
+            node_fee_distributor_address=fee_distributor,
+            block_number=block_number-1,
+        )
+        node_share_after_proposal = await rocket_pool_data.get_node_fee_distributor_share(
+            node_fee_distributor_address=fee_distributor,
+            block_number=block_number,
+        )
+        # TODO check if units correct here
+        return node_share_after_proposal - node_share_before_proposal
+    except ValueError:
+        # getNodeShare only available in post-Atlas distributor delegate...
+        # We have to calculate the shares manually here
+        avg_node_fee = await rocket_pool_data.get_node_average_fee(
+            node_address=node_address,
+            block_number=block_number,
+        )
+        # assume the collateralization ratio is half in this case
+        # see e.g. https://github.com/rocket-pool/rocketpool/commit/f50109be11d68043446528c25c015a060475e6ca#diff-67701dbf2e859026c6c26c91b5e6e87f63a74de84093b0b98e08e92ade041cc5
+        # "// Fallback for backwards compatibility before ETH matched was recorded (all minipools matched 16 ETH from protocol)"
+        # "// All legacy minipools had a 1:1 ratio"
+        # Verify if this value is ok (in terms of order of magnitude too)
+        collateralization_ratio = 2 * Decimal(1e18)
+
+        fee_distributor_balance_change = await rocket_pool_data.execution_node.get_balance(
+            address=fee_distributor, block_number=block_number,
+            use_infura=True) - await rocket_pool_data.execution_node.get_balance(
+            address=fee_distributor, block_number=block_number - 1, use_infura=True)
+        # Note - no need to adjust this balance change for withdrawal operations since all RP
+        # withdrawal operations go to the minipool smart contracts
+        node_balance_change = fee_distributor_balance_change * Decimal(1e18) / collateralization_ratio
+        user_balance_change = fee_distributor_balance_change - node_balance_change
+        node_share = node_balance_change + user_balance_change * avg_node_fee / Decimal(1e18)
+        user_share = fee_distributor_balance_change - node_share
+
+        # TODO check if units correct here
+        # Round down like SafeMath does, which is used in RP smart contracts
+        return floor(node_share)
+
+
+async def _preprocess_request_input_data(rewards_request: RewardsRequest) -> tuple[
+    list[int],
+    datetime.datetime,
+    datetime.datetime,
+    int,
+    int,
+    list[str],
+]:
     # Handle inputs
     if rewards_request.end_date <= rewards_request.start_date:
         raise HTTPException(
@@ -49,17 +242,173 @@ async def rewards(
         day=rewards_request.start_date.day,
         tzinfo=pytz.UTC,
     )
-    end_datetime = datetime.datetime(
-        year=rewards_request.end_date.year,
-        month=rewards_request.end_date.month,
-        day=rewards_request.end_date.day,
-        tzinfo=pytz.UTC,
-    )
-    min_slot = beacon_node.slot_for_datetime(start_datetime)
-    max_slot = beacon_node.slot_for_datetime(datetime.datetime.combine(
-        end_datetime,
+    end_datetime = datetime.datetime.combine(
+        datetime.datetime(
+            year=rewards_request.end_date.year,
+            month=rewards_request.end_date.month,
+            day=rewards_request.end_date.day,
+            tzinfo=pytz.UTC,
+        ),
         datetime.time(hour=23, minute=59, second=59, tzinfo=pytz.UTC)
-    ))
+    )
+
+    min_slot = BeaconNode.slot_for_datetime(start_datetime)
+    max_slot = BeaconNode.slot_for_datetime(end_datetime)
+
+    logger.info(f"Input data - validator indexes: {validator_indexes}")
+    logger.info(f"Input data - date range: {start_datetime} ({min_slot}) - {end_datetime} ({max_slot})")
+
+    return validator_indexes, start_datetime, end_datetime, min_slot, max_slot, [a.lower() for a in rewards_request.expected_fee_recipient_addresses]
+
+
+@router.post(  # POST method to support bigger requests
+    "/rewards/rocket_pool",
+    response_model=RewardsResponseRocketPool,
+)
+async def rewards(
+    rewards_request: RewardsRequest,
+    beacon_node: BeaconNode = Depends(depends_beacon_node),
+    db_provider: DbProvider = Depends(depends_db),
+    cache: Redis = Depends(depends_redis),
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
+) -> RewardsResponseRocketPool:
+    (validator_indexes, start_datetime, end_datetime,
+     min_slot, max_slot, _) = await _preprocess_request_input_data(rewards_request)
+
+    # Get all withdrawals
+    logger.debug(f"Getting withdrawals")
+    all_withdrawals = sorted(db_provider.withdrawals(
+        min_slot=min_slot,
+        max_slot=max_slot,
+        validator_indexes=validator_indexes
+    ), key=lambda x: x.slot)
+
+    # Get all block rewards
+    logger.debug(f"Getting block rewards for ({min_slot} - {max_slot})")
+    all_block_rewards = db_provider.block_rewards(
+        min_slot=min_slot,
+        max_slot=max_slot,
+        proposer_indexes=validator_indexes
+    )
+
+    rocket_pool_minipools = db_provider.minipools_for_validators(validator_indexes=validator_indexes)
+
+    if len(rocket_pool_minipools.keys()) != len(validator_indexes):
+        mp_indexes = set(rocket_pool_minipools.keys())
+        request_indexes = set(validator_indexes)
+        unknown_validator_indexes = request_indexes.difference(mp_indexes)
+        logger.warning(f"Unable to find RP minipools ({rocket_pool_minipools}) for all validators ({validator_indexes})!")
+        raise HTTPException(status_code=400, detail=f"Unable to find RP minipools for all validators, missing {unknown_validator_indexes}!")
+
+    rocket_pool_validator_indexes = [index for index, mp in
+                                     rocket_pool_minipools.items()]
+    rocket_pool_node_rewards = db_provider.rocket_pool_node_rewards_for_minipools(
+        minipool_addresses=[mp.minipool_address for mp in
+                            rocket_pool_minipools.values()],
+        from_datetime=start_datetime,
+        to_datetime=end_datetime,
+    )
+    rocket_pool_fee_distributors = db_provider.fee_distributor_addresses_for_validator_indexes(
+        validator_indexes=rocket_pool_validator_indexes
+    )
+    rocket_pool_data = None
+    if len(rocket_pool_validator_indexes) > 0:
+        # we'll need Rocket Pool data
+        rocket_pool_data = RocketPoolDataProvider(execution_node=ExecutionNode())
+
+    validator_rewards_list = []
+    withdrawals_node_operator = defaultdict(list)
+    for validator_index in validator_indexes:
+        minipool = rocket_pool_minipools[validator_index]
+
+        for withdrawal in [w for w in all_withdrawals if
+                           w.validator_index == validator_index]:
+            withdrawals_node_operator[validator_index].append(
+                await get_rocket_pool_reward_share_withdrawal(
+                    withdrawal=withdrawal,
+                    minipool=minipool
+                )
+            )
+
+    el_rewards_node_operator = defaultdict(list)
+    for validator_index in validator_indexes:
+        minipool = rocket_pool_minipools[validator_index]
+
+        # Sum in case multiple proposals happen on the same day
+        exec_layer_rewards_node_operator_for_date = defaultdict(Decimal)
+        # Only count block rewards if they didn't go to Rocket Pool's Smoothing Pool
+        for br in [br for br in all_block_rewards if br.proposer_index == validator_index]:
+            reward_recipient = br.mev_reward_recipient if br.mev else br.fee_recipient
+            reward_recipient = reward_recipient.lower()
+
+            if reward_recipient == SMOOTHING_POOL_ADDRESS:
+                # This reward does not belong to the proposer only
+                # It is accounted for in the 28-day smoothing pool rewards
+                continue
+            elif reward_recipient == rocket_pool_fee_distributors[
+                validator_index]:
+                # Get the balance delta of the fee distributor contract
+                date = BeaconNode.datetime_for_slot(slot=br.slot, timezone=pytz.UTC).date()
+
+                exec_layer_rewards_node_operator_for_date[date] += await get_rocket_pool_reward_share_proposal_fee_distributor(
+                    node_address=minipool.node_address,
+                    fee_distributor=rocket_pool_fee_distributors[validator_index],
+                    slot=br.slot,
+                    beacon_node=beacon_node,
+                    rocket_pool_data=rocket_pool_data,
+                )
+            else:
+                message = f"Block reward for slot {br.slot} "\
+                          f"proposed by RP minipool ({minipool.minipool_address} / {validator_index})"\
+                          f" did not go to smoothing pool ({SMOOTHING_POOL_ADDRESS}) "\
+                          f"or fee distributor ({rocket_pool_fee_distributors[validator_index]}) "\
+                          f"but {reward_recipient}!"
+                logger.error(message)
+                raise HTTPException(
+                    status_code=500,
+                    detail=message
+                )
+
+        for date, reward_amount in exec_layer_rewards_node_operator_for_date.items():
+            el_rewards_node_operator[validator_index].append(RewardForDate(
+                date=date,
+                amount_wei=reward_amount
+            ))
+
+    for validator_index in sorted(validator_indexes):
+        validator_rewards = RocketPoolValidatorRewards.construct(
+            validator_index=validator_index,
+            execution_layer_rewards=el_rewards_node_operator[validator_index],
+            withdrawals=withdrawals_node_operator[validator_index],
+        )
+        validator_rewards_list.append(validator_rewards)
+
+    return RewardsResponseRocketPool.construct(
+        validator_rewards_list=validator_rewards_list,
+        rocket_pool_node_rewards=[
+            RocketPoolNodeRewardForDate(
+                date=reward.reward_period.reward_period_end_time,
+                node_address=reward.node_address,
+                amount_wei=reward.reward_smoothing_pool_wei,
+                amount_rpl=reward.reward_collateral_rpl,
+            )
+            for reward in rocket_pool_node_rewards
+        ],
+    )
+
+
+@router.post(  # POST method to support bigger requests
+    "/rewards/full",
+    response_model=RewardsResponseFull,
+)
+async def rewards(
+    rewards_request: RewardsRequest,
+    beacon_node: BeaconNode = Depends(depends_beacon_node),
+    db_provider: DbProvider = Depends(depends_db),
+    cache: Redis = Depends(depends_redis),
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=100, hours=1)),
+) -> RewardsResponseFull:
+    validator_indexes, start_datetime, end_datetime, min_slot, max_slot, expected_fee_recipient_addresses = await _preprocess_request_input_data(rewards_request)
 
     # Let's get the rewards
     first_slot_in_requested_period = min_slot
@@ -117,11 +466,11 @@ async def rewards(
 
     # Get all withdrawals
     logger.debug(f"Getting withdrawals")
-    all_withdrawals = db_provider.withdrawals(
+    all_withdrawals = sorted(db_provider.withdrawals(
         min_slot=min_slot,
         max_slot=max_slot,
         validator_indexes=validator_indexes
-    )
+    ), key=lambda x: x.slot)
 
     # Get all block rewards
     logger.debug(f"Getting block rewards")
@@ -134,12 +483,23 @@ async def rewards(
     for br in all_block_rewards:
         if not br.reward_processed_ok:
             msg = (f"Execution layer rewards not available"
-                   f" - missing data for proposer {br.proposer_index} - {br.slot}")
+                   f" - missing data for proposer {br.proposer_index}, slot {br.slot}")
             logger.error(msg)
             raise HTTPException(
                 status_code=500,
                 detail=msg
             )
+        if len(expected_fee_recipient_addresses) > 0:
+            # Check block reward recipient against expected fee recipient addresses
+            # to double check any MEV was processed correctly
+            if br.mev and br.mev_reward_recipient.lower() not in expected_fee_recipient_addresses:
+                msg = f"Unexpected MEV recipient {br.mev_reward_recipient} for {br.slot} (expected: {expected_fee_recipient_addresses})"
+                logger.error(msg)
+                raise HTTPException(status_code=400, detail=msg)
+            if not br.mev and br.fee_recipient.lower() not in expected_fee_recipient_addresses:
+                msg = f"Unexpected fee recipient {br.mev_reward_recipient} for {br.slot} (expected: {expected_fee_recipient_addresses})"
+                logger.error(msg)
+                raise HTTPException(status_code=400, detail=msg)
 
     total_validators = len(validator_indexes)
     for idx, validator_index in enumerate(validator_indexes):
@@ -157,10 +517,19 @@ async def rewards(
             amount_earned_wei = Decimal(1e18) * (eod_balance.balance - prev_balance.balance)
 
             # Account for withdrawals
-            amount_withdrawn_this_day_wei = Decimal(1e9) * sum(
-                w.amount_gwei for w in validator_withdrawals
-                if eod_balance.slot >= w.slot > prev_balance.slot
-            )
+            amount_withdrawn_this_day_wei = 0
+            for w in validator_withdrawals:
+                if eod_balance.slot >= w.slot > prev_balance.slot:
+                    if w.amount_gwei > 8 * Decimal(1e9):
+                        # Assume full withdrawal
+                        if w.amount_gwei < 32 * Decimal(1e9):
+                            raise HTTPException(
+                                status_code=500,
+                                detail=f"Full withdrawal for {validator_index} with <32 ETH leads to negative income"
+                            )
+                        amount_withdrawn_this_day_wei += (w.amount_gwei % (32 * Decimal(1e9))) * Decimal(1e9)
+                    else:
+                        amount_withdrawn_this_day_wei += w.amount_gwei * Decimal(1e9)
             amount_earned_wei += amount_withdrawn_this_day_wei
 
             date = beacon_node.datetime_for_slot(
@@ -196,85 +565,16 @@ async def rewards(
                 )
             )
 
-    rocket_pool_minipools = db_provider.minipools_for_validators(validator_indexes=validator_indexes)
-    rocket_pool_validator_indexes = [mp.validator_index for mp in rocket_pool_minipools]
-    rocket_pool_node_rewards = db_provider.rocket_pool_node_rewards_for_minipools(
-        minipool_indexes=[mp.minipool_index for mp in rocket_pool_minipools],
-        from_datetime=start_datetime,
-        to_datetime=end_datetime,
-    )
-
-    return_data = []
+    validator_rewards_list = []
     for validator_index in sorted(validator_indexes):
         if validator_index in pending_validator_indexes:
             continue
 
-        if validator_index in rocket_pool_validator_indexes:
-            minipool_data = [m for m in rocket_pool_minipools if m.validator_index == validator_index][0]
+        validator_rewards_list.append(ValidatorRewards.construct(
+            validator_index=validator_index,
+            consensus_layer_rewards=consensus_layer_rewards[validator_index],
+            execution_layer_rewards=execution_layer_rewards[validator_index],
+            withdrawals=withdrawals[validator_index],
+        ))
 
-            current_fee = minipool_data.fee
-            current_bond_value = minipool_data.node_deposit_balance
-
-            fees, bonds = [], []
-
-            prev_bond_reduction = None
-            for bond_reduction in minipool_data.bond_reductions:
-                prev_period_start = datetime.date(2000, 1,
-                                                  1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date()
-                fees.append(
-                    RocketPoolFeeForDate(
-                        date=prev_period_start,
-                        fee_value_wei=bond_reduction.prev_node_fee,
-                    )
-                )
-                bonds.append(
-                    RocketPoolBondForDate(
-                        date=prev_period_start,
-                        bond_value_wei=bond_reduction.prev_bond_value,
-                    )
-                )
-                prev_bond_reduction = bond_reduction
-
-            fees.append(
-                RocketPoolFeeForDate(
-                    date=datetime.date(2000, 1, 1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date(),
-                    fee_value_wei=current_fee,
-                )
-            )
-            bonds.append(
-                RocketPoolBondForDate(
-                    date=datetime.date(2000, 1, 1) if not prev_bond_reduction else prev_bond_reduction.timestamp.date(),
-                    bond_value_wei=current_bond_value,
-                )
-            )
-
-            validator_rewards = RocketPoolValidatorRewards.construct(
-                validator_index=validator_index,
-                consensus_layer_rewards=consensus_layer_rewards[validator_index],
-                execution_layer_rewards=execution_layer_rewards[validator_index],
-                withdrawals=withdrawals[validator_index],
-                fees=fees,
-                bonds=bonds,
-            )
-        else:
-            validator_rewards = ValidatorRewards.construct(
-                validator_index=validator_index,
-                consensus_layer_rewards=consensus_layer_rewards[validator_index],
-                execution_layer_rewards=execution_layer_rewards[validator_index],
-                withdrawals=withdrawals[validator_index],
-            )
-
-        return_data.append(validator_rewards)
-
-    return RewardsResponse.construct(
-        validator_rewards=return_data,
-        rocket_pool_node_rewards=[
-            RocketPoolNodeRewardForDate(
-                date=reward.reward_period.reward_period_end_time,
-                node_address=reward.node_address,
-                amount_wei=reward.reward_smoothing_pool_wei,
-                amount_rpl=reward.reward_collateral_rpl,
-            )
-            for reward in rocket_pool_node_rewards
-        ],
-    )
+    return RewardsResponseFull.construct(validator_rewards_list=validator_rewards_list)

@@ -10,10 +10,10 @@ ethstaker.tax http://localhost:80 {
         reverse_proxy api:8000
     }
 
-    handle_path /preview* {
+    handle_path /* {
         try_files {path}
         file_server {
-            root /tmp/preview
+            root /frontend_dist
         }
     }
 

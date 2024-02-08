@@ -20,6 +20,7 @@ class BlockReward(Base):
     # A precision of 27 for the numeric type is enough to store the whole current supply of ETH, ~100M. Should be safe?
 
     slot = Column(Integer, nullable=False, primary_key=True, autoincrement=False)
+    block_number = Column(Integer, nullable=True, autoincrement=False)
     proposer_index = Column(Integer, nullable=True)
     fee_recipient = Column(String(length=42), nullable=True)
     priority_fees_wei = Column(Numeric(precision=27), nullable=True)
@@ -33,9 +34,9 @@ class BlockReward(Base):
 class RocketPoolBondReduction(Base):
     __tablename__ = "rocket_pool_bond_reduction"
 
-    timestamp = Column(TIMESTAMP(timezone=True), nullable=True, primary_key=True)
-    prev_node_fee = Column(Numeric(precision=19), nullable=False)
-    prev_bond_value = Column(Numeric(precision=27), nullable=True)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=False)
+    new_bond_amount = Column(Numeric(precision=27), nullable=False, primary_key=True)
+    new_fee = Column(Numeric(precision=19), nullable=False)
 
     # Relationships
     minipool_address = Column(ForeignKey("rocket_pool_minipool.minipool_address"), primary_key=True)
@@ -45,15 +46,25 @@ class RocketPoolBondReduction(Base):
 class RocketPoolMinipool(Base):
     __tablename__ = "rocket_pool_minipool"
 
-    minipool_index = Column(Integer, nullable=False, primary_key=True)
-    minipool_address = Column(String(length=42), nullable=False, unique=True, index=True)
-    validator_index = Column(Integer, nullable=False, index=True)
-    node_address = Column(String(length=42), nullable=False)
-    node_deposit_balance = Column(String(length=20), nullable=False)
-    fee = Column(Numeric(precision=19), nullable=False)
+    minipool_address = Column(String(length=42), nullable=False, primary_key=True)
+    validator_pubkey = Column(String(length=98), nullable=False)
+    initial_bond_value = Column(Numeric(precision=20), nullable=False)
+    initial_fee_value = Column(Numeric(precision=19), nullable=False)
 
     # Relationships
     bond_reductions = relationship("RocketPoolBondReduction", back_populates="minipool")
+    node_address = Column(ForeignKey("rocket_pool_node.node_address"), nullable=False)
+    node = relationship("RocketPoolNode", back_populates="minipools")
+
+
+class RocketPoolNode(Base):
+    __tablename__ = "rocket_pool_node"
+
+    node_address = Column(String(length=42), nullable=False, primary_key=True)
+    fee_distributor = Column(String(length=42), nullable=False)
+
+    # Relationships
+    minipools = relationship("RocketPoolMinipool", back_populates="node")
 
 
 class RocketPoolReward(Base):
@@ -76,6 +87,13 @@ class RocketPoolRewardPeriod(Base):
 
     # Relationships
     rewards = relationship("RocketPoolReward", back_populates="reward_period")
+
+
+class Validator(Base):
+    __tablename__ = "validator"
+
+    validator_index = Column(Integer, nullable=False, primary_key=True)
+    pubkey = Column(String(length=98), nullable=False, index=True)
 
 
 class Withdrawal(Base):
