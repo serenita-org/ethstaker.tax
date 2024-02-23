@@ -322,6 +322,12 @@ const showOutputs = computed<boolean>(() => {
         </div>
     </div>
   </div>
+  <div class="position-absolute bottom-0 end-0 m-3">
+    <BButton variant="outline-secondary" href="https://github.com/serenita-org/ethstaker.tax/issues/new" target="_blank">
+      <i class="bi-exclamation-square" />
+      Report Issue
+    </BButton>
+  </div>
 </template>
 
 <style scoped>
