@@ -825,6 +825,20 @@ def _withdrawals_in_db():
             63905165461596084,
             id="MEV reward recipient receives withdrawals during a block they propose",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=8387391,
+                proposer_index=969836,
+                fee_recipient="0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5".lower(),
+                block_number=19189828,
+                block_hash="0xe6a75d78c3b5bcc5f97c1f825065da82ce840c5ce061ca1a938c53e8885dd460",
+            ),
+            31753775902420598,
+            True,
+            "0x4106a987cd72d535a944e1c02b176a05485eb157".lower(),
+            33626456431765598,
+            id="Relay misreporting no payload delivered",
+        ),
     ],
 )
 @pytest.mark.asyncio
