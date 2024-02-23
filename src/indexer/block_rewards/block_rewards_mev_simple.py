@@ -252,20 +252,14 @@ async def get_block_reward_value(
         execution_node=execution_node,
         db_provider=db_provider,
     )
-    if fee_rec_bal_change != block_priority_tx_fees:
+    if fee_rec_bal_change != block_priority_tx_fees or fee_recipient.lower() in BUILDER_FEE_RECIPIENTS:
         # Check for MEV transfer tx in last tx in block (from fee recipient)
         tx_count = await execution_node.get_block_tx_count(block_number=block_number)
 
         if tx_count > 0:
             last_tx = await execution_node.get_tx_data(block_number=block_number,
                                                        tx_index=tx_count - 1)
-            if fee_recipient.lower() in (
-                a.lower() for a in (
-                "0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5",  # beaverbuild
-                "0x1f9090aae28b8a3dceadf281b0f12828e676c326",  # rsync-builder
-                "0x5F927395213ee6b95dE97bDdCb1b2B1C0F16844F",  # manta-builder
-                "0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990",  # @builder0x69
-            )):
+            if fee_recipient.lower() in BUILDER_FEE_RECIPIENTS:
                 # MEV reward recipient = recipient of last tx in block
                 assert last_tx.from_.lower() == fee_recipient.lower(), \
                     f"Expected MEV distribution in last tx, but not found in slot {slot_proposer_data.slot}"

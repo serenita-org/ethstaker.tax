@@ -49,10 +49,6 @@ MEV_BUILDERS = [
         fee_recipient_address="0xf573d99385c05c23b24ed33de616ad16a43a0919",
     ),
     MevBuilder(
-        name="bloXroute external builder",
-        fee_recipient_address=None,
-    ),
-    MevBuilder(
         name="Eden network builder",
         fee_recipient_address="0xaab27b150451726ec7738aa1d0a94505c8729bd1",
     ),
@@ -79,6 +75,14 @@ MEV_BUILDERS = [
     MevBuilder(
         name="beaverbuild.org",
         fee_recipient_address="0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5",
+    ),
+    MevBuilder(
+        name="rsync-builder",
+        fee_recipient_address="0x1f9090aae28b8a3dceadf281b0f12828e676c326",
+    ),
+    MevBuilder(
+        name="manta-builder",
+        fee_recipient_address="0x5F927395213ee6b95dE97bDdCb1b2B1C0F16844F",
     ),
     MevBuilder(
         name="eth-builder.com",
@@ -186,4 +190,4 @@ MEV_BUILDERS = [
     ),
 ]
 
-BUILDER_FEE_RECIPIENTS = { b.fee_recipient_address for b in MEV_BUILDERS }
+BUILDER_FEE_RECIPIENTS = { b.fee_recipient_address.lower() for b in MEV_BUILDERS }
