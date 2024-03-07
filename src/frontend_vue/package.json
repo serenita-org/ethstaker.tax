@@ -12,6 +12,7 @@
   "dependencies": {
     "@popperjs/core": "^2.11.8",
     "axios": "^1.4.0",
+    "bignumber.js": "^9.1.2",
     "bootstrap": "~5.3.1",
     "bootstrap-icons": "^1.10.5",
     "bootstrap-vue-next": "^0.10.10",

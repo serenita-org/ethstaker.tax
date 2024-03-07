@@ -1,3 +1,4 @@
+import BigNumber from "bignumber.js";
 import {
     PriceForDate,
     PricesResponse,
@@ -5,7 +6,7 @@ import {
     RocketPoolValidatorRewards,
     ValidatorRewards
 } from "../../types/rewards.ts";
-import { gweiToEthMultiplier, WeiToGweiMultiplier } from "../../constants.ts";
+import { WeiToEthMultiplier } from "../../constants.ts";
 
 
 function createLinkAndDownload(csvContent: string): void {
@@ -23,6 +24,12 @@ function createLinkAndDownload(csvContent: string): void {
 
     // "Click" the link to download the file
     link.click();
+}
+
+function weiToEthString(wei: string, decimalPlaces: number) {
+    const weiBigInt = new BigNumber(wei);
+    const ethDecimal = weiBigInt.dividedBy(WeiToEthMultiplier.toString());
+    return ethDecimal.toFixed(decimalPlaces, BigNumber.ROUND_DOWN);
 }
 
 export function downloadAsCsv(
@@ -132,14 +139,14 @@ export function downloadAsCsv(
             const columnValues = [
                 `${date}`,
                 `${getPriceForDate(priceDataEth.prices, date)}`,
-                `${Number(consensusTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                `${Number(executionTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                `${weiToEthString(consensusTotal.toString(), 9)}`,
+                `${weiToEthString(executionTotal.toString(), 18)}`,
             ]
 
             if (useRocketPoolMode) {
                 columnValues.push(...[
-                    (Number(smoothingPoolTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)).toString(),
-                    (Number(rplIncomeTotal / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)).toString(),
+                    weiToEthString(smoothingPoolTotal.toString(), 18),
+                    weiToEthString(rplIncomeTotal.toString(), 18),
                     getPriceForDate(priceDataRpl.prices, date).toString(),
                 ])
             }
@@ -171,8 +178,8 @@ export function downloadAsCsv(
                     `${date}`,
                     `${validatorIndex}`,
                     `${getPriceForDate(priceDataEth.prices, date)}`,
-                    `${Number(consensusReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                    `${Number(executionReward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                    `${weiToEthString(consensusReward.amount_wei.toString(), 9)}`,
+                    `${weiToEthString(executionReward.amount_wei.toString(), 18)}`,
                 ]
                 if (useRocketPoolMode) {
                     columnValues.push(...["", "", "", ""])
@@ -192,8 +199,8 @@ export function downloadAsCsv(
                         "", // Consensus Layer
                         "", // Execution Layer
                         `${reward.node_address}`,
-                        `${Number(reward.amount_wei / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
-                        `${Number(reward.amount_rpl / WeiToGweiMultiplier) / Number(gweiToEthMultiplier)}`,
+                        `${weiToEthString(reward.amount_wei.toString(), 18)}`,
+                        `${weiToEthString(reward.amount_rpl.toString(), 18)}`,
                         `${getPriceForDate(priceDataRpl.prices, date)}`,
                     ]
                     csvContent += columnValues.join(delimiter);
