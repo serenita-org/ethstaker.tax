@@ -493,11 +493,11 @@ async def rewards(
             # Check block reward recipient against expected fee recipient addresses
             # to double check any MEV was processed correctly
             if br.mev and br.mev_reward_recipient.lower() not in expected_fee_recipient_addresses:
-                msg = f"Unexpected MEV recipient {br.mev_reward_recipient} for {br.slot} (expected: one of {expected_fee_recipient_addresses})"
+                msg = f"Unexpected MEV recipient {br.mev_reward_recipient} for slot {br.slot} (expected: one of {expected_fee_recipient_addresses})"
                 logger.error(msg)
                 raise HTTPException(status_code=400, detail=msg)
             if not br.mev and br.fee_recipient.lower() not in expected_fee_recipient_addresses:
-                msg = f"Unexpected fee recipient {br.fee_recipient} for {br.slot} (expected: one of {expected_fee_recipient_addresses})"
+                msg = f"Unexpected fee recipient {br.fee_recipient} for slot {br.slot} (expected: one of {expected_fee_recipient_addresses})"
                 logger.error(msg)
                 raise HTTPException(status_code=400, detail=msg)
 
