@@ -74,6 +74,8 @@ SMART_CONTRACTS_MEV_BOTS = (
     "0x1fb421310ceacd0afb2a429bbb4682e522b38ecb",
     "0x79ebcc229aca8cb33684376d32502a0c06ebd40b",
     "0x5c3be76d59d476193e0eb3aa19fcc2ac6a1efe08",
+    "0x000000E1fDDF4fE15DB5f23aE3eE83C6A11E8Dd1",
+    "0x738e79fbc9010521763944ddf13aad7f61502221",
 )
 # Force lowercase for these
 SMART_CONTRACTS_MEV_BOTS = [b.lower() for b in SMART_CONTRACTS_MEV_BOTS]
