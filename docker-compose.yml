@@ -139,7 +139,7 @@ services:
       - db
 
   beacon_node:
-    image: sigp/lighthouse:v4.6.111-exp
+    image: sigp/lighthouse:v5.0.111-exp
     restart: unless-stopped
     command: [
         "lighthouse",
@@ -156,7 +156,7 @@ services:
         "--execution-jwt=/tmp/jwt_secret",
         "--checkpoint-sync-url=https://mainnet.checkpoint.sigp.io",
         "--reconstruct-historic-states",
-        "--slots-per-restore-point=2048",
+# deprecated with tree-states        "--slots-per-restore-point=2048",
         "--disable-backfill-rate-limiting",
         "--unsafe-and-dangerous-mode", # because of the experimental version
     ]
