@@ -170,7 +170,7 @@ services:
       - ./etc/jwt_secret.hex:/tmp/jwt_secret
 
   geth:
-    image: ethereum/client-go:v1.13.5
+    image: ethereum/client-go:v1.13.14
     command:
       - "--datadir=/data"
       - "--http"
