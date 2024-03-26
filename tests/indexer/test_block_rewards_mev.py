@@ -839,6 +839,20 @@ def _withdrawals_in_db():
             33626456431765598,
             id="Relay misreporting no payload delivered",
         ),
+        pytest.param(
+            SlotProposerData(
+                slot=8717965,
+                proposer_index=1239957,
+                fee_recipient="0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97".lower(),
+                block_number=19517253,
+                block_hash="0x3273d8768adfa0e088bccb9d25541dcd172f32de49c08b9ee26f5262f5dc110d",
+            ),
+            104210518027826154,
+            True,
+            "0x0aD284CeaCbE9F19926F667A55E6Fd102139bA9E".lower(),
+            125571550259110532,
+            id="Block that includes spammy 1 wei transaction to proposer",
+        ),
     ],
 )
 @pytest.mark.asyncio
