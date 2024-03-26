@@ -212,6 +212,9 @@ async def get_block_reward_value(
         except NonOkStatusCode as e:
             logger.exception(e)
             continue
+        except Exception as e:
+            logger.exception(f"Unexpected error: {e} on relay: {relay.api_url}")
+            raise e
         if payload:
             # MEV! Block hash matches with payload delivered by MEV relay
             logger.info(f"MEV found in {slot_proposer_data.slot} - {relay.api_url}")
