@@ -76,6 +76,7 @@ async def process_slot(slot: int) -> None:
                     db_provider=db_provider,
                 )
             except Exception as e:
+                logger.exception(e)
                 logger.error(f"Failed to process slot {slot} -> {str(e)}")
                 session.merge(
                     BlockReward(
