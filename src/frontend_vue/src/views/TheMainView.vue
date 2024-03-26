@@ -17,7 +17,7 @@ import {
 import { parse, isInteger } from 'lossless-json'
 import { downloadAsCsv } from '../components/outputs/csvDownload.ts'
 
-import axios, {AxiosError} from "axios";
+import axios, {AxiosError, AxiosResponse} from "axios";
 import IncomeChart from "../components/outputs/IncomeChart.vue";
 import SummaryTable from "../components/outputs/SummaryTable.vue";
 
@@ -86,7 +86,7 @@ async function getPriceData() {
   } catch (err: unknown) {
     let errorMessage: string
     if (axios.isAxiosError(err)) {
-      errorMessage = `Failed to get prices - ${err.message}`;
+      errorMessage = `Failed to get prices - ${err.message} - ${(err.response as AxiosResponse).data.detail}`;
     } else {
       errorMessage = `Unknown error occurred - ${err}`;
     }
