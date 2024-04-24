@@ -225,6 +225,7 @@ async def get_block_reward_value(
             "https://mainnet-relay.securerpc.com",
             "https://relay.wenmerge.com",
             "https://aestus.live",
+            "https://titanrelay.xyz",
         ]
     ]
     for relay in relays:
