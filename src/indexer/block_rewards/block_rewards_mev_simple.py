@@ -128,9 +128,13 @@ async def _get_balance_change_adjusted(
             "0x3511f837687Ff7272A39a231Cac1452Ad71141Fa",
             "0x459BbF3c1e0f3829bf91eF4f6d0D865d60ab6B87",
             "0x451D118dBB2AbF9d83cfC04FbdbF3640Fd18d1d3",
+            "0x06d9ca334a8a74474e9b6ee31280c494321ae759",
+            "0x2f448caad2fc3994bd2de4f59114c86fea9ae68f",
         )
         tx_value = int(tx["value"], base=16)
-        if tx_value == 1 and tx["from"].lower() in (a.lower() for a in _spam_sender_addresses):
+        if tx_value != 1 or tx["to"].lower() != address.lower():
+            continue
+        if tx["from"].lower() in (a.lower() for a in _spam_sender_addresses):
             balance_change -= tx_value
 
     return balance_change
