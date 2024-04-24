@@ -104,8 +104,8 @@ async def _get_balance_change_adjusted(
         balance_change += await _get_fee_recipient_distribution_balance_change(address, block_number, execution_node=execution_node)
 
     # Account for outgoing transactions made by the address
+    full_block = await execution_node.get_block(block_number, verbose=True)
     if balance_change != block_priority_tx_fees:
-        full_block = await execution_node.get_block(block_number, verbose=True)
         for tx in full_block["transactions"]:
             tx_value = int(tx["value"], base=16)
             if tx["from"] == address:
@@ -115,6 +115,27 @@ async def _get_balance_change_adjusted(
     # Account for withdrawal state change
     # (the address may receive withdrawals from the beacon chain)
     balance_change -= sum(1_000_000_000 * w.amount_gwei for w in db_provider.withdrawals_to_address(address, slot=slot) if w.slot == slot)
+
+    # Discard spammy 1 wei transactions
+    for tx in full_block["transactions"]:
+        _spam_sender_addresses = (
+            "0x994e092C13aa50d312643B5caa0273317B664f5d",
+            "0x7b9d4D8772b8705dDc7456Daf821c3022DDa0504",
+            "0xd840d5f2b38662d8acde3b2beae6ff664f584843",
+            "0xc5c9f6dda68422984a06a66a3d1aebd7d979a158",
+            "0x35432a10EF42cc7FbF1aFf2e5F3508cb6ff61e44",
+            "0x2f448caad2fc3994bd2de4f59114c86fea9ae68f",
+            "0x3511f837687Ff7272A39a231Cac1452Ad71141Fa",
+            "0x459BbF3c1e0f3829bf91eF4f6d0D865d60ab6B87",
+            "0x451D118dBB2AbF9d83cfC04FbdbF3640Fd18d1d3",
+            "0x06d9ca334a8a74474e9b6ee31280c494321ae759",
+            "0x2f448caad2fc3994bd2de4f59114c86fea9ae68f",
+        )
+        tx_value = int(tx["value"], base=16)
+        if tx_value != 1 or tx["to"].lower() != address.lower():
+            continue
+        if tx["from"].lower() in (a.lower() for a in _spam_sender_addresses):
+            balance_change -= tx_value
 
     return balance_change
 
@@ -204,6 +225,7 @@ async def get_block_reward_value(
             "https://mainnet-relay.securerpc.com",
             "https://relay.wenmerge.com",
             "https://aestus.live",
+            "https://titanrelay.xyz",
         ]
     ]
     for relay in relays:
@@ -212,6 +234,9 @@ async def get_block_reward_value(
         except NonOkStatusCode as e:
             logger.exception(e)
             continue
+        except Exception as e:
+            logger.exception(f"Unexpected error: {e} on relay: {relay.api_url}")
+            raise e
         if payload:
             # MEV! Block hash matches with payload delivered by MEV relay
             logger.info(f"MEV found in {slot_proposer_data.slot} - {relay.api_url}")

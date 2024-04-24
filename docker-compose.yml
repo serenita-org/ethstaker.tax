@@ -229,8 +229,10 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=1y'
+     - '--web.external-url=http://ethstaker-tax:9090'
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ${ABSOLUTE_ROOT_PATH}/etc/alert.rules:/etc/prometheus/alert.rules
       - prometheus_data:/prometheus
 
   node_exporter:

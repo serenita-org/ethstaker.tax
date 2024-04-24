@@ -338,6 +338,15 @@ async def rewards(
         exec_layer_rewards_node_operator_for_date = defaultdict(Decimal)
         # Only count block rewards if they didn't go to Rocket Pool's Smoothing Pool
         for br in [br for br in all_block_rewards if br.proposer_index == validator_index]:
+            if not br.reward_processed_ok:
+                msg = (f"Execution layer rewards not available"
+                       f" - missing data for proposer {br.proposer_index}, slot {br.slot}")
+                logger.error(msg)
+                raise HTTPException(
+                    status_code=500,
+                    detail=msg
+                )
+        for br in [br for br in all_block_rewards if br.proposer_index == validator_index]:
             reward_recipient = br.mev_reward_recipient if br.mev else br.fee_recipient
             reward_recipient = reward_recipient.lower()
 

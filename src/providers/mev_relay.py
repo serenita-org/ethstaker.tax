@@ -1,6 +1,8 @@
 from collections import namedtuple
 from typing import Optional
 
+from httpx import Timeout
+
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 
 DeliveredPayloadsResponse = namedtuple("DeliveredPayloadsResponse",
@@ -18,7 +20,7 @@ DeliveredPayloadsResponse = namedtuple("DeliveredPayloadsResponse",
 class MevRelay:
     def _get_http_client(self) -> AsyncClientWithBackoff:
         return AsyncClientWithBackoff(
-            timeout=30
+            timeout=Timeout(timeout=30, read=90)
         )
 
     def __init__(self, api_url: str):
@@ -32,7 +34,7 @@ class MevRelay:
 
         if resp.status_code != 200:
             raise Exception(
-                f"Error while fetching data from MEV relay ({self.api_url}): {resp.content.decode()}"
+                f"Error while fetching data from MEV relay ({self.api_url}), status code {resp.status_code}: {resp.content.decode()}"
             )
 
         data = resp.json()

@@ -1,0 +1,53 @@
+groups:
+  - name: ethstaker.tax
+    rules:
+    - alert: Service down
+      expr: up == 0
+      for: 3m
+      annotations:
+        summary: "Service down - {{ $labels.job }} on {{ $labels.instance }}"
+        description: "{{ $labels.job }} has been down for more than 3 minutes."
+      labels:
+        severity: critical
+
+    - alert: Low disk space %
+      expr: node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.1
+      for: 1h
+      annotations:
+        summary: "Low disk space: {{ humanizePercentage $value }}"
+        description: "{{ $labels.instance }} is reporting low disk space: {{ humanizePercentage $value }}"
+
+    - alert: 5xx responses
+      expr: sum(increase(starlette_requests_total{path!~"/metrics", status_code=~"5\\d\\d"}[1h])) by (status_code) > 0
+      annotations:
+        summary: "API requests failing on ethstaker.tax"
+
+    - alert: Many slots with missing block rewards
+      expr: slots_with_missing_block_rewards > 1000
+      annotations:
+        summary: "Many slots with missing block rewards on ethstaker.tax"
+
+    - alert: Many block reward indexing failures (>3%)
+      expr: increase(slots_indexing_failures[1d]) > 216
+      annotations:
+        summary: "Many block reward indexing failures (>3%)"
+
+    - alert: Many slots with missing balances
+      expr: slots_with_missing_balances > 30
+      annotations:
+        summary: "Many slots with missing balances on ethstaker.tax"
+
+    - alert: Many slots with missing withdrawal data
+      expr: slots_with_missing_withdrawal_data > 50
+      annotations:
+        summary: "Many slots with missing withdrawal data on ethstaker.tax"
+
+    - alert: Low peer count - CL
+      expr: libp2p_peers < 80
+      annotations:
+        summary: "Low peer count on ethstaker.tax"
+
+    - alert: Low peer count - EL
+      expr: p2p_peers < 30
+      annotations:
+        summary: "Low peer count on ethstaker.tax"
