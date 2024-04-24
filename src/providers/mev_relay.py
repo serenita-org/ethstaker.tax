@@ -34,7 +34,7 @@ class MevRelay:
 
         if resp.status_code != 200:
             raise Exception(
-                f"Error while fetching data from MEV relay ({self.api_url}): {resp.content.decode()}"
+                f"Error while fetching data from MEV relay ({self.api_url}), status code {resp.status_code}: {resp.content.decode()}"
             )
 
         data = resp.json()
