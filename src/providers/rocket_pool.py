@@ -27,6 +27,10 @@ _MINIPOOL_MANAGER_ADDRESSES = [
         # v3 deployed on Apr-08-2023
         "address": "0x6d010C43d4e96D74C422f2e27370AF48711B49bF",
     },
+    {
+        # v4 deployed on Jun-04-2024
+        "address": "0x09fbce43e4021a3f69c4599ff00362b83eda501e",
+    },
 ]
 _NODE_MANAGER_ADDRESS = "0x89f478e6cc24f052103628f36598d4c14da3d287"
 _MINIPOOL_BOND_REDUCER_ADDRESS = "0xf7ab34c74c02407ed653ac9128731947187575c0"
