@@ -188,6 +188,18 @@ MEV_BUILDERS = [
         name="1fff",
         fee_recipient_address="0x3b7faec3181114a99c243608bc822c5436441fff",
     ),
+    MevBuilder(
+        name="titanbuilder.eth",
+        fee_recipient_address="0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97",
+    ),
+    MevBuilder(
+        name="tbuilder.xyz",
+        fee_recipient_address="0xDccA982701a264e8d629A6E8CFBa9C1a27912623",
+    ),
+    MevBuilder(
+        name="jetbldr.eth",
+        fee_recipient_address="0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A",
+    ),
 ]
 
 BUILDER_FEE_RECIPIENTS = { b.fee_recipient_address.lower() for b in MEV_BUILDERS }
