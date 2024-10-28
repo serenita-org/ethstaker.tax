@@ -27,10 +27,10 @@ groups:
       annotations:
         summary: "Many slots with missing block rewards on ethstaker.tax"
 
-    - alert: Many block reward indexing failures (>3%)
-      expr: increase(slots_indexing_failures[1d]) > 216
+    - alert: Many block reward indexing failures (>5%)
+      expr: increase(slots_indexing_failures[1d]) > 360
       annotations:
-        summary: "Many block reward indexing failures (>3%)"
+        summary: "Many block reward indexing failures (>5%)"
 
     - alert: Many slots with missing balances
       expr: slots_with_missing_balances > 30
@@ -41,6 +41,11 @@ groups:
       expr: slots_with_missing_withdrawal_data > 50
       annotations:
         summary: "Many slots with missing withdrawal data on ethstaker.tax"
+
+    - alert: No new RP minipools
+      expr: increase(rocket_pool_minipools[2d]) == 0
+      annotations:
+        summary: "No new RP minipools indexed on ethstaker.tax - new minipool manager address?"
 
     - alert: Low peer count - CL
       expr: libp2p_peers < 80
