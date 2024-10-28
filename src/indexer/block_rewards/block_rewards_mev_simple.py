@@ -218,7 +218,7 @@ async def get_block_reward_value(
         for api_url in [
             # see https://ethstaker.cc/mev-relay-list/
             "https://boost-relay.flashbots.net",
-            "https://relay.ultrasound.money",
+            "https://relay-analytics.ultrasound.money",
             "https://agnostic-relay.net",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
