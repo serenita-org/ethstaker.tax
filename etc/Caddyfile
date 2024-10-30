@@ -23,3 +23,11 @@ ethstaker.tax http://localhost:80 {
 www.ethstaker.tax {
     redir https://ethstaker.tax{uri}
 }
+
+legacy.ethstaker.tax {
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+
+    reverse_proxy frontend_legacy:8000
+}

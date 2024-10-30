@@ -139,7 +139,7 @@ services:
       - db
 
   beacon_node:
-    image: sigp/lighthouse:v5.0.111-exp
+    image: sigp/lighthouse:v5.1.222-exp
     restart: unless-stopped
     command: [
         "lighthouse",
@@ -170,7 +170,7 @@ services:
       - ./etc/jwt_secret.hex:/tmp/jwt_secret
 
   geth:
-    image: ethereum/client-go:v1.13.14
+    image: ethereum/client-go:v1.14.11
     command:
       - "--datadir=/data"
       - "--http"
@@ -229,7 +229,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=1y'
-     - '--web.external-url=http://ethstaker-tax:9090'
+      - '--web.external-url=http://ethstaker-tax:9090'
     volumes:
       - ${ABSOLUTE_ROOT_PATH}/etc/prometheus.yml:/etc/prometheus/prometheus.yml
       - ${ABSOLUTE_ROOT_PATH}/etc/alert.rules:/etc/prometheus/alert.rules

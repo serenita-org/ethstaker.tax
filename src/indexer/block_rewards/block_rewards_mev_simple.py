@@ -130,6 +130,7 @@ async def _get_balance_change_adjusted(
             "0x451D118dBB2AbF9d83cfC04FbdbF3640Fd18d1d3",
             "0x06d9ca334a8a74474e9b6ee31280c494321ae759",
             "0x2f448caad2fc3994bd2de4f59114c86fea9ae68f",
+            "0x248475c0e9810a4f558bce4c718ae50a989dd55e",
         )
         tx_value = int(tx["value"], base=16)
         if tx_value != 1 or tx["to"].lower() != address.lower():
@@ -217,7 +218,7 @@ async def get_block_reward_value(
         for api_url in [
             # see https://ethstaker.cc/mev-relay-list/
             "https://boost-relay.flashbots.net",
-            "https://relay.ultrasound.money",
+            "https://relay-analytics.ultrasound.money",
             "https://agnostic-relay.net",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
