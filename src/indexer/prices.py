@@ -35,8 +35,13 @@ async def index_prices():
 
             # Index missing price data
             date_being_processed = last_date_with_price_data.date() + datetime.timedelta(days=1)
-            price_timestamp = datetime.datetime.combine(date_being_processed, datetime.time(hour=23, minute=59, second=59, tzinfo=pytz.UTC), tzinfo=pytz.UTC)
             while date_being_processed < today:
+                price_timestamp = datetime.datetime.combine(date_being_processed,
+                                                            datetime.time(hour=23,
+                                                                          minute=59,
+                                                                          second=59,
+                                                                          tzinfo=pytz.UTC),
+                                                            tzinfo=pytz.UTC)
                 token_prices = await CoinGecko.token_prices_for_date(
                     token=token,
                     date=date_being_processed,
@@ -49,9 +54,9 @@ async def index_prices():
                         value=price
                     ))
                 session.commit()
+                LATEST_PRICE_DATA_TIMESTAMP.labels(token=token.value).set(price_timestamp.timestamp())
 
                 date_being_processed += datetime.timedelta(days=1)
-            LATEST_PRICE_DATA_TIMESTAMP.labels(token=token.value).set(price_timestamp.timestamp())
 
 
 if __name__ == "__main__":
