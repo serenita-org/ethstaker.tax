@@ -48,7 +48,7 @@ groups:
         summary: "No new RP minipools indexed on ethstaker.tax - new minipool manager address?"
 
     - alert: Price data not being updated
-      expr: increase(latest_price_data_timestamp[2d]) == 0
+      expr: time() - latest_price_data_timestamp > (86400 + 10000)
       annotations:
         summary: "Price data not being updated on ethstaker.tax"
 
