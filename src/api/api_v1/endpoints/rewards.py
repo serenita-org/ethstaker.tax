@@ -22,7 +22,7 @@ from api.api_v1.models import (
 )
 from db.tables import Balance
 from providers.beacon_node import depends_beacon_node, BeaconNode, GENESIS_DATETIME
-from providers.coin_gecko import depends_coin_gecko, CoinGecko
+from providers.coin_gecko import depends_coin_gecko, CoinGecko, SupportedToken
 from providers.db_provider import depends_db, DbProvider
 
 router = APIRouter()
@@ -261,9 +261,11 @@ async def rewards(
         date = BeaconNode.datetime_for_slot(slot, timezone).date()
 
         async with sem:
-            date_eth_price[date] = await coin_gecko.price_for_date(
-                date=date, token="ethereum", currency_fiat=currency, cache=cache
-            )
+            date_eth_price[date] = float(db_provider.close_price_for_date(
+                token=SupportedToken.ETH,
+                currency=currency,
+                date=date,
+            ))
 
     # Order the prices nicely
     date_eth_price = {date: price for date, price in sorted(date_eth_price.items())}

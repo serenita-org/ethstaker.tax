@@ -1,3 +1,5 @@
+from decimal import Decimal
+from enum import Enum
 from typing import Any, List
 import datetime
 from collections import namedtuple
@@ -6,7 +8,7 @@ import logging
 
 import starlette.requests
 from fastapi import FastAPI
-from redis import Redis
+from redis.asyncio import Redis
 
 from providers.http_client_w_backoff import AsyncClientWithBackoff
 from prometheus_client import Counter
@@ -16,6 +18,9 @@ logger = logging.getLogger(__name__)
 COIN_GECKO_REQUEST_COUNT = Counter("coin_gecko_request_count",
                                    "Count of requests to coingecko.com",
                                    labelnames=("path",))
+class SupportedToken(Enum):
+    ETH = "ethereum"
+    ROCKET_POOL = "rocket-pool"
 
 
 class CoinGecko:
@@ -51,41 +56,27 @@ class CoinGecko:
         return currencies
 
     @staticmethod
-    async def price_for_date(date: datetime.date, token: str, currency_fiat: str, cache: Redis) -> float:
+    async def token_prices_for_date(token: SupportedToken, date: datetime.date) -> dict[str, Decimal]:
         # Gets the "close" price for the given date.
         # Coingecko returns open price for day,
         # we need to get the close price (=open price for next day)
+        # -> we use the history endpoint
 
         # Add 1 day interval to date to get close price
         # for the date
         close_date = date + datetime.timedelta(days=1)
-
         close_date_str = close_date.strftime("%d-%m-%Y")
-        currency_fiat = currency_fiat.lower()
 
-        cache_key = f"prices_{token}_{close_date}"
-
-        # Try to get price from cache first
-        price_from_cache = await cache.get(cache_key)
-        if price_from_cache:
-            logger.debug(f"Got prices for date {close_date_str} from cache")
-            prices = json.loads(price_from_cache)
-            for c, p in prices:
-                if c != currency_fiat:
-                    continue
-                return p
-
-        # Try to get close price
-        url = f"{CoinGecko.BASE_URL}/coins/{token}/history"
+        url = f"{CoinGecko.BASE_URL}/coins/{token.value}/history"
         params = {
             "date": close_date_str,
             "localization": "false",
         }
-        resp = await AsyncClientWithBackoff(timeout=CoinGecko.RESPONSE_TIMEOUT).get_w_backoff(url=url, params=params)
-        COIN_GECKO_REQUEST_COUNT.labels("/coins/ethereum/history").inc()
+        resp = await AsyncClientWithBackoff(
+            timeout=CoinGecko.RESPONSE_TIMEOUT).get_w_backoff(url=url, params=params)
+        COIN_GECKO_REQUEST_COUNT.labels(f"/coins/{token.value}/history").inc()
 
         data = resp.json()
-        prices = []
 
         # Historical price data may not be available for that date
         if "market_data" not in data.keys():
@@ -93,21 +84,10 @@ class CoinGecko:
                 f"CoinGecko returned no market data for {close_date}: {data},"
                 f"not trying current price")
 
-        for c, p in data["market_data"]["current_price"].items():
-            prices.append(Price(
-                currency=c,
-                price=p
-            ))
-
-        # Cache prices
-        await cache.set(cache_key, json.dumps(prices))
-
-        # Return currency-specific price
-        for c, p in prices:
-            if c != currency_fiat:
-                continue
-            return p
-        raise Exception(f"Failed to fetch price for {date} in {currency_fiat}")
+        token_prices = {}
+        for currency, price in data["market_data"]["current_price"].items():
+            token_prices[currency] = Decimal(price)
+        return token_prices
 
 
 coin_gecko_plugin = CoinGecko()

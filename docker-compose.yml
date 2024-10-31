@@ -138,6 +138,18 @@ services:
     depends_on:
       - db
 
+  indexer_prices:
+    image: eth2-tax:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: [ "python", "./src/indexer/prices.py" ]
+    environment:
+      DB_URI:
+    depends_on:
+      - db
+
   beacon_node:
     image: sigp/lighthouse:v5.1.222-exp
     restart: unless-stopped
