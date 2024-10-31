@@ -47,6 +47,11 @@ groups:
       annotations:
         summary: "No new RP minipools indexed on ethstaker.tax - new minipool manager address?"
 
+    - alert: Price data not being updated
+      expr: increase(latest_price_data_timestamp[2d]) == 0
+      annotations:
+        summary: "Price data not being updated on ethstaker.tax"
+
     - alert: Low peer count - CL
       expr: libp2p_peers < 80
       annotations:

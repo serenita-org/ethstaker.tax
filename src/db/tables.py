@@ -31,6 +31,15 @@ class BlockReward(Base):
     reward_processed_ok = Column(Boolean, nullable=False)
 
 
+class Price(Base):
+    __tablename__ = "price"
+
+    token = Column(String(length=20), primary_key=True)
+    currency = Column(String(length=5), primary_key=True)
+    timestamp = Column(TIMESTAMP(timezone=True), primary_key=True)
+    value = Column(Numeric(precision=20, scale=2))
+
+
 class RocketPoolBondReduction(Base):
     __tablename__ = "rocket_pool_bond_reduction"
 

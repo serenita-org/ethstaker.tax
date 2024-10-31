@@ -1,5 +1,6 @@
 import datetime
 import logging
+from decimal import Decimal
 from typing import Any, Iterable, List, Type
 from contextlib import contextmanager
 
@@ -9,9 +10,11 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, joinedload
 
 from db.tables import Balance, BlockReward, Withdrawal, RocketPoolMinipool, \
-    RocketPoolReward, RocketPoolRewardPeriod, Validator, RocketPoolNode
+    RocketPoolReward, RocketPoolRewardPeriod, Validator, RocketPoolNode, Price
 from db.db_helpers import _get_engine
 from prometheus_client.metrics import Histogram
+
+from providers.coin_gecko import SupportedToken
 
 DB_REQUESTS_SECONDS = Histogram("db_requests_seconds",
                                 "Time it takes to pull data from the database",
@@ -128,6 +131,20 @@ class DbProvider:
                     continue
 
         return return_data
+
+    @DB_REQUESTS_SECONDS.time()
+    def close_price_for_date(
+        self,
+        token: SupportedToken,
+        currency: str,
+        date: datetime.date,
+    ) -> Decimal:
+        with session_scope(self.engine) as session:
+            return session.get(Price, dict(
+                token=token.value,
+                currency=currency.lower(),
+                timestamp=datetime.datetime.combine(date=date, time=datetime.time(23, 59, 59))
+            )).value
 
     @DB_REQUESTS_SECONDS.time()
     def rocket_pool_node_rewards_for_minipools(self, minipool_addresses: Iterable[str], from_datetime: datetime.datetime, to_datetime: datetime.datetime) -> list[Type[RocketPoolReward]]:
