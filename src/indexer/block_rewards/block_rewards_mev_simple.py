@@ -224,7 +224,6 @@ async def get_block_reward_value(
             "https://agnostic-relay.net",
             "https://bloxroute.max-profit.blxrbdn.com",
             "https://bloxroute.regulated.blxrbdn.com",
-            "https://relay.edennetwork.io",
             "https://mainnet-relay.securerpc.com",
             "https://relay.wenmerge.com",
             "https://aestus.live",
