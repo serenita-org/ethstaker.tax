@@ -133,7 +133,9 @@ async def _get_balance_change_adjusted(
             "0x248475c0e9810a4f558bce4c718ae50a989dd55e",
         )
         tx_value = int(tx["value"], base=16)
-        if tx_value != 1 or tx["to"].lower() != address.lower():
+        if tx_value != 1:
+            continue
+        if tx["to"] is None or tx["to"].lower() != address.lower():
             continue
         if tx["from"].lower() in (a.lower() for a in _spam_sender_addresses):
             balance_change -= tx_value
