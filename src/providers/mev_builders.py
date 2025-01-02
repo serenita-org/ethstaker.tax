@@ -198,6 +198,10 @@ MEV_BUILDERS = [
     ),
     MevBuilder(
         name="jetbldr.eth",
+        fee_recipient_address="0x77777A6C097a1cE65C61A96a49bd1100F660eC94",
+    ),
+    MevBuilder(
+        name="jetbldr.eth",
         fee_recipient_address="0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A",
     ),
 ]
