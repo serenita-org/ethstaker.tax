@@ -23,7 +23,7 @@ def upgrade():
     sa.Column('currency', sa.String(length=5), nullable=False),
     sa.Column('timestamp', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('value', sa.Numeric(precision=20, scale=2), nullable=True),
-    sa.PrimaryKeyConstraint('token', 'currency', 'date')
+    sa.PrimaryKeyConstraint('token', 'currency', 'timestamp')
     )
     # ### end Alembic commands ###
 
