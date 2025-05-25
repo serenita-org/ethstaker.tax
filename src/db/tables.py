@@ -108,8 +108,9 @@ class Validator(Base):
 class Withdrawal(Base):
     __tablename__ = "withdrawal"
 
-    slot = Column(Integer, nullable=False, primary_key=True)
-    validator_index = Column(Integer, nullable=False, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
+    slot = Column(Integer, nullable=False)
+    validator_index = Column(Integer, nullable=False, index=True)
     amount_gwei = Column(Numeric(precision=18), nullable=True)
 
     # Relationships
