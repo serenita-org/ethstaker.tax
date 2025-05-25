@@ -151,7 +151,7 @@ services:
       - db
 
   beacon_node:
-    image: sigp/lighthouse:v5.1.222-exp
+    image: sigp/lighthouse:v7.0.1
     restart: unless-stopped
     command: [
         "lighthouse",
@@ -182,7 +182,7 @@ services:
       - ./etc/jwt_secret.hex:/tmp/jwt_secret
 
   geth:
-    image: ethereum/client-go:v1.14.11
+    image: ethereum/client-go:v1.15.11
     command:
       - "--datadir=/data"
       - "--http"
