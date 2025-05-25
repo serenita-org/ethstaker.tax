@@ -23,6 +23,7 @@ class ExecutionNode:
     HEADERS = {
         "Content-Type": "application/json"
     }
+    MAX_BLOCK_RANGE = 500   # Alchemy supports up to a 500 block range.
 
     def _get_http_client(self) -> AsyncClientWithBackoff:
         return AsyncClientWithBackoff(
@@ -178,13 +179,13 @@ class ExecutionNode:
         tx_receipt = (await self.get_tx_receipts([tx_hash]))[0]
         return int(tx_receipt["gasUsed"], base=16) * int(tx_receipt["effectiveGasPrice"], base=16)
 
-    async def get_logs(self, address: str | None, block_number_range: tuple[int, int], topics: list[str], use_infura=True) -> list[dict]:
-        url = f"{self.BASE_URL}"
-
+    async def _get_logs(self, address: str | None, block_number_range: tuple[int, int], topics: list[str], use_infura: bool) -> list[dict]:
         from_block = block_number_range[0]
         to_block = block_number_range[1]
         assert from_block <= to_block
+        assert to_block - from_block <= (self.MAX_BLOCK_RANGE - 1)
 
+        url = self.BASE_URL
         # Use Infura while checking balances in old blocks! (Archive node required)
         if use_infura:
             await self._wait_for_infura_rate_limiter()
@@ -203,7 +204,7 @@ class ExecutionNode:
                 ],
                 "id": 1
             }, headers=self.HEADERS)
-        EXEC_NODE_REQUEST_COUNT.labels("eth_getLogs", "get_logs").inc()
+        EXEC_NODE_REQUEST_COUNT.labels("eth_getLogs", "_get_logs").inc()
 
         resp_data = resp.json()
         if "error" in resp_data:
@@ -221,7 +222,7 @@ class ExecutionNode:
                     # Otherwise split request into two halves
                     to_block_limited = to_block - ((to_block - from_block) // 2)
 
-                logs.extend(await self.get_logs(
+                logs.extend(await self._get_logs(
                     address=address,
                     block_number_range=(
                         from_block, to_block_limited
@@ -229,7 +230,7 @@ class ExecutionNode:
                     topics=topics,
                     use_infura=use_infura,
                 ))
-                logs.extend(await self.get_logs(
+                logs.extend(await self._get_logs(
                     address=address,
                     block_number_range=(
                         to_block_limited, to_block
@@ -239,9 +240,29 @@ class ExecutionNode:
                 ))
                 return logs
             else:
-                raise ValueError(f"Unexpected error: {resp_data['error']} for in get_logs for {address} , {block_number_range}, {topics}, {use_infura}")
+                raise ValueError(
+                    f"Unexpected error: {resp_data['error']} for in get_logs for {address} , {block_number_range}, {topics}, {use_infura}")
 
         return resp_data["result"]
+
+    async def get_logs(self, address: str | None, block_number_range: tuple[int, int], topics: list[str], use_infura=True) -> list[dict]:
+        all_logs = []
+
+        from_block = block_number_range[0]
+        to_block = block_number_range[1]
+
+        # Split it up into 500 block ranges (max range for Alchemy RPC)
+        for start_block_number in range(from_block, to_block + 1, self.MAX_BLOCK_RANGE):
+            end_block_number = min(start_block_number + (self.MAX_BLOCK_RANGE - 1), to_block)
+
+            all_logs.extend(await self._get_logs(
+                address=address,
+                block_number_range=(start_block_number, end_block_number),
+                topics=topics,
+                use_infura=use_infura,
+            ))
+
+        return all_logs
 
     async def get_tx_data(self, block_number: int, tx_index: int) -> TxData:
         url = f"{self.BASE_URL}"
