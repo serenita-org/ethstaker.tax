@@ -168,9 +168,7 @@ services:
         "--execution-jwt=/tmp/jwt_secret",
         "--checkpoint-sync-url=https://mainnet.checkpoint.sigp.io",
         "--reconstruct-historic-states",
-# deprecated with tree-states        "--slots-per-restore-point=2048",
         "--disable-backfill-rate-limiting",
-        "--unsafe-and-dangerous-mode", # because of the experimental version
     ]
     stop_grace_period: 15m
     ports:

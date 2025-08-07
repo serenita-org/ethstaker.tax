@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from collections import namedtuple
@@ -230,26 +231,35 @@ async def get_block_reward_value(
             "https://titanrelay.xyz",
         ]
     ]
-    for relay in relays:
+
+    relay_fetch_payload_tasks = [
+        asyncio.create_task(relay.get_payload(block_hash=slot_proposer_data.block_hash)) for relay in relays
+    ]
+
+    for coro in asyncio.as_completed(relay_fetch_payload_tasks):
         try:
-            payload = await relay.get_payload(slot_proposer_data.block_hash)
+            payload = await coro
         except NonOkStatusCode as e:
             logger.exception(e)
             continue
         except Exception as e:
-            logger.exception(f"Unexpected error: {e} on relay: {relay.api_url}")
+            logger.exception(f"Unexpected error: {e}")
             raise e
-        if payload:
-            # MEV! Block hash matches with payload delivered by MEV relay
-            logger.info(f"MEV found in {slot_proposer_data.slot} - {relay.api_url}")
-            return await _mev_return_value(
-                block_number=block_number,
-                slot=slot_proposer_data.slot,
-                mev_recipient=payload.proposer_fee_recipient.lower(),
-                execution_node=execution_node,
-                db_provider=db_provider,
-                expected_value=payload.value,
-            )
+        else:
+            if payload is not None:
+                # MEV! Block hash matches with payload delivered by MEV relay
+                for task in relay_fetch_payload_tasks:
+                    task.cancel()
+
+                logger.info(f"MEV found in {slot_proposer_data.slot}")
+                return await _mev_return_value(
+                    block_number=block_number,
+                    slot=slot_proposer_data.slot,
+                    mev_recipient=payload.proposer_fee_recipient.lower(),
+                    execution_node=execution_node,
+                    db_provider=db_provider,
+                    expected_value=payload.value,
+                )
 
     # No MEV detected based on relays
     miner_data = await execution_node.get_miner_data(block_number=block_number)
