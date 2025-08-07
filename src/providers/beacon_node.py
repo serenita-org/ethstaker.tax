@@ -197,9 +197,12 @@ class BeaconNode:
         # Try to get activation slots from cache first
         if cache:
             slots_from_cache = await cache.get(cache_key)
-            if slots_from_cache and all(v in slots_from_cache for v in validator_indexes):
-                logger.debug(f"Using activation slots from cache")
-                return {int(k): v for k, v in json.loads(slots_from_cache).items()}
+            if slots_from_cache:
+                slots = json.loads(slots_from_cache)
+
+                if all(v in slots for v in validator_indexes):
+                    logger.debug(f"Using activation slots from cache")
+                    return {int(k): v for k, v in slots.items()}
 
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
 
