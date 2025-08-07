@@ -425,7 +425,7 @@ async def rewards(
         activation_slots = await beacon_node.activation_slots_for_validators(validator_indexes=validator_indexes, cache=cache)
     except Exception:
         raise HTTPException(status_code=500,
-                            detail=f"Failed to get activation slots for {', '.join(validator_indexes)}")
+                            detail=f"Failed to get activation slots for {validator_indexes}")
     consensus_layer_rewards: dict[int, list[RewardForDate]] = defaultdict(list)
     execution_layer_rewards: dict[int, list[RewardForDate]] = defaultdict(list)
     withdrawals: dict[int, list[RewardForDate]] = defaultdict(list)

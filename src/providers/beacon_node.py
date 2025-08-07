@@ -197,41 +197,32 @@ class BeaconNode:
         # Try to get activation slots from cache first
         if cache:
             slots_from_cache = await cache.get(cache_key)
-            if slots_from_cache:
-                logger.debug(f"Got activation slots from cache")
+            if slots_from_cache and all(v in slots_from_cache for v in validator_indexes):
+                logger.debug(f"Using activation slots from cache")
                 return {int(k): v for k, v in json.loads(slots_from_cache).items()}
 
         url = f"{self.BASE_URL}/eth/v1/beacon/states/head/validators"
 
         logger.debug(f"Getting activation slots for {len(validator_indexes) if validator_indexes else 'all'} indexes")
-        if validator_indexes is None:
+        # httpx encodes the query params like this:
+        # http://100.118.120.78:9596/eth/v1/beacon/states/head/validators?id=48137%2C48138%2C122%2C123%2C124
+        # Teku is able to handle it but Lodestar is not...
+        # Therefore using this hack way for now...
+        #params = {"id": ",".join([str(vi) for vi in validator_indexes])}
+        data = []
+        for vi in validator_indexes:
+            params = {"id": str(vi)}
+
             async with self._get_http_client() as client:
-                resp = await client.get_w_backoff(url=url)
-                try:
-                    data = resp.json()["data"]
-                except KeyError:
-                    raise ValueError(
-                        f"Beacon node returned an error while requesting activation_slots for {validator_indexes}")
-        else:
-            # httpx encodes the query params like this:
-            # http://100.118.120.78:9596/eth/v1/beacon/states/head/validators?id=48137%2C48138%2C122%2C123%2C124
-            # Teku is able to handle it but Lodestar is not...
-            # Therefore using this hack way for now...
-            #params = {"id": ",".join([str(vi) for vi in validator_indexes])}
-            data = []
-            for vi in validator_indexes:
-                params = {"id": str(vi)}
+                resp = await client.get_w_backoff(url=url, params=params)
 
-                async with self._get_http_client() as client:
-                    resp = await client.get_w_backoff(url=url, params=params)
+            try:
+                vi_data = resp.json()["data"]
+            except KeyError:
+                raise ValueError(
+                    f"Beacon node returned an error while requesting activation_slots for {vi}")
 
-                try:
-                    vi_data = resp.json()["data"]
-                except KeyError:
-                    raise ValueError(
-                        f"Beacon node returned an error while requesting activation_slots for {vi}")
-
-                data.extend(vi_data)
+            data.extend(vi_data)
 
         BEACON_NODE_REQUEST_COUNT.labels("/eth/v1/beacon/states/{state_id}/validators", "activation_slot_for_validator").inc()
 
