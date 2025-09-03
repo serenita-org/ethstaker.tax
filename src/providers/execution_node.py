@@ -31,7 +31,7 @@ class ExecutionNode:
         )
 
     def _get_base_url(self) -> str:
-        if os.getenv("USE_INFURA_EVERYWHERE") == "true":
+        if os.getenv("EXECUTION_NODE_USE_INFURA_EVERYWHERE") == "true":
             return os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
 
         return f"http://{os.getenv('EXECUTION_NODE_HOST')}:{os.getenv('EXECUTION_NODE_PORT')}"
