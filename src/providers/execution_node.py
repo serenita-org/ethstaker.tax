@@ -31,6 +31,9 @@ class ExecutionNode:
         )
 
     def _get_base_url(self) -> str:
+        if os.getenv("USE_INFURA_EVERYWHERE") == "true":
+            return os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
+
         return f"http://{os.getenv('EXECUTION_NODE_HOST')}:{os.getenv('EXECUTION_NODE_PORT')}"
 
     async def _wait_for_infura_rate_limiter(self) -> None:
@@ -148,6 +151,25 @@ class ExecutionNode:
         burnt_tx_fees = await self.get_burnt_tx_fees_for_block(block_number=block_number)
         return tx_fees_total - burnt_tx_fees
 
+    async def get_block_receipts(self, block_number: int, use_infura: bool = True) -> list[dict]:
+        if not use_infura:
+            raise ValueError("eth_getBlockReceipts not supported by standard clients?")
+
+        url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
+        async with self._get_http_client() as client:
+            resp = await client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_getBlockReceipts",
+                "params": [hex(block_number)],
+                "id": 1
+            }, headers=self.HEADERS)
+        EXEC_NODE_REQUEST_COUNT.labels("eth_getBlockReceipts", "get_block_receipts").inc()
+
+        if resp.json()["result"] is None:
+            raise ValueError(f"Received null block for {block_number}")
+
+        return resp.json()["result"]
+
     async def get_tx_receipts(self, tx_ids: list[str]) -> list[dict]:
         url = f"{self.BASE_URL}"
         receipts: list[dict] = []
@@ -170,7 +192,13 @@ class ExecutionNode:
                 if resp.status_code != 200:
                     raise ValueError(f"Non-200 status code - {resp.text}"
                                      f" for tx_id_batch: {tx_id_batch}")
-                receipts.extend([data["result"] for data in resp.json()])
+
+                for data in resp.json():
+                    result = data["result"]
+                    if result is None:
+                        logger.warning(f"Received None receipt for tx in batch {tx_id_batch}")
+                    else:
+                        receipts.append(result)
                 EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionReceipt", "get_tx_receipt").inc()
 
         return receipts
@@ -320,7 +348,7 @@ class ExecutionNode:
         tx_fee = 0
         tx_count = len(block["transactions"])
         if tx_count > 0:
-            tx_receipts = await self.get_tx_receipts(block["transactions"])
+            tx_receipts = await self.get_block_receipts(block_number=block_number)
             for receipt in tx_receipts:
                 tx_fee += int(receipt["gasUsed"], base=16) * int(receipt["effectiveGasPrice"], base=16)
         return MinerData(
