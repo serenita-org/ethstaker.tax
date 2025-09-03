@@ -320,7 +320,9 @@ class ExecutionNode:
         ---> use cumulativeGasUsed as returned by block's last tx receipt
         """
         url = f"{self.BASE_URL}"
-        if self._get_miner_data_rpc_supported:
+        # Hardcoding to False - stopped using Besu and the _get_miner_data_rpc_supported setting logic seems broken
+        # if self._get_miner_data_rpc_supported:
+        if False:
             async with self._get_http_client() as client:
                 resp = await client.post_w_backoff(url=url, json={
                     "jsonrpc": "2.0",
@@ -328,7 +330,7 @@ class ExecutionNode:
                     "params": [hex(block_number)],
                     "id": 1
                 }, headers=self.HEADERS)
-            if "the method eth_getMinerDataByBlockNumber does not exist" in resp.text:
+            if "the method eth_getMinerDataByBlockNumber does not exist" in resp.text or "Unsupported method: eth_getMinerDataByBlockNumber" in resp.text:
                 self._get_miner_data_rpc_supported = False
             else:
                 EXEC_NODE_REQUEST_COUNT.labels("eth_getMinerDataByBlockNumber", "get_miner_data").inc()
