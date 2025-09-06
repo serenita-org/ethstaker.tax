@@ -52,13 +52,12 @@ class ExecutionNode:
 
     async def get_block_number(self) -> int:
         url = f"{self.BASE_URL}"
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_blockNumber",
-                "params": [],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_blockNumber",
+            "params": [],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_blockNumber", "get_block_number").inc()
 
         return int(resp.json()["result"], base=16)
@@ -77,13 +76,12 @@ class ExecutionNode:
             await self._wait_for_infura_rate_limiter()
             url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
 
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_call",
-                "params": params,
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_call",
+            "params": params,
+            "id": 1
+        }, headers=self.HEADERS)
 
         EXEC_NODE_REQUEST_COUNT.labels("eth_call", "eth_call").inc()
         return_data = resp.json()
@@ -94,13 +92,12 @@ class ExecutionNode:
 
     async def get_block_tx_count(self, block_number: int) -> int:
         url = f"{self.BASE_URL}"
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_getBlockTransactionCountByNumber",
-                "params": [hex(block_number)],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getBlockTransactionCountByNumber",
+            "params": [hex(block_number)],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getBlockTransactionCountByNumber", "get_block_tx_count").inc()
 
         return int(resp.json()["result"], base=16)
@@ -111,13 +108,12 @@ class ExecutionNode:
         if use_infura:
             await self._wait_for_infura_rate_limiter()
             url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_getBalance",
-                "params": [address, hex(block_number)],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getBalance",
+            "params": [address, hex(block_number)],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getBalance", "get_balance").inc()
         result = resp.json()["result"]
         return int(result, base=16)
@@ -127,13 +123,12 @@ class ExecutionNode:
         verbose - If True it returns the full transaction objects, if False only the hashes of the transactions.
         """
         url = f"{self.BASE_URL}"
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_getBlockByNumber",
-                "params": [hex(block_number), verbose],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getBlockByNumber",
+            "params": [hex(block_number), verbose],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getBlockByNumber", "get_block").inc()
 
         if resp.json()["result"] is None:
@@ -156,13 +151,12 @@ class ExecutionNode:
             raise ValueError("eth_getBlockReceipts not supported by standard clients?")
 
         url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_getBlockReceipts",
-                "params": [hex(block_number)],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getBlockReceipts",
+            "params": [hex(block_number)],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getBlockReceipts", "get_block_receipts").inc()
 
         if resp.json()["result"] is None:
@@ -180,26 +174,25 @@ class ExecutionNode:
             for idx in range(0, l, n):
                 yield iterable[idx:min(idx + n, l)]
 
-        async with self._get_http_client() as client:
-            for tx_id_batch in batch(tx_ids, n=50):
-                resp = await client.post_w_backoff(url=url, json=[{
-                    "jsonrpc": "2.0",
-                    "method": "eth_getTransactionReceipt",
-                    "params": [tx_id],
-                    "id": 1
-                } for tx_id in tx_id_batch], headers=self.HEADERS)
+        for tx_id_batch in batch(tx_ids, n=50):
+            resp = await self.client.post_w_backoff(url=url, json=[{
+                "jsonrpc": "2.0",
+                "method": "eth_getTransactionReceipt",
+                "params": [tx_id],
+                "id": 1
+            } for tx_id in tx_id_batch], headers=self.HEADERS)
 
-                if resp.status_code != 200:
-                    raise ValueError(f"Non-200 status code - {resp.text}"
-                                     f" for tx_id_batch: {tx_id_batch}")
+            if resp.status_code != 200:
+                raise ValueError(f"Non-200 status code - {resp.text}"
+                                 f" for tx_id_batch: {tx_id_batch}")
 
-                for data in resp.json():
-                    result = data["result"]
-                    if result is None:
-                        logger.warning(f"Received None receipt for tx in batch {tx_id_batch}")
-                    else:
-                        receipts.append(result)
-                EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionReceipt", "get_tx_receipt").inc()
+            for data in resp.json():
+                result = data["result"]
+                if result is None:
+                    logger.warning(f"Received None receipt for tx in batch {tx_id_batch}")
+                else:
+                    receipts.append(result)
+            EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionReceipt", "get_tx_receipt").inc()
 
         return receipts
 
@@ -218,20 +211,19 @@ class ExecutionNode:
         if use_infura:
             await self._wait_for_infura_rate_limiter()
             url = os.getenv("EXECUTION_NODE_INFURA_ARCHIVE_URL")
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_getLogs",
-                "params": [
-                    {
-                        "address": address if address else None,
-                        "fromBlock": hex(from_block),
-                        "toBlock": hex(to_block),
-                        "topics": topics,
-                    }
-                ],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getLogs",
+            "params": [
+                {
+                    "address": address if address else None,
+                    "fromBlock": hex(from_block),
+                    "toBlock": hex(to_block),
+                    "topics": topics,
+                }
+            ],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getLogs", "_get_logs").inc()
 
         resp_data = resp.json()
@@ -294,13 +286,12 @@ class ExecutionNode:
 
     async def get_tx_data(self, block_number: int, tx_index: int) -> TxData:
         url = f"{self.BASE_URL}"
-        async with self._get_http_client() as client:
-            resp = await client.post_w_backoff(url=url, json={
-                "jsonrpc": "2.0",
-                "method": "eth_getTransactionByBlockNumberAndIndex",
-                "params": [hex(block_number), hex(tx_index)],
-                "id": 1
-            }, headers=self.HEADERS)
+        resp = await self.client.post_w_backoff(url=url, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getTransactionByBlockNumberAndIndex",
+            "params": [hex(block_number), hex(tx_index)],
+            "id": 1
+        }, headers=self.HEADERS)
         EXEC_NODE_REQUEST_COUNT.labels("eth_getTransactionByBlockNumberAndIndex", "get_tx_data").inc()
 
         result = resp.json()["result"]
@@ -323,13 +314,12 @@ class ExecutionNode:
         # Hardcoding to False - stopped using Besu and the _get_miner_data_rpc_supported setting logic seems broken
         # if self._get_miner_data_rpc_supported:
         if False:
-            async with self._get_http_client() as client:
-                resp = await client.post_w_backoff(url=url, json={
-                    "jsonrpc": "2.0",
-                    "method": "eth_getMinerDataByBlockNumber",
-                    "params": [hex(block_number)],
-                    "id": 1
-                }, headers=self.HEADERS)
+            resp = await self.client.post_w_backoff(url=url, json={
+                "jsonrpc": "2.0",
+                "method": "eth_getMinerDataByBlockNumber",
+                "params": [hex(block_number)],
+                "id": 1
+            }, headers=self.HEADERS)
             if "the method eth_getMinerDataByBlockNumber does not exist" in resp.text or "Unsupported method: eth_getMinerDataByBlockNumber" in resp.text:
                 self._get_miner_data_rpc_supported = False
             else:
