@@ -28,9 +28,12 @@ class MevRelay:
         self.client = self._get_http_client()
 
     async def get_payload(self, block_hash: str) -> Optional[DeliveredPayloadsResponse]:
-        resp = await self.client.get_w_backoff(url=f"{self.api_url}/relay/v1/data/bidtraces/proposer_payload_delivered", params={
-            "block_hash": block_hash,
-        })
+        try:
+            resp = await self.client.get_w_backoff(url=f"{self.api_url}/relay/v1/data/bidtraces/proposer_payload_delivered", params={
+                "block_hash": block_hash,
+            })
+        except Exception as e:
+            raise Exception(f"Error while fetching data from MEV relay ({self.api_url})") from e
 
         if resp.status_code != 200:
             raise Exception(

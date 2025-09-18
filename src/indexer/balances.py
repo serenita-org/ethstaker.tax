@@ -35,7 +35,6 @@ async def index_balances():
 
     beacon_node = BeaconNode()
 
-    eod_slots = set()
     activation_slots = set()
 
     logger.debug(f"Calculating the needed slot numbers...")
