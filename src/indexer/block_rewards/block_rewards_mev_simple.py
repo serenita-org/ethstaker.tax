@@ -229,6 +229,7 @@ async def get_block_reward_value(
             "https://relay.wenmerge.com",
             "https://aestus.live",
             "https://titanrelay.xyz",
+            "https://eu-relay.ethgas.com",
         ]
     ]
 
