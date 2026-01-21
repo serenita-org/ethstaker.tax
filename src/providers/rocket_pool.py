@@ -7,7 +7,6 @@ from typing import Any
 
 import pytz
 import requests
-import zstandard as zstd
 
 from providers.execution_node import ExecutionNode
 
@@ -15,22 +14,23 @@ logger = logging.getLogger(__name__)
 
 
 _MINIPOOL_MANAGER_ADDRESSES = [
-    {
-        # v1 deployed on Nov-02-2021
-        "address": "0x6293b8abc1f36afb22406be5f96d893072a8cf3a",
-    },
-    {
-        # v2 deployed on Aug-14-2022
-        "address": "0x84D11B65E026F7aA08F5497dd3593fb083410B71",
-    },
-    {
-        # v3 deployed on Apr-08-2023
-        "address": "0x6d010C43d4e96D74C422f2e27370AF48711B49bF",
-    },
-    {
-        # v4 deployed on Jun-04-2024
-        "address": "0x09fbce43e4021a3f69c4599ff00362b83eda501e",
-    },
+    # v1-v4 are no longer used
+    # {
+    #     # v1 deployed on Nov-02-2021
+    #     "address": "0x6293b8abc1f36afb22406be5f96d893072a8cf3a",
+    # },
+    # {
+    #     # v2 deployed on Aug-14-2022
+    #     "address": "0x84D11B65E026F7aA08F5497dd3593fb083410B71",
+    # },
+    # {
+    #     # v3 deployed on Apr-08-2023
+    #     "address": "0x6d010C43d4e96D74C422f2e27370AF48711B49bF",
+    # },
+    # {
+    #     # v4 deployed on Jun-04-2024
+    #     "address": "0x09fbce43e4021a3f69c4599ff00362b83eda501e",
+    # },
     {
         # v5 deployed on Oct-12-2024
         "address": "0xF82991Bd8976c243eB3b7CDDc52AB0Fc8dc1246C",
@@ -227,7 +227,7 @@ class RocketPoolDataProvider:
         )
         return Decimal(int(result, base=16))
 
-    async def get_reward_snapshots(self, start_at_period: int) -> list:
+    async def get_reward_snapshots(self, start_at_period: int, from_block_number: int) -> list:
         reward_snapshots = []
         # RewardSnapshot (
         #   index_topic_1 uint256 rewardIndex,
@@ -238,34 +238,23 @@ class RocketPoolDataProvider:
         # )
         logs = await self.execution_node.get_logs(
             address=None,
-            block_number_range=(0, await self.execution_node.get_block_number()),
+            block_number_range=(from_block_number, await self.execution_node.get_block_number()),
             topics=[
                 "0x61caab0be2a0f10d869a5f437dab4535eb8e9c868b8c1fc68f3e5c10d0cd8f66"],
             use_infura=True,
         )
 
         for log_item in logs:
-            cid = bytes.fromhex(log_item['data'][2+1024:2+1024+128]).rstrip(b"\x00").decode()
             reward_period_index = int(log_item['topics'][1][2:], base=16)
-
             if reward_period_index < start_at_period:
                 continue
 
-            # -> IPFS URL
-            ipfs_url = f"https://ipfs.io/ipfs/{cid}/rp-rewards-mainnet-{reward_period_index}.json.zst"
-            resp = requests.get(ipfs_url)
-
-            if resp.status_code == 200:
-                data = json.loads(zstd.decompress(resp.content).decode())
-            else:
-                # IPFS request failed... try falling back to GitHub
-                logger.warning(f"Received unexpected status code {resp.status_code} for {ipfs_url} - reward index {reward_period_index} ({resp.text})")
-
-                github_url = f"https://github.com/rocket-pool/rewards-trees/raw/main/mainnet/rp-rewards-mainnet-{reward_period_index}.json"
-                resp = requests.get(github_url)
-                if resp.status_code != 200:
-                    raise ValueError(f"Received unexpected status code {resp.status_code} for {github_url} - reward index {reward_period_index} ({resp.text})")
-                data = resp.json()
+            # Downloading from GitHub since IPFS CID no longer available on-chain
+            github_url = f"https://github.com/rocket-pool/rewards-trees/raw/main/mainnet/rp-rewards-mainnet-{reward_period_index}.json"
+            resp = requests.get(github_url)
+            if resp.status_code != 200:
+                raise ValueError(f"Received unexpected status code {resp.status_code} for {github_url} - reward index {reward_period_index} ({resp.text})")
+            data = resp.json()
 
             reward_snapshots.append(
                 (reward_period_index, data["nodeRewards"], data["endTime"])

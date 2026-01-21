@@ -23,7 +23,8 @@ class ExecutionNode:
     HEADERS = {
         "Content-Type": "application/json"
     }
-    MAX_BLOCK_RANGE = 500   # Alchemy supports up to a 500 block range.
+    # MAX_BLOCK_RANGE = 10   # Alchemy supports up to a 10 block range on the free plan.
+    MAX_BLOCK_RANGE = 500  # On paid plan now
 
     def _get_http_client(self) -> AsyncClientWithBackoff:
         return AsyncClientWithBackoff(
@@ -271,7 +272,7 @@ class ExecutionNode:
         from_block = block_number_range[0]
         to_block = block_number_range[1]
 
-        # Split it up into 500 block ranges (max range for Alchemy RPC)
+        # Split it up into limited-size block ranges (max range for Alchemy RPC)
         for start_block_number in range(from_block, to_block + 1, self.MAX_BLOCK_RANGE):
             end_block_number = min(start_block_number + (self.MAX_BLOCK_RANGE - 1), to_block)
 

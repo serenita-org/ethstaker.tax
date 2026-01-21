@@ -184,13 +184,12 @@ const showOutputs = computed<boolean>(() => {
   <div class="container my-3">
     <h2>Add your validators</h2>
     <div class="align-items-center my-3">
-      <BFormCheckbox v-model="useRocketPoolMode" switch size="md" disabled>
+      <BFormCheckbox v-model="useRocketPoolMode" switch size="md">
         <img src="../assets/logo-rocket-pool.png" alt="Logo Rocket Pool" height="30" :style="{
           opacity: useRocketPoolMode ? 1 : 0.3
         }" class="mx-1" />
         <span class="mx-1">Rocket Pool Mode</span>
         <i class="bi-question-square" v-b-tooltip title="<a href='https://serenita.io/blog/2024/ethstaker-tax-rocket-pool-mode' target='_blank'>Learn More</a>"/>
-        <span class="mx-1">(disabled due to an indexing issue)</span>
       </BFormCheckbox>
     </div>
     <ValidatorAdder :use-rocket-pool-mode="useRocketPoolMode" @validator-indexes-changed="updateValidatorIndexes"></ValidatorAdder>

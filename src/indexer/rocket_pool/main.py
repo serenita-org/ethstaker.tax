@@ -34,9 +34,13 @@ ROCKET_POOL_BOND_REDUCTIONS = Gauge(
     "rocket_pool_bond_reductions",
     "Number of indexed RP bond reductions",
 )
+ROCKET_POOL_LAST_BLOCK_NUMBER_INDEXED = Gauge(
+    "rocket_pool_last_block_number_indexed",
+    "Number of last block indexed by the RP indexer",
+)
 
 
-LAST_BLOCK_NUMBER_INDEXED = 0
+LAST_BLOCK_NUMBER_INDEXED = 24_290_000
 
 
 async def run():
@@ -117,7 +121,10 @@ async def run():
             ROCKET_POOL_LAST_REWARD_PERIOD_INDEXED.set(last_indexed_reward_period)
 
         logger.info("Indexing reward snapshots")
-        new_reward_trees = await rocket_pool_data.get_reward_snapshots(start_at_period=last_indexed_reward_period+1 if last_indexed_reward_period else 0)
+        new_reward_trees = await rocket_pool_data.get_reward_snapshots(
+            start_at_period=last_indexed_reward_period+1 if last_indexed_reward_period else 0,
+            from_block_number=LAST_BLOCK_NUMBER_INDEXED
+        )
         for reward_period_index, node_rewards, period_end_time in new_reward_trees:
             session.add(RocketPoolRewardPeriod(
                 reward_period_index=reward_period_index,
@@ -134,6 +141,7 @@ async def run():
         session.commit()
 
     LAST_BLOCK_NUMBER_INDEXED = current_exec_block_number
+    ROCKET_POOL_LAST_BLOCK_NUMBER_INDEXED.set(LAST_BLOCK_NUMBER_INDEXED)
 
 
 if __name__ == '__main__':
