@@ -16,4 +16,3 @@ starlette_exporter
 sqlalchemy
 tqdm
 uvicorn[standard]
-zstandard
