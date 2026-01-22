@@ -14,7 +14,7 @@ const gitcoinGrantLink = ref("https://explorer.gitcoin.co/#/round/10/0x8de918f01
     ethstaker.tax is looking for maintainers. If you speak Python, understand Ethereum validators and would like to help keep this website alive, please reach out at info@serenita.io , u/eth2353 on Reddit or Luca on the EthStaker Discord.
   </div>
   <div class="mt-1 alert alert-info" role="alert">
-    Please note 2025 will be the last year I'll personally be "officially" supporting.
+    Please note 2025 will be the last "officially" supported year by the current maintainers. 
   </div>
   <div class="container-fluid d-flex align-items-center justify-content-end mb-1">
       <h6 class="fw-light mx-2">ETHSTAKER.TAX</h6>
