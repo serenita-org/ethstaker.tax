@@ -204,6 +204,10 @@ MEV_BUILDERS = [
         name="jetbldr.eth",
         fee_recipient_address="0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A",
     ),
+    MevBuilder(
+        name="buildernet.eth",
+        fee_recipient_address="0xdadB0d80178819F2319190D340ce9A924f783711",
+    ),
 ]
 
 BUILDER_FEE_RECIPIENTS = { b.fee_recipient_address.lower() for b in MEV_BUILDERS }
