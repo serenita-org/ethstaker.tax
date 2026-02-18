@@ -35,9 +35,13 @@ _MINIPOOL_MANAGER_ADDRESSES = [
         # v5 deployed on Oct-12-2024
         "address": "0xF82991Bd8976c243eB3b7CDDc52AB0Fc8dc1246C",
     },
+    {
+        # v6 deployed on Feb-09-2026
+        "address": "0xe54B8C641fd96dE5D6747f47C19964c6b824D62C",
+    },
     # For future upgrades/reference, you can find the latest RP contract
     # versions here:
-    # https://docs.rocketpool.net/overview/contracts-integrations#all-active-deployed-protocol-contracts
+    # https://docs.rocketpool.net/protocol/contracts-integrations#all-active-deployed-protocol-contracts
 ]
 _NODE_MANAGER_ADDRESS = "0x89f478e6cc24f052103628f36598d4c14da3d287"
 _MINIPOOL_BOND_REDUCER_ADDRESS = "0xf7ab34c74c02407ed653ac9128731947187575c0"
