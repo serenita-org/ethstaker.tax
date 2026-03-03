@@ -104,7 +104,17 @@ class BeaconNode:
             return json.loads(indexes_from_cache)
 
         url = f"https://beaconcha.in/api/v1/validator/eth1/{addr}"
-        resp = await self.client.get_w_backoff(url=url)
+        api_key = os.getenv("BEACONCHAIN_API_KEY")
+        if not api_key:
+            msg = "No value for BEACONCHAIN_API_KEY!"
+            logger.error(msg)
+            raise ValueError(msg)
+        resp = await self.client.get_w_backoff(
+            url=url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+            }
+        )
         BEACONCHAIN_REQUEST_COUNT.inc()
 
         if resp.status_code != 200:
