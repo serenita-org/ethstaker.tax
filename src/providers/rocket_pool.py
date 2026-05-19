@@ -244,7 +244,9 @@ class RocketPoolDataProvider:
             address=None,
             block_number_range=(from_block_number, await self.execution_node.get_block_number()),
             topics=[
-                "0x61caab0be2a0f10d869a5f437dab4535eb8e9c868b8c1fc68f3e5c10d0cd8f66"],
+                "0x61caab0be2a0f10d869a5f437dab4535eb8e9c868b8c1fc68f3e5c10d0cd8f66",
+                "0xcdc52a6101e59cdabb15ba2e286593326138db03833e45895356994d978d28f9",
+            ],
             use_infura=True,
         )
 
