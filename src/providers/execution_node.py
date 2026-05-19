@@ -220,7 +220,7 @@ class ExecutionNode:
                     "address": address if address else None,
                     "fromBlock": hex(from_block),
                     "toBlock": hex(to_block),
-                    "topics": topics,
+                    "topics": [topics],
                 }
             ],
             "id": 1
