@@ -156,6 +156,11 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
             </div>
           </form>
         </BTab>
+        <!--
+        Commenting out "By Deposit Address" validator adder tab - it relied on a beaconcha.in API
+        to link deposit addresses to validator indexes. The API is now behind a paywall.
+        In the future, a "By Withdrawal Address" tab could easily be added since that data is already
+        indexed in the DB (link between validator index and withdrawal address).
         <BTab title="By Deposit Address">
           <form @submit.prevent="getIndexesForDepositAddresses">
             <input
@@ -177,6 +182,7 @@ async function getIndexesForRocketPoolNodeDepositAddresses() {
             </div>
           </form>
         </BTab>
+        -->
         <BTab title="By Rocket Pool Node Address" ref="rocketPoolInputTab">
           <form @submit.prevent="getIndexesForRocketPoolNodeDepositAddresses">
             <input
