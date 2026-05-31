@@ -4,13 +4,13 @@ import axios from "axios";
 
 
 const pubKeyUrl = new URL("/api/v1/index_for_publickey", window.location.href);
-const depositAddrUrl = new URL("/api/v1/indexes_for_eth1_address", window.location.href);
+// const depositAddrUrl = new URL("/api/v1/indexes_for_eth1_address", window.location.href);
 const rpNodeAddrUrl = new URL("/api/v1/indexes_for_rocket_pool_node_address", window.location.href);
 
 
 const indexesInput = ref("");
 const pubkeysInput = ref("");
-const depositAddressesInput = ref("");
+// const depositAddressesInput = ref("");
 const rocketPoolNodeAddressesInput = ref("");
 const activeTabIndex = ref(0);
 const rocketPoolInputTabIndex = 3;
@@ -69,6 +69,7 @@ async function getIndexesForPubkeys() {
   }
 }
 
+/*
 async function getIndexesForDepositAddresses() {
   const inputDepositAddresses = depositAddressesInput.value.split(",").map(function(item) {
     return item.trim();
@@ -87,6 +88,7 @@ async function getIndexesForDepositAddresses() {
     resp.data.forEach((idx: number) => validatorIndexes.value.add(idx))
   }
 }
+*/
 
 async function getIndexesForRocketPoolNodeDepositAddresses() {
   const inputNodeAddresses = rocketPoolNodeAddressesInput.value.split(",").map(function(item) {
